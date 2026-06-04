@@ -11,6 +11,7 @@
       "nav.home": "Home",
       "nav.about": "About",
       "nav.courses": "Courses",
+      "nav.videos": "Videos",
       "nav.why": "Why Us",
       "nav.admissions": "Admissions",
       "nav.contact": "Contact",
@@ -66,6 +67,11 @@
       "c10.li2": "Pre-exam & mock test practice",
       "c10.li3": "School + board exam preparation",
 
+      "videos.eyebrow": "Learn Online",
+      "videos.heading": "Video Lectures",
+      "videos.subtitle": "Watch free maths lessons by Bhasme Sir, anytime.",
+      "videos.button": "Watch more on YouTube",
+
       "feat.eyebrow": "Why Choose Us",
       "feat.h2": "Everything you need to score better",
       "f1.t": "Concept Clarity", "f1.d": "Clarifying fundamental mathematical concepts",
@@ -120,6 +126,7 @@
       "nav.home": "मुख्यपृष्ठ",
       "nav.about": "आमच्याबद्दल",
       "nav.courses": "अभ्यासक्रम",
+      "nav.videos": "व्हिडिओ",
       "nav.why": "का निवडावे",
       "nav.admissions": "प्रवेश",
       "nav.contact": "संपर्क",
@@ -174,6 +181,11 @@
       "c10.li1": "संपूर्ण SSC अभ्यासक्रम",
       "c10.li2": "पूर्वपरीक्षा व सराव चाचण्या",
       "c10.li3": "शालेय + बोर्ड परीक्षेची तयारी",
+
+      "videos.eyebrow": "ऑनलाइन शिका",
+      "videos.heading": "व्हिडिओ लेक्चर्स",
+      "videos.subtitle": "भस्मे सरांचे मोफत गणित व्हिडिओ धडे, कधीही पाहा.",
+      "videos.button": "अधिक व्हिडिओ YouTube वर पाहा",
 
       "feat.eyebrow": "का निवडावे",
       "feat.h2": "उत्तम गुणांसाठी आवश्यक सर्व काही",
