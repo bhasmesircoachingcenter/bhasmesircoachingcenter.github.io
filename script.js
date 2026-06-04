@@ -70,6 +70,9 @@
       "videos.eyebrow": "Learn Online",
       "videos.heading": "Video Lectures",
       "videos.subtitle": "Watch free maths lessons by Bhasme Sir, anytime.",
+      "videos.group8": "Class 8 Maths",
+      "videos.group10alg": "Class 10 – Algebra",
+      "videos.group10geo": "Class 10 – Geometry",
       "videos.button": "Watch more on YouTube",
 
       "feat.eyebrow": "Why Choose Us",
@@ -185,6 +188,9 @@
       "videos.eyebrow": "ऑनलाइन शिका",
       "videos.heading": "व्हिडिओ लेक्चर्स",
       "videos.subtitle": "भस्मे सरांचे मोफत गणित व्हिडिओ धडे, कधीही पाहा.",
+      "videos.group8": "इयत्ता ८वी गणित",
+      "videos.group10alg": "इयत्ता १०वी – बीजगणित",
+      "videos.group10geo": "इयत्ता १०वी – भूमिती",
       "videos.button": "अधिक व्हिडिओ YouTube वर पाहा",
 
       "feat.eyebrow": "का निवडावे",
