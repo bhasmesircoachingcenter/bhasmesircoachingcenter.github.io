@@ -13,6 +13,8 @@
   --shadow: 0 10px 30px rgba(31, 58, 95, 0.10);
   --shadow-sm: 0 4px 14px rgba(31, 58, 95, 0.08);
   --max: 1140px;
+  /* Subtle maths-themed watermark tile (very low-contrast navy on transparent) */
+  --maths-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='%231f3a5f' fill-opacity='0.05' font-family='Georgia, serif' font-size='22'%3E%3Ctext x='12' y='34'%3E%CF%80%3C/text%3E%3Ctext x='64' y='34'%3E%E2%88%9A%3C/text%3E%3Ctext x='120' y='34'%3E%E2%88%91%3C/text%3E%3Ctext x='182' y='34'%3E%E2%88%9E%3C/text%3E%3Ctext x='20' y='92'%3E%E2%88%AB%3C/text%3E%3Ctext x='66' y='92' font-size='15'%3Ea%C2%B2%2Bb%C2%B2%3Dc%C2%B2%3C/text%3E%3Ctext x='198' y='92'%3E%25%3C/text%3E%3Ctext x='16' y='150'%3Ex%C2%B2%3C/text%3E%3Ctext x='74' y='150'%3E%C3%B7%3C/text%3E%3Ctext x='120' y='150'%3E%C3%97%3C/text%3E%3Ctext x='178' y='150'%3E%E2%88%A0%3C/text%3E%3Ctext x='20' y='210'%3E%2B%3C/text%3E%3Ctext x='70' y='210'%3E%E2%88%92%3C/text%3E%3Ctext x='120' y='210'%3E%3D%3C/text%3E%3Ctext x='176' y='210'%3E%CF%80%3C/text%3E%3C/g%3E%3Cg fill='none' stroke='%231f3a5f' stroke-opacity='0.05' stroke-width='1.5'%3E%3Ccircle cx='212' cy='196' r='13'/%3E%3Crect x='150' y='178' width='20' height='20'/%3E%3Cpolygon points='40,206 64,206 52,184'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,7 +24,9 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--maths-bg);
+  background-size: 240px 240px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -113,7 +117,11 @@ body.lang-mr .brand-text strong {
 
 /* Sections */
 .section { padding: 80px 0; }
-.section-alt { background: var(--bg-alt); }
+.section-alt {
+  background-color: var(--bg-alt);
+  background-image: var(--maths-bg);
+  background-size: 240px 240px;
+}
 .section-head { text-align: center; max-width: 680px; margin: 0 auto 48px; }
 .section-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); color: var(--navy); }
 .section-sub { color: var(--muted); margin-top: 12px; }
@@ -299,6 +307,8 @@ body.lang-mr .brand-text strong {
   .section { padding: 56px 0; }
   .cards, .features, .video-grid { grid-template-columns: 1fr; }
   .hero-stats { gap: 22px; }
+  /* Larger tile = fewer repeats so the watermark stays calm on small screens */
+  body, .section-alt { background-size: 320px 320px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
