@@ -106,6 +106,9 @@
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone / WhatsApp",
+      "form.purposeLabel": "I'm interested in",
+      "form.purposeDemo": "Free Demo Class",
+      "form.purposeAdmission": "Admission",
       "form.interested": "Interested In",
       "form.opt8": "Class 8th Maths",
       "form.opt9": "Class 9th Maths",
@@ -228,6 +231,9 @@
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन / व्हॉट्सॲप",
+      "form.purposeLabel": "मला यामध्ये रस आहे",
+      "form.purposeDemo": "मोफत डेमो वर्ग",
+      "form.purposeAdmission": "प्रवेश",
       "form.interested": "कशामध्ये स्वारस्य आहे",
       "form.opt8": "इयत्ता ८वी गणित",
       "form.opt9": "इयत्ता ९वी गणित",
@@ -344,6 +350,12 @@
       if (courseSel && courseSel.options && courseSel.selectedIndex >= 0) {
         course = (courseSel.options[courseSel.selectedIndex].text || "").trim();
       }
+
+      var purposeVal = (form.elements.purpose && form.elements.purpose.value) || "demo";
+      var purpose = purposeVal === "admission"
+        ? (isMr ? "प्रवेश" : "Admission")
+        : (isMr ? "मोफत डेमो वर्ग" : "Free Demo Class");
+
       var message = (form.elements.message && form.elements.message.value || "").trim();
 
       var lines = isMr
@@ -351,6 +363,7 @@
             "भस्मे सर कोचिंग सेंटर वेबसाइटवरून नवीन चौकशी:",
             "नाव: " + name,
             "फोन: " + phone,
+            "उद्देश: " + purpose,
             "इच्छुक वर्ग: " + (course || "-"),
             "संदेश: " + (message || "-")
           ]
@@ -358,6 +371,7 @@
             "New enquiry from Bhasme Sir Coaching Center website:",
             "Name: " + name,
             "Phone: " + phone,
+            "Purpose: " + purpose,
             "Interested in: " + (course || "-"),
             "Message: " + (message || "-")
           ];
