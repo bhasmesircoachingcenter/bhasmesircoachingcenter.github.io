@@ -335,6 +335,13 @@
   /* WhatsApp number that enquiries are sent to (country code + number, digits only). */
   var WHATSAPP_NUMBER = "917058505983";
 
+  /* Public Apps Script Web App webhook for logging enquiries to a Google Sheet.
+     This is a public endpoint by design (not a secret). */
+  var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+
+  /* Canonical English course labels (keep the owner's sheet consistent regardless of site language) */
+  var COURSE_EN = ["Class 8th Maths", "Class 9th Maths", "Class 10th Maths (SSC)"];
+
   if (form) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -363,6 +370,8 @@
       var purpose = purposeVal === "admission"
         ? (isMr ? "प्रवेश" : "Admission")
         : (isMr ? "मोफत डेमो वर्ग" : "Free Demo Class");
+      var purposeEn = purposeVal === "admission" ? "Admission" : "Free Demo Class";
+      var courseEn = (courseSel && courseSel.selectedIndex >= 0 && COURSE_EN[courseSel.selectedIndex]) || course;
 
       var message = (form.elements.message && form.elements.message.value || "").trim();
 
@@ -386,6 +395,20 @@
             "Message: " + (message || "-")
           ];
       lines = lines.filter(function (l) { return l !== null; });
+
+      /* Fire-and-forget log to the Google Sheet. Must never block or prevent the
+         WhatsApp redirect, so it is wrapped in try/catch and uses no-cors + keepalive. */
+      try {
+        var params = new URLSearchParams();
+        params.append("name", name);
+        params.append("phone", phone);
+        params.append("email", email);
+        params.append("purpose", purposeEn);
+        params.append("course", courseEn);
+        params.append("message", message);
+        params.append("lang", isMr ? "mr" : "en");
+        fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true }).catch(function () {});
+      } catch (err) { /* ignore logging failures; the WhatsApp redirect must still run */ }
 
       var waUrl = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
       window.open(waUrl, "_blank", "noopener");
