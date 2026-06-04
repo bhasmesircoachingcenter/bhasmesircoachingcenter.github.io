@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=1" />
+  <link rel="stylesheet" href="auth/auth.css?v=2" />
 </head>
 <body>
   <header>
@@ -73,6 +73,10 @@
             <input type="text" id="regName" name="name" autocomplete="name" maxlength="80" required aria-required="true" />
           </div>
           <div class="field">
+            <label for="regPhone" data-i18n="auth.phone">Mobile Number</label>
+            <input type="tel" id="regPhone" name="phone" inputmode="numeric" autocomplete="tel" maxlength="20" required aria-required="true" />
+          </div>
+          <div class="field">
             <label for="regEmail" data-i18n="auth.email">Email</label>
             <input type="email" id="regEmail" name="email" autocomplete="email" required aria-required="true" />
           </div>
@@ -115,6 +119,6 @@
     </div>
   </main>
 
-  <script type="module" src="auth/auth.js?v=1"></script>
+  <script type="module" src="auth/auth.js?v=2"></script>
 </body>
 </html>

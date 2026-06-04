@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=1" />
+  <link rel="stylesheet" href="auth/auth.css?v=2" />
 </head>
 <body>
   <!-- Shown while the auth state is being resolved; replaced once we know the user. -->
@@ -27,6 +27,7 @@
           </span>
         </a>
         <div class="portal-actions">
+          <a class="btn-admin hidden" id="adminLink" href="admin.html" data-i18n="portal.admin">Admin</a>
           <button class="lang-toggle" id="langToggle" type="button" aria-label="Switch language">मराठी</button>
           <button class="btn-logout" id="logoutBtn" type="button" data-i18n="portal.logout">Logout</button>
         </div>
@@ -39,8 +40,13 @@
         <span id="studentName">—</span>
       </h1>
       <p class="portal-sub" id="studentEmail">—</p>
-      <div id="verifyBanner" class="verify-banner hidden" data-i18n="portal.verify">
-        Please verify your email — check your inbox for the verification link.
+      <div id="verifyBanner" class="verify-banner hidden">
+        <span id="verifyText" data-i18n="portal.verify">Your email isn't verified yet. Please check your inbox (and Spam/Promotions folder).</span>
+        <span class="verify-actions">
+          <button type="button" class="btn-verify" id="resendBtn" data-i18n="portal.resend">Resend verification email</button>
+          <button type="button" class="btn-dismiss" id="dismissVerify" aria-label="Dismiss">&times;</button>
+        </span>
+        <span id="verifyNote" class="verify-note" role="status" aria-live="polite"></span>
       </div>
 
       <div class="portal-grid">
@@ -89,6 +95,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/portal.js?v=1"></script>
+  <script type="module" src="auth/portal.js?v=2"></script>
 </body>
 </html>

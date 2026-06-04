@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | Bhasme Sir Coaching Center</title>
+  <meta name="description" content="Admin panel for managing students, attendance, results and announcements." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="assets/logo.png?v=2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="auth/auth.css?v=2" />
+</head>
+<body>
+  <!-- Resolving auth/admin state -->
+  <div id="loadingView" class="portal-loading" data-i18n="portal.loading">Loading…</div>
+
+  <!-- Shown to signed-in NON-admins -->
+  <div id="deniedView" class="admin-denied hidden">
+    <h1 data-i18n="admin.deniedTitle">Not authorized</h1>
+    <p data-i18n="admin.deniedBody">This area is for administrators only.</p>
+    <a class="btn btn-outline" href="portal.html" data-i18n="admin.backToPortal">Back to portal</a>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="appView" class="hidden">
+    <header class="portal-header">
+      <div class="auth-topbar">
+        <a class="auth-brand" href="index.html">
+          <img src="assets/logo.png?v=2" alt="Bhasme Sir Coaching Center logo" />
+          <span class="auth-brand-text">
+            <strong data-i18n="brand.name">Bhasme Sir</strong>
+            <small data-i18n="admin.badge">Admin Panel</small>
+          </span>
+        </a>
+        <div class="portal-actions">
+          <a class="btn-logout" href="portal.html" data-i18n="admin.portalLink">Portal</a>
+          <button class="lang-toggle" id="langToggle" type="button" aria-label="Switch language">मराठी</button>
+          <button class="btn-logout" id="logoutBtn" type="button" data-i18n="portal.logout">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="portal-main">
+      <h1 class="portal-welcome" data-i18n="admin.title">Admin Panel</h1>
+      <p class="portal-sub" id="adminEmail">—</p>
+
+      <div class="admin-tabs" role="tablist">
+        <button class="admin-tab active" data-tab="students" data-i18n="admin.tabStudents">Students</button>
+        <button class="admin-tab" data-tab="attendance" data-i18n="admin.tabAttendance">Attendance</button>
+        <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
+        <button class="admin-tab" data-tab="announcements" data-i18n="admin.tabAnnouncements">Announcements</button>
+      </div>
+
+      <!-- ===================== STUDENTS ===================== -->
+      <section class="admin-panel active" id="panel-students">
+        <div class="admin-card">
+          <h2 data-i18n="admin.studentsTitle">Students</h2>
+          <p class="admin-note" id="studentsNote" role="status" aria-live="polite"></p>
+          <div id="studentsList">
+            <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== ATTENDANCE ===================== -->
+      <section class="admin-panel" id="panel-attendance">
+        <div class="admin-card">
+          <h2 data-i18n="admin.attendanceTitle">Mark Attendance</h2>
+          <form class="admin-form" id="attendanceForm" novalidate>
+            <div class="field full">
+              <label for="attStudent" data-i18n="admin.student">Student</label>
+              <select id="attStudent" name="student" required></select>
+            </div>
+            <div class="field">
+              <label for="attDate" data-i18n="admin.date">Date</label>
+              <input type="date" id="attDate" name="date" required />
+            </div>
+            <div class="field">
+              <label for="attStatus" data-i18n="admin.status">Status</label>
+              <select id="attStatus" name="status" required>
+                <option value="present" data-i18n="status.present">Present</option>
+                <option value="absent" data-i18n="status.absent">Absent</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="attNote" data-i18n="admin.note">Note (optional)</label>
+              <input type="text" id="attNote" name="note" maxlength="200" />
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary" data-i18n="admin.addAttendance">Add Attendance</button>
+              <p class="admin-note" id="attendanceNote" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
+        <div class="admin-card">
+          <h2 data-i18n="admin.recentAttendance">Recent Attendance</h2>
+          <div class="table-scroll" id="attendanceListWrap">
+            <p class="empty-state" data-i18n="admin.selectStudent">Select a student to see entries.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RESULTS ===================== -->
+      <section class="admin-panel" id="panel-results">
+        <div class="admin-card">
+          <h2 data-i18n="admin.resultsTitle">Add Test Result</h2>
+          <form class="admin-form" id="resultForm" novalidate>
+            <div class="field full">
+              <label for="resStudent" data-i18n="admin.student">Student</label>
+              <select id="resStudent" name="student" required></select>
+            </div>
+            <div class="field">
+              <label for="resTest" data-i18n="admin.testName">Test Name</label>
+              <input type="text" id="resTest" name="testName" maxlength="80" required />
+            </div>
+            <div class="field">
+              <label for="resSubject" data-i18n="admin.subject">Subject</label>
+              <input type="text" id="resSubject" name="subject" maxlength="60" required />
+            </div>
+            <div class="field">
+              <label for="resMarks" data-i18n="admin.marks">Marks</label>
+              <input type="number" id="resMarks" name="marks" min="0" step="0.5" inputmode="decimal" required />
+            </div>
+            <div class="field">
+              <label for="resOutOf" data-i18n="admin.outOf">Out Of</label>
+              <input type="number" id="resOutOf" name="outOf" min="1" step="0.5" inputmode="decimal" required />
+            </div>
+            <div class="field">
+              <label for="resDate" data-i18n="admin.date">Date</label>
+              <input type="date" id="resDate" name="date" required />
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary" data-i18n="admin.addResult">Add Result</button>
+              <p class="admin-note" id="resultNote" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
+        <div class="admin-card">
+          <h2 data-i18n="admin.recentResults">Recent Results</h2>
+          <div class="table-scroll" id="resultListWrap">
+            <p class="empty-state" data-i18n="admin.selectStudent">Select a student to see entries.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== ANNOUNCEMENTS ===================== -->
+      <section class="admin-panel" id="panel-announcements">
+        <div class="admin-card">
+          <h2 data-i18n="admin.announceTitle">Post Announcement</h2>
+          <form class="admin-form" id="announceForm" novalidate>
+            <div class="field">
+              <label for="annTitle" data-i18n="admin.annTitle">Title</label>
+              <input type="text" id="annTitle" name="title" maxlength="120" required />
+            </div>
+            <div class="field">
+              <label for="annDate" data-i18n="admin.date">Date</label>
+              <input type="date" id="annDate" name="date" required />
+            </div>
+            <div class="field full">
+              <label for="annBody" data-i18n="admin.annBody">Message</label>
+              <textarea id="annBody" name="body" maxlength="1000" required></textarea>
+            </div>
+            <div class="field full">
+              <label for="annAudience" data-i18n="admin.audience">Audience ("all" or a batch name)</label>
+              <input type="text" id="annAudience" name="audience" maxlength="80" value="all" required />
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary" data-i18n="admin.postAnnounce">Post Announcement</button>
+              <p class="admin-note" id="announceNote" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
+        <div class="admin-card">
+          <h2 data-i18n="admin.existingAnnounce">Existing Announcements</h2>
+          <div id="announceList">
+            <p class="empty-state" data-i18n="admin.noAnnounce">No announcements yet.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="auth/admin.js?v=1"></script>
+</body>
+</html>

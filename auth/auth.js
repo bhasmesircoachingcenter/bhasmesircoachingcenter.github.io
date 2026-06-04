@@ -46,6 +46,7 @@ var I18N = {
     "auth.registerTitle": "Create Account",
     "auth.registerIntro": "Register as a student to access your personal dashboard.",
     "auth.name": "Full Name",
+    "auth.phone": "Mobile Number",
     "auth.confirm": "Confirm Password",
     "auth.registerBtn": "Create Account",
     "auth.haveAccount": "Already have an account?",
@@ -59,12 +60,13 @@ var I18N = {
     "msg.invalidEmail": "Please enter a valid email address.",
     "msg.pwShort": "Password must be at least 6 characters.",
     "msg.pwMismatch": "Passwords do not match.",
+    "msg.phoneInvalid": "Please enter a valid 10-digit mobile number.",
     "msg.loginFail": "Invalid email or password.",
     "msg.tooMany": "Too many attempts. Please try again later.",
     "msg.network": "Network error. Please check your connection.",
     "msg.welcome": "Signed in — redirecting…",
     "msg.emailInUse": "This email is already registered. Try logging in instead.",
-    "msg.registered": "Account created! A verification email has been sent. Redirecting…",
+    "msg.registered": "Account created! A verification email has been sent — please check your inbox and Spam/Promotions folder. Redirecting…",
     "msg.resetSent": "If that email is registered, a reset link has been sent.",
     "msg.popupClosed": "Sign-in was cancelled.",
     "msg.generic": "Something went wrong. Please try again."
@@ -86,6 +88,7 @@ var I18N = {
     "auth.registerTitle": "खाते तयार करा",
     "auth.registerIntro": "तुमचा वैयक्तिक डॅशबोर्ड वापरण्यासाठी विद्यार्थी म्हणून नोंदणी करा.",
     "auth.name": "पूर्ण नाव",
+    "auth.phone": "मोबाइल नंबर",
     "auth.confirm": "पासवर्डची पुष्टी करा",
     "auth.registerBtn": "खाते तयार करा",
     "auth.haveAccount": "आधीच खाते आहे?",
@@ -99,12 +102,13 @@ var I18N = {
     "msg.invalidEmail": "कृपया वैध ईमेल पत्ता भरा.",
     "msg.pwShort": "पासवर्ड किमान ६ अक्षरांचा हवा.",
     "msg.pwMismatch": "पासवर्ड जुळत नाहीत.",
+    "msg.phoneInvalid": "कृपया वैध १० अंकी मोबाइल नंबर भरा.",
     "msg.loginFail": "ईमेल किंवा पासवर्ड चुकीचा आहे.",
     "msg.tooMany": "खूप प्रयत्न झाले. कृपया नंतर पुन्हा प्रयत्न करा.",
     "msg.network": "नेटवर्क त्रुटी. कृपया तुमचे कनेक्शन तपासा.",
     "msg.welcome": "साइन इन झाले — पुनर्निर्देशित करत आहोत…",
     "msg.emailInUse": "हा ईमेल आधीच नोंदणीकृत आहे. कृपया लॉग इन करा.",
-    "msg.registered": "खाते तयार झाले! पडताळणी ईमेल पाठवला आहे. पुनर्निर्देशित करत आहोत…",
+    "msg.registered": "खाते तयार झाले! पडताळणी ईमेल पाठवला आहे — कृपया तुमचा इनबॉक्स व Spam/Promotions फोल्डर तपासा. पुनर्निर्देशित करत आहोत…",
     "msg.resetSent": "जर तो ईमेल नोंदणीकृत असेल, तर रीसेट लिंक पाठवली आहे.",
     "msg.popupClosed": "साइन-इन रद्द केले.",
     "msg.generic": "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा."
@@ -143,6 +147,15 @@ function applyLang(next) {
 
 /* ---------------- Helpers ---------------- */
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Validate an Indian mobile: 10 digits (6-9 start), optionally +91 / 0 prefix.
+// Returns the normalized 10-digit string, or null if invalid.
+function normalizePhone(raw) {
+  var digits = (raw || "").replace(/[\s\-()]/g, "");
+  digits = digits.replace(/^\+91/, "").replace(/^0+/, "");
+  if (/^[6-9]\d{9}$/.test(digits)) return digits;
+  return null;
+}
 
 function setNote(el, key, type) {
   if (!el) return;
@@ -247,11 +260,15 @@ if (registerForm) {
     var els = registerForm.elements;
     var name = (els.name.value || "").trim();
     var email = (els.email.value || "").trim();
+    var phoneRaw = (els.phone.value || "").trim();
     var password = els.password.value || "";
     var confirm = els.confirm.value || "";
 
     if (!name || !email || !password || !confirm) { setNote(registerNote, "msg.fillAll", "err"); return; }
     if (!EMAIL_RE.test(email)) { setNote(registerNote, "msg.invalidEmail", "err"); return; }
+    // Phone is required; show the specific phone error for empty OR malformed input.
+    var phone = normalizePhone(phoneRaw);
+    if (!phone) { setNote(registerNote, "msg.phoneInvalid", "err"); return; }
     if (password.length < 6) { setNote(registerNote, "msg.pwShort", "err"); return; }
     if (password !== confirm) { setNote(registerNote, "msg.pwMismatch", "err"); return; }
 
@@ -267,7 +284,7 @@ if (registerForm) {
           setDoc(doc(db, "students", user.uid), {
             name: name,
             email: email,
-            phone: "",
+            phone: phone,
             batch: "",
             createdAt: serverTimestamp()
           }),

@@ -13,7 +13,8 @@
 import { auth, db } from "./firebase-config.js";
 import {
   onAuthStateChanged,
-  signOut
+  signOut,
+  sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   doc,
@@ -32,8 +33,13 @@ var I18N = {
     "portal.badge": "Student Portal",
     "portal.loading": "Loading…",
     "portal.logout": "Logout",
+    "portal.admin": "Admin",
     "portal.welcome": "Welcome",
-    "portal.verify": "Please verify your email — check your inbox for the verification link.",
+    "portal.verify": "Your email isn't verified yet. Please check your inbox (and Spam/Promotions folder).",
+    "portal.resend": "Resend verification email",
+    "portal.resendOk": "Verification email sent — check your inbox and Spam folder.",
+    "portal.resendWait": "Please wait a bit before requesting again.",
+    "portal.resendErr": "Could not send right now. Please try again later.",
     "portal.batchTitle": "Batch & Schedule",
     "portal.batch": "Batch",
     "portal.schedule": "Schedule",
@@ -62,8 +68,13 @@ var I18N = {
     "portal.badge": "विद्यार्थी पोर्टल",
     "portal.loading": "लोड होत आहे…",
     "portal.logout": "लॉग आउट",
+    "portal.admin": "अॅडमिन",
     "portal.welcome": "स्वागत आहे",
-    "portal.verify": "कृपया तुमचा ईमेल पडताळा — पडताळणी लिंकसाठी तुमचा इनबॉक्स तपासा.",
+    "portal.verify": "तुमचा ईमेल अद्याप पडताळलेला नाही. कृपया तुमचा इनबॉक्स (आणि Spam/Promotions फोल्डर) तपासा.",
+    "portal.resend": "पडताळणी ईमेल पुन्हा पाठवा",
+    "portal.resendOk": "पडताळणी ईमेल पाठवला — तुमचा इनबॉक्स व Spam फोल्डर तपासा.",
+    "portal.resendWait": "कृपया पुन्हा विनंती करण्यापूर्वी थोडा वेळ थांबा.",
+    "portal.resendErr": "आत्ता पाठवता आले नाही. कृपया नंतर पुन्हा प्रयत्न करा.",
     "portal.batchTitle": "बॅच व वेळापत्रक",
     "portal.batch": "बॅच",
     "portal.schedule": "वेळापत्रक",
@@ -288,6 +299,42 @@ function loadStudentData(uid) {
   });
 }
 
+/* ---------------- Email verification resend ---------------- */
+var verifyWired = false;
+function setupVerifyBanner(user) {
+  var dismiss = el("dismissVerify");
+  if (dismiss && !verifyWired) {
+    dismiss.addEventListener("click", function () {
+      var banner = el("verifyBanner");
+      if (banner) banner.classList.add("hidden");
+    });
+  }
+  var resendBtn = el("resendBtn");
+  var note = el("verifyNote");
+  if (resendBtn && !verifyWired) {
+    resendBtn.addEventListener("click", function () {
+      resendBtn.disabled = true;
+      if (note) { note.textContent = ""; note.className = "verify-note"; }
+      sendEmailVerification(user)
+        .then(function () {
+          if (note) { note.textContent = t("portal.resendOk"); note.className = "verify-note ok"; }
+        })
+        .catch(function (err) {
+          var code = err && err.code;
+          if (note) {
+            note.textContent = code === "auth/too-many-requests" ? t("portal.resendWait") : t("portal.resendErr");
+            note.className = "verify-note err";
+          }
+        })
+        .finally(function () {
+          // Re-enable after a short delay to discourage rapid repeat requests.
+          setTimeout(function () { resendBtn.disabled = false; }, 30000);
+        });
+    });
+  }
+  verifyWired = true;
+}
+
 /* ---------------- Boot ---------------- */
 var langToggle = document.getElementById("langToggle");
 if (langToggle) {
@@ -319,8 +366,19 @@ onAuthStateChanged(auth, function (user) {
   if (app) app.classList.remove("hidden");
 
   setText("studentEmail", user.email || "");
+
+  // Show the resend-verification banner for unverified users (non-blocking).
   var verifyBanner = el("verifyBanner");
   if (verifyBanner) verifyBanner.classList.toggle("hidden", !!user.emailVerified);
+  setupVerifyBanner(user);
+
+  // Reveal the Admin link only if this user is an admin (admins/{uid} exists).
+  getDoc(doc(db, "admins", user.uid)).then(function (snap) {
+    if (snap.exists()) {
+      var adminLink = el("adminLink");
+      if (adminLink) adminLink.classList.remove("hidden");
+    }
+  }).catch(function () { /* not admin / unavailable: keep hidden */ });
 
   loadStudentData(user.uid).then(function () {
     // Ensure email from auth wins if the profile doc lacks it.
