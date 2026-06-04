@@ -38,9 +38,9 @@
       "about.caption": "Bhasme Sir<span>Founder &amp; Maths Teacher</span>",
       "about.award": "🏆 Awarded Best Maths Teacher in Town",
       "about.h3": "Meet Bhasme Sir",
-      "about.p1": 'A distinguished educator with <strong>35 years of service</strong>, Bhasme Sir is a <strong>retired Headmaster</strong> and an awarded <strong>Best Maths Teacher</strong>. Under his guidance, generations of students have mastered mathematics and gone on to become doctors, engineers, lawyers, administrative officers and respected professionals.',
+      "about.p1": 'A distinguished educator with <strong>35 years of service</strong>, Bhasme Sir is a <strong>retired Principal</strong> and an awarded <strong>Best Maths Teacher</strong>. Under his guidance, generations of students have mastered mathematics and gone on to become doctors, engineers, lawyers, administrative officers and respected professionals.',
       "about.p2": "His approach clears fundamental concepts first, then builds speed and accuracy through structured practice. Every student gets personal attention, expert guidance, regular feedback, and a clear roadmap to score well in school and SSC board exams.",
-      "about.pt1": '<span class="tick">✓</span> Retired Headmaster',
+      "about.pt1": '<span class="tick">✓</span> Retired Principal',
       "about.pt2": '<span class="tick">✓</span> Awarded Best Maths Teacher; 35 years of teaching experience',
       "about.pt3": '<span class="tick">✓</span> Mentored students into doctors, engineers, lawyers &amp; officers',
       "about.pt4": '<span class="tick">✓</span> Concept-first teaching, no rote learning',
@@ -106,6 +106,7 @@
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone / WhatsApp",
+      "form.email": "Email (optional)",
       "form.purposeLabel": "I'm interested in",
       "form.purposeDemo": "Free Demo Class",
       "form.purposeAdmission": "Admission",
@@ -163,9 +164,9 @@
       "about.caption": "भस्मे सर<span>संस्थापक व गणित शिक्षक</span>",
       "about.award": "🏆 शहरातील सर्वोत्कृष्ट गणित शिक्षक पुरस्कारप्राप्त",
       "about.h3": "भस्मे सर यांचा परिचय",
-      "about.p1": '३५ वर्षांच्या प्रदीर्घ सेवेचा अनुभव असलेले <strong>भस्मे सर</strong> हे <strong>निवृत्त मुख्याध्यापक</strong> असून <strong>सर्वोत्कृष्ट गणित शिक्षक</strong> पुरस्कारप्राप्त आहेत. त्यांच्या मार्गदर्शनाखाली असंख्य विद्यार्थ्यांनी गणितावर प्रभुत्व मिळवून डॉक्टर, अभियंते, वकील, प्रशासकीय अधिकारी व आदरणीय व्यावसायिक म्हणून यश संपादन केले आहे.',
+      "about.p1": '३५ वर्षांच्या प्रदीर्घ सेवेचा अनुभव असलेले <strong>भस्मे सर</strong> हे <strong>निवृत्त प्राचार्य</strong> असून <strong>सर्वोत्कृष्ट गणित शिक्षक</strong> पुरस्कारप्राप्त आहेत. त्यांच्या मार्गदर्शनाखाली असंख्य विद्यार्थ्यांनी गणितावर प्रभुत्व मिळवून डॉक्टर, अभियंते, वकील, प्रशासकीय अधिकारी व आदरणीय व्यावसायिक म्हणून यश संपादन केले आहे.',
       "about.p2": "त्यांची शिकवण्याची पद्धत प्रथम मूलभूत संकल्पना स्पष्ट करते आणि नंतर सरावातून वेग व अचूकता वाढवते. प्रत्येक विद्यार्थ्याला वैयक्तिक लक्ष, तज्ज्ञ मार्गदर्शन, नियमित अभिप्राय आणि शालेय व SSC बोर्ड परीक्षांमध्ये उत्तम गुण मिळवण्यासाठी स्पष्ट दिशा मिळते.",
-      "about.pt1": '<span class="tick">✓</span> निवृत्त मुख्याध्यापक',
+      "about.pt1": '<span class="tick">✓</span> निवृत्त प्राचार्य',
       "about.pt2": '<span class="tick">✓</span> सर्वोत्कृष्ट गणित शिक्षक पुरस्कारप्राप्त; ३५ वर्षांचा अनुभव',
       "about.pt3": '<span class="tick">✓</span> विद्यार्थ्यांना डॉक्टर, अभियंते, वकील व अधिकारी म्हणून घडवले',
       "about.pt4": '<span class="tick">✓</span> संकल्पना-आधारित शिक्षण, घोकंपट्टी नाही',
@@ -231,6 +232,7 @@
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन / व्हॉट्सॲप",
+      "form.email": "ईमेल (पर्यायी)",
       "form.purposeLabel": "मला यामध्ये रस आहे",
       "form.purposeDemo": "मोफत डेमो वर्ग",
       "form.purposeAdmission": "प्रवेश",
@@ -345,6 +347,12 @@
         return;
       }
 
+      var email = (form.elements.email && form.elements.email.value || "").trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setNote(isMr ? "कृपया वैध ईमेल पत्ता भरा." : "Please enter a valid email address.", "err");
+        return;
+      }
+
       var courseSel = form.elements.course;
       var course = "";
       if (courseSel && courseSel.options && courseSel.selectedIndex >= 0) {
@@ -363,6 +371,7 @@
             "भस्मे सर कोचिंग सेंटर वेबसाइटवरून नवीन चौकशी:",
             "नाव: " + name,
             "फोन: " + phone,
+            (email ? "ईमेल: " + email : null),
             "उद्देश: " + purpose,
             "इच्छुक वर्ग: " + (course || "-"),
             "संदेश: " + (message || "-")
@@ -371,10 +380,12 @@
             "New enquiry from Bhasme Sir Coaching Center website:",
             "Name: " + name,
             "Phone: " + phone,
+            (email ? "Email: " + email : null),
             "Purpose: " + purpose,
             "Interested in: " + (course || "-"),
             "Message: " + (message || "-")
           ];
+      lines = lines.filter(function (l) { return l !== null; });
 
       var waUrl = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
       window.open(waUrl, "_blank", "noopener");
