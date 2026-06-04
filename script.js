@@ -106,7 +106,7 @@
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone / WhatsApp",
-      "form.email": "Email (optional)",
+      "form.email": "Email",
       "form.purposeLabel": "I'm interested in",
       "form.purposeDemo": "Free Demo Class",
       "form.purposeAdmission": "Admission",
@@ -232,7 +232,7 @@
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन / व्हॉट्सॲप",
-      "form.email": "ईमेल (पर्यायी)",
+      "form.email": "ईमेल",
       "form.purposeLabel": "मला यामध्ये रस आहे",
       "form.purposeDemo": "मोफत डेमो वर्ग",
       "form.purposeAdmission": "प्रवेश",
@@ -355,7 +355,11 @@
       }
 
       var email = (form.elements.email && form.elements.email.value || "").trim();
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!email) {
+        setNote(isMr ? "कृपया तुमचा ईमेल पत्ता भरा." : "Please enter your email address.", "err");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         setNote(isMr ? "कृपया वैध ईमेल पत्ता भरा." : "Please enter a valid email address.", "err");
         return;
       }
