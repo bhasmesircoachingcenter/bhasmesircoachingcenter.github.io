@@ -15,16 +15,16 @@
       "nav.why": "Why Us",
       "nav.admissions": "Admissions",
       "nav.contact": "Contact",
-      "nav.demo": "Book Free Demo",
+      "nav.demo": "Book Demo",
 
-      "promo.headline": '1 Week <span class="promo-free">FREE</span> Demo Classes — Starting Soon!',
-      "promo.sub": "Experience Bhasme Sir's teaching before you enroll. Reserve your free seat today!",
-      "promo.cta": "Book Free Demo",
+      "promo.headline": "1 Week Demo Classes — Starting Soon!",
+      "promo.sub": "Experience Bhasme Sir's teaching before you enroll. Reserve your seat today!",
+      "promo.cta": "Book Demo",
 
       "hero.eyebrow": "Mathematics Coaching • Offline Classes • Admissions Open",
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
       "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>1 July 2026</strong>.',
-      "hero.demo": "Book a Free Demo Class",
+      "hero.demo": "Book a Demo Class",
       "hero.viewCourses": "View Courses",
       "hero.stat1num": "35",
       "hero.stat1": "Years Experience",
@@ -102,13 +102,13 @@
       "pr3.t": "Regular Practice", "pr3.d": "Weekly tests and consistent practice to prepare thoroughly for school & SSC exams.",
 
       "contact.eyebrow": "Admissions & Contact",
-      "contact.h2": "Book your free demo class",
+      "contact.h2": "Book your demo class",
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone / WhatsApp",
       "form.email": "Email",
       "form.purposeLabel": "I'm interested in",
-      "form.purposeDemo": "Free Demo Class",
+      "form.purposeDemo": "Demo Class",
       "form.purposeAdmission": "Admission",
       "form.interested": "Interested In",
       "form.opt8": "Class 8th Maths",
@@ -141,16 +141,16 @@
       "nav.why": "का निवडावे",
       "nav.admissions": "प्रवेश",
       "nav.contact": "संपर्क",
-      "nav.demo": "मोफत डेमो बुक करा",
+      "nav.demo": "डेमो बुक करा",
 
-      "promo.headline": '१ आठवडा <span class="promo-free">मोफत</span> डेमो वर्ग — लवकरच सुरू!',
-      "promo.sub": "प्रवेश घेण्यापूर्वी भस्मे सरांचे शिकवणे अनुभवा. आजच तुमची मोफत जागा राखून ठेवा!",
-      "promo.cta": "मोफत डेमो बुक करा",
+      "promo.headline": "१ आठवडा डेमो वर्ग — लवकरच सुरू!",
+      "promo.sub": "प्रवेश घेण्यापूर्वी भस्मे सरांचे शिकवणे अनुभवा. आजच तुमची जागा राखून ठेवा!",
+      "promo.cta": "डेमो बुक करा",
 
       "hero.eyebrow": "गणित कोचिंग • प्रत्यक्ष वर्ग • प्रवेश सुरू",
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
       "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१ जुलै २०२६</strong> पासून सुरू.',
-      "hero.demo": "मोफत डेमो वर्ग बुक करा",
+      "hero.demo": "डेमो वर्ग बुक करा",
       "hero.viewCourses": "अभ्यासक्रम पाहा",
       "hero.stat1num": "३५",
       "hero.stat1": "वर्षांचा अनुभव",
@@ -228,13 +228,13 @@
       "pr3.t": "नियमित सराव", "pr3.d": "शालेय व SSC परीक्षांसाठी साप्ताहिक चाचण्या व सातत्यपूर्ण सराव.",
 
       "contact.eyebrow": "प्रवेश व संपर्क",
-      "contact.h2": "तुमचा मोफत डेमो वर्ग बुक करा",
+      "contact.h2": "तुमचा डेमो वर्ग बुक करा",
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन / व्हॉट्सॲप",
       "form.email": "ईमेल",
       "form.purposeLabel": "मला यामध्ये रस आहे",
-      "form.purposeDemo": "मोफत डेमो वर्ग",
+      "form.purposeDemo": "डेमो वर्ग",
       "form.purposeAdmission": "प्रवेश",
       "form.interested": "कशामध्ये स्वारस्य आहे",
       "form.opt8": "इयत्ता ८वी गणित",
@@ -373,8 +373,8 @@
       var purposeVal = (form.elements.purpose && form.elements.purpose.value) || "demo";
       var purpose = purposeVal === "admission"
         ? (isMr ? "प्रवेश" : "Admission")
-        : (isMr ? "मोफत डेमो वर्ग" : "Free Demo Class");
-      var purposeEn = purposeVal === "admission" ? "Admission" : "Free Demo Class";
+        : (isMr ? "डेमो वर्ग" : "Demo Class");
+      var purposeEn = purposeVal === "admission" ? "Admission" : "Demo Class";
       var courseEn = (courseSel && courseSel.selectedIndex >= 0 && COURSE_EN[courseSel.selectedIndex]) || course;
 
       var message = (form.elements.message && form.elements.message.value || "").trim();
