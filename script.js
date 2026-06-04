@@ -15,6 +15,7 @@
       "nav.why": "Why Us",
       "nav.admissions": "Admissions",
       "nav.contact": "Contact",
+      "nav.login": "Login",
       "nav.demo": "Book Free Demo",
 
       "promo.headline": '1 Week <span class="promo-free">FREE</span> Demo Classes — Starting Soon!',
@@ -141,6 +142,7 @@
       "nav.why": "का निवडावे",
       "nav.admissions": "प्रवेश",
       "nav.contact": "संपर्क",
+      "nav.login": "लॉगिन",
       "nav.demo": "मोफत डेमो बुक करा",
 
       "promo.headline": '१ आठवडा <span class="promo-free">मोफत</span> डेमो वर्ग — लवकरच सुरू!',

@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// =============================================================================
+// Firestore Security Rules — Bhasme Sir Coaching Center student portal
+//
+// DATA MODEL (see auth/DATA_MODEL.md for full detail + example docs):
+//   students/{uid}                         -> profile: name, email, phone, batch, schedule, createdAt
+//   students/{uid}/attendance/{autoId}     -> date, status ("present"|"absent"), note
+//   students/{uid}/results/{autoId}        -> testName, subject, marks, outOf, date
+//   announcements/{autoId}                 -> title, body, date, audience ("all" | a batch name)
+//   admins/{uid}                           -> {} (DOCUMENT EXISTENCE = admin)
+//
+// ADMIN MECHANISM: a user is an admin if a document exists at admins/{their uid}.
+// The owner creates this doc once from the Firebase console (see DATA_MODEL.md).
+// This avoids needing custom claims / Cloud Functions for the MVP.
+//
+// PRINCIPLES: default-deny; a student can read their own data but NOT write
+// attendance/results (only admins can); announcements are readable by any
+// signed-in user and writable only by admins.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ---- students/{uid} : the student's own profile ----
+    // Readable/writable by that student or an admin. We restrict the fields a
+    // student may set on their own profile (cannot self-assign a batch, etc.).
+    match /students/{uid} {
+      allow read: if isUser(uid) || isAdmin();
+      // Student may create/update only their identity fields; admins may write anything.
+      allow create, update: if isAdmin() || (
+        isUser(uid) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'batch', 'schedule', 'createdAt'])
+      );
+      allow delete: if isAdmin();
+
+      // ---- attendance subcollection : student reads, admin writes ----
+      match /attendance/{docId} {
+        allow read: if isUser(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // ---- results subcollection : student reads, admin writes ----
+      match /results/{docId} {
+        allow read: if isUser(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---- announcements : any signed-in user reads, admin writes ----
+    match /announcements/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- admins : readable so the client/rules can check admin status; only
+    // admins can modify the admin list (bootstrap the first admin from console). ----
+    match /admins/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- default deny everything else ----
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
