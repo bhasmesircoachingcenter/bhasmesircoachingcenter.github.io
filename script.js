@@ -107,7 +107,7 @@
       "contact.h2": "Book your free demo class",
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "form.name": "Student / Parent Name",
-      "form.phone": "Phone / WhatsApp",
+      "form.phone": "Phone Number",
       "form.email": "Email",
       "form.purposeLabel": "I'm interested in",
       "form.purposeDemo": "Free Demo Class",
@@ -118,6 +118,7 @@
       "form.opt10": "Class 10th Maths (SSC)",
       "form.message": "Message (optional)",
       "form.send": "Send Enquiry",
+      "form.success": "✅ Thank you! Your details have been captured — we'll contact you shortly.",
       "contact.visit": "Visit Our Center",
       "ci.address": "Address",
       "ci.addressVal": "Bhasme House, Dhawad Layout, I.U.D.P Road, Katol, Maharashtra 441302",
@@ -235,7 +236,7 @@
       "contact.h2": "तुमचा मोफत डेमो वर्ग बुक करा",
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
-      "form.phone": "फोन / व्हॉट्सॲप",
+      "form.phone": "फोन नंबर",
       "form.email": "ईमेल",
       "form.purposeLabel": "मला यामध्ये रस आहे",
       "form.purposeDemo": "मोफत डेमो वर्ग",
@@ -246,6 +247,7 @@
       "form.opt10": "इयत्ता १०वी गणित (SSC)",
       "form.message": "संदेश (पर्यायी)",
       "form.send": "चौकशी पाठवा",
+      "form.success": "✅ धन्यवाद! तुमची माहिती आम्हाला मिळाली आहे — आम्ही लवकरच तुमच्याशी संपर्क करू.",
       "contact.visit": "आमच्या केंद्राला भेट द्या",
       "ci.address": "पत्ता",
       "ci.addressVal": "भस्मे हाऊस, धवड लेआउट, आय.यू.डी.पी. रोड, काटोल, महाराष्ट्र ४४१३०२",
@@ -336,11 +338,9 @@
     note.className = "form-note " + (type || "");
   }
 
-  /* WhatsApp number that enquiries are sent to (country code + number, digits only). */
-  var WHATSAPP_NUMBER = "917058505983";
-
-  /* Public Apps Script Web App webhook for logging enquiries to a Google Sheet.
-     This is a public endpoint by design (not a secret). */
+  /* Public Apps Script Web App webhook for capturing enquiries to a Google Sheet.
+     This is a public endpoint by design (not a secret). The script behind it
+     handles emailing the student + admin server-side. */
   var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
 
   /* Canonical English course labels (keep the owner's sheet consistent regardless of site language) */
@@ -350,6 +350,7 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var isMr = document.documentElement.lang === "mr";
+      var dict = I18N[isMr ? "mr" : "en"];
       var name = (form.elements.name && form.elements.name.value || "").trim();
       var phone = (form.elements.phone && form.elements.phone.value || "").trim();
 
@@ -375,37 +376,24 @@
       }
 
       var purposeVal = (form.elements.purpose && form.elements.purpose.value) || "demo";
-      var purpose = purposeVal === "admission"
-        ? (isMr ? "प्रवेश" : "Admission")
-        : (isMr ? "मोफत डेमो वर्ग" : "Free Demo Class");
       var purposeEn = purposeVal === "admission" ? "Admission" : "Free Demo Class";
       var courseEn = (courseSel && courseSel.selectedIndex >= 0 && COURSE_EN[courseSel.selectedIndex]) || course;
 
       var message = (form.elements.message && form.elements.message.value || "").trim();
 
-      var lines = isMr
-        ? [
-            "भस्मे सर कोचिंग सेंटर वेबसाइटवरून नवीन चौकशी:",
-            "नाव: " + name,
-            "फोन: " + phone,
-            (email ? "ईमेल: " + email : null),
-            "उद्देश: " + purpose,
-            "इच्छुक वर्ग: " + (course || "-"),
-            "संदेश: " + (message || "-")
-          ]
-        : [
-            "New enquiry from Bhasme Sir Coaching Center website:",
-            "Name: " + name,
-            "Phone: " + phone,
-            (email ? "Email: " + email : null),
-            "Purpose: " + purpose,
-            "Interested in: " + (course || "-"),
-            "Message: " + (message || "-")
-          ];
-      lines = lines.filter(function (l) { return l !== null; });
+      var btn = form.querySelector("button[type=submit]");
+      if (btn) btn.disabled = true;
 
-      /* Fire-and-forget log to the Google Sheet. Must never block or prevent the
-         WhatsApp redirect, so it is wrapped in try/catch and uses no-cors + keepalive. */
+      // Show the success state, reset the form, and re-enable the button shortly.
+      var finish = function () {
+        setNote(dict["form.success"], "ok");
+        form.reset();
+        setTimeout(function () { if (btn) btn.disabled = false; }, 1500);
+      };
+
+      /* Fire-and-forget capture to the Google Sheet. We can't read a no-cors
+         response, so we show success optimistically once the promise settles
+         (whether it resolves or rejects). Wrapped in try/catch for safety. */
       try {
         var params = new URLSearchParams();
         params.append("name", name);
@@ -415,12 +403,11 @@
         params.append("course", courseEn);
         params.append("message", message);
         params.append("lang", isMr ? "mr" : "en");
-        fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true }).catch(function () {});
-      } catch (err) { /* ignore logging failures; the WhatsApp redirect must still run */ }
-
-      var waUrl = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(lines.join("\n"));
-      window.open(waUrl, "_blank", "noopener");
-      setNote(isMr ? "व्हॉट्सॲप उघडत आहोत… कृपया संदेश पाठवा." : "Opening WhatsApp… please tap send.", "ok");
+        fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true })
+          .then(finish, finish);
+      } catch (err) {
+        finish();
+      }
     });
   }
 })();
