@@ -44,6 +44,7 @@ var I18N = {
     "admin.tabAttendance": "Attendance",
     "admin.tabResults": "Results",
     "admin.tabAnnouncements": "Announcements",
+    "admin.tabBroadcast": "Email Students",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -76,6 +77,17 @@ var I18N = {
     "admin.postAnnounce": "Post Announcement",
     "admin.existingAnnounce": "Existing Announcements",
     "admin.noAnnounce": "No announcements yet.",
+    "admin.broadcastTitle": "Broadcast Email to All Students",
+    "admin.bcSubject": "Subject",
+    "admin.bcBody": "Message",
+    "admin.bcSend": "Send to All Students",
+    "admin.bcCount": "{n} of {total} students have an email on file.",
+    "admin.bcNoRecipients": "No students have an email on file yet.",
+    "admin.bcConfirm": "Send this email to {n} student(s)?",
+    "admin.bcSending": "Sending…",
+    "admin.bcQueued": "✅ Email queued to {n} students.",
+    "admin.bcErrSend": "Could not send. Please try again.",
+    "admin.bcMissing": "Please enter a subject and message.",
     "admin.delete": "Delete",
     "admin.confirmDelete": "Delete this entry?",
     "admin.added": "Added.",
@@ -110,6 +122,7 @@ var I18N = {
     "admin.tabAttendance": "हजेरी",
     "admin.tabResults": "निकाल",
     "admin.tabAnnouncements": "घोषणा",
+    "admin.tabBroadcast": "विद्यार्थ्यांना ईमेल",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -142,6 +155,17 @@ var I18N = {
     "admin.postAnnounce": "घोषणा प्रकाशित करा",
     "admin.existingAnnounce": "विद्यमान घोषणा",
     "admin.noAnnounce": "अद्याप घोषणा नाहीत.",
+    "admin.broadcastTitle": "सर्व विद्यार्थ्यांना ईमेल पाठवा",
+    "admin.bcSubject": "विषय",
+    "admin.bcBody": "संदेश",
+    "admin.bcSend": "सर्व विद्यार्थ्यांना पाठवा",
+    "admin.bcCount": "{total} पैकी {n} विद्यार्थ्यांचा ईमेल नोंदलेला आहे.",
+    "admin.bcNoRecipients": "अद्याप कोणत्याही विद्यार्थ्याचा ईमेल नोंदलेला नाही.",
+    "admin.bcConfirm": "हा ईमेल {n} विद्यार्थ्यांना पाठवायचा?",
+    "admin.bcSending": "पाठवत आहे…",
+    "admin.bcQueued": "✅ ईमेल {n} विद्यार्थ्यांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcErrSend": "पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
+    "admin.bcMissing": "कृपया विषय व संदेश भरा.",
     "admin.delete": "हटवा",
     "admin.confirmDelete": "ही नोंद हटवायची?",
     "admin.added": "जोडले.",
@@ -172,6 +196,14 @@ function t(key) { return (I18N[lang] && I18N[lang][key]) || (I18N.en[key] || key
 
 var state = { students: [], selectedAtt: "", selectedRes: "" };
 
+// Basic email shape check (matches auth.js). Used to filter broadcast recipients.
+var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Public Apps Script Web App endpoint (same URL used for enquiries in script.js).
+// Authorization for broadcasts is done by passing the admin's Firebase ID token,
+// which the server verifies — no static secret/token is embedded here.
+var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+
 function applyLang(next) {
   if (!I18N[next]) next = "en";
   lang = next;
@@ -193,6 +225,7 @@ function applyLang(next) {
   if (state.selectedAtt) renderAttendanceList(state.selectedAtt);
   if (state.selectedRes) renderResultList(state.selectedRes);
   renderAnnouncements();
+  updateBroadcastCount();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -573,6 +606,78 @@ function initAnnounceForm() {
   });
 }
 
+/* ---------------- Broadcast email ---------------- */
+// Collect every non-empty, valid-looking, de-duplicated student email.
+function collectRecipients() {
+  var seen = {};
+  var emails = [];
+  state.students.forEach(function (s) {
+    var e = (s.email || "").trim().toLowerCase();
+    if (e && EMAIL_RE.test(e) && !Object.prototype.hasOwnProperty.call(seen, e)) {
+      seen[e] = true;
+      emails.push(e);
+    }
+  });
+  return emails;
+}
+
+function updateBroadcastCount() {
+  var node = el("broadcastCount");
+  if (!node) return;
+  var recipients = collectRecipients();
+  if (!recipients.length) {
+    setNote(node, t("admin.bcNoRecipients"), "");
+    return;
+  }
+  setNote(node, t("admin.bcCount").replace("{n}", recipients.length).replace("{total}", state.students.length), "");
+}
+
+function initBroadcastForm() {
+  var form = el("broadcastForm");
+  var note = el("broadcastNote");
+  if (!form) return;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var subject = form.elements.subject.value.trim();
+    var body = form.elements.body.value.trim();
+    if (!subject || !body) { setNote(note, t("admin.bcMissing"), "err"); return; }
+
+    var recipients = collectRecipients();
+    if (!recipients.length) { setNote(note, t("admin.bcNoRecipients"), "err"); return; }
+    if (!window.confirm(t("admin.bcConfirm").replace("{n}", recipients.length))) return;
+
+    var btn = form.querySelector("button[type=submit]");
+    if (btn) btn.disabled = true;
+    setNote(note, t("admin.bcSending"), "");
+
+    var user = auth.currentUser;
+    Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+      .then(function (idToken) {
+        var params = new URLSearchParams();
+        params.append("action", "broadcast");
+        params.append("idToken", idToken);
+        params.append("subject", subject);
+        params.append("body", body);
+        params.append("recipients", recipients.join(","));
+        params.append("lang", lang);
+        // no-cors: the response is opaque/unreadable by design (cross-origin Apps Script).
+        return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+      })
+      .then(function () {
+        // Opaque response — show an optimistic success message.
+        setNote(note, t("admin.bcQueued").replace("{n}", recipients.length), "ok");
+        form.elements.subject.value = "";
+        form.elements.body.value = "";
+      })
+      .catch(function () {
+        setNote(note, t("admin.bcErrSend"), "err");
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  });
+}
+
 /* ---------------- Boot ---------------- */
 var langToggle = document.getElementById("langToggle");
 if (langToggle) langToggle.addEventListener("click", function () { applyLang(lang === "en" ? "mr" : "en"); });
@@ -609,10 +714,12 @@ onAuthStateChanged(auth, function (user) {
     initAttendanceForm();
     initResultForm();
     initAnnounceForm();
+    initBroadcastForm();
 
     loadStudents().then(function () {
       renderStudents();
       populateStudentSelects();
+      updateBroadcastCount();
     }).catch(function () { renderStudents(); });
 
     renderAnnouncements();

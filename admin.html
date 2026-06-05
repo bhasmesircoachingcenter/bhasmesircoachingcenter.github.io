@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=2" />
+  <link rel="stylesheet" href="auth/auth.css?v=3" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -51,6 +51,7 @@
         <button class="admin-tab" data-tab="attendance" data-i18n="admin.tabAttendance">Attendance</button>
         <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
         <button class="admin-tab" data-tab="announcements" data-i18n="admin.tabAnnouncements">Announcements</button>
+        <button class="admin-tab" data-tab="broadcast" data-i18n="admin.tabBroadcast">Email Students</button>
       </div>
 
       <!-- ===================== STUDENTS ===================== -->
@@ -179,9 +180,31 @@
           </div>
         </div>
       </section>
+
+      <!-- ===================== BROADCAST EMAIL ===================== -->
+      <section class="admin-panel" id="panel-broadcast">
+        <div class="admin-card">
+          <h2 data-i18n="admin.broadcastTitle">Broadcast Email to All Students</h2>
+          <p class="admin-note" id="broadcastCount" role="status" aria-live="polite"></p>
+          <form class="admin-form" id="broadcastForm" novalidate>
+            <div class="field full">
+              <label for="bcSubject" data-i18n="admin.bcSubject">Subject</label>
+              <input type="text" id="bcSubject" name="subject" maxlength="160" required />
+            </div>
+            <div class="field full">
+              <label for="bcBody" data-i18n="admin.bcBody">Message</label>
+              <textarea id="bcBody" name="body" maxlength="5000" required></textarea>
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary" data-i18n="admin.bcSend">Send to All Students</button>
+              <p class="admin-note" id="broadcastNote" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
+      </section>
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=1"></script>
+  <script type="module" src="auth/admin.js?v=2"></script>
 </body>
 </html>
