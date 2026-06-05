@@ -97,6 +97,12 @@ img { display: block; }
 .nav-links a:hover { color: var(--orange); }
 .nav-cta { color: #fff !important; }
 
+.board-note {
+  display: inline-block; margin-top: 12px; padding: 6px 16px; border-radius: 999px;
+  background: rgba(47, 158, 158, .12); border: 1px solid rgba(47, 158, 158, .35);
+  color: var(--navy); font-weight: 600; font-size: .9rem;
+}
+
 .lang-toggle {
   margin-left: 18px; background: #fff; color: var(--navy); border: 2px solid var(--navy);
   font-family: "Poppins", "Noto Sans Devanagari", sans-serif; font-weight: 600; font-size: .85rem;

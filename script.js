@@ -22,7 +22,7 @@
       "promo.sub": "Experience Bhasme Sir's teaching before you enroll. Reserve your free seat today!",
       "promo.cta": "Book Free Demo",
 
-      "hero.eyebrow": "Mathematics Coaching • Offline Classes • Admissions Open",
+      "hero.eyebrow": "Maharashtra State Board (SSC) • Maths Coaching • Admissions Open",
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
       "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>1 July 2026</strong>.',
       "hero.demo": "Book a Free Demo Class",
@@ -51,6 +51,7 @@
       "courses.eyebrow": "Courses & Batches",
       "courses.h2": "Find the right batch for you",
       "courses.sub": "Choose your class. Each batch covers the full syllabus with tests and revision built in.",
+      "courses.board": "All courses follow the Maharashtra State Board (SSC) syllabus.",
       "courses.enquire": "Enquire Now",
       "courses.icon8": "8th",
       "courses.icon9": "9th",
@@ -149,7 +150,7 @@
       "promo.sub": "प्रवेश घेण्यापूर्वी भस्मे सरांचे शिकवणे अनुभवा. आजच तुमची मोफत जागा राखून ठेवा!",
       "promo.cta": "मोफत डेमो बुक करा",
 
-      "hero.eyebrow": "गणित कोचिंग • प्रत्यक्ष वर्ग • प्रवेश सुरू",
+      "hero.eyebrow": "महाराष्ट्र राज्य मंडळ (एस.एस.सी.) • गणित कोचिंग • प्रवेश सुरू",
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
       "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१ जुलै २०२६</strong> पासून सुरू.',
       "hero.demo": "मोफत डेमो वर्ग बुक करा",
@@ -178,6 +179,7 @@
       "courses.eyebrow": "अभ्यासक्रम व बॅच",
       "courses.h2": "तुमच्यासाठी योग्य बॅच निवडा",
       "courses.sub": "तुमची इयत्ता निवडा. प्रत्येक बॅचमध्ये संपूर्ण अभ्यासक्रम, चाचण्या व उजळणी समाविष्ट आहे.",
+      "courses.board": "सर्व अभ्यासक्रम महाराष्ट्र राज्य मंडळ (एस.एस.सी.) अभ्यासक्रमानुसार आहेत.",
       "courses.enquire": "चौकशी करा",
       "courses.icon8": "८वी",
       "courses.icon9": "९वी",
