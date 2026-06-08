@@ -77,15 +77,25 @@ var I18N = {
     "admin.postAnnounce": "Post Announcement",
     "admin.existingAnnounce": "Existing Announcements",
     "admin.noAnnounce": "No announcements yet.",
-    "admin.broadcastTitle": "Broadcast Email to All Students",
+    "admin.broadcastTitle": "Broadcast Email",
+    "admin.bcAudienceLabel": "Send to",
+    "admin.bcAudReg": "Registered portal students",
+    "admin.bcAudSheet": "Enquiry contacts (Google Sheet)",
+    "admin.bcAudBoth": "Both (registered + enquiry)",
     "admin.bcSubject": "Subject",
     "admin.bcBody": "Message",
-    "admin.bcSend": "Send to All Students",
-    "admin.bcCount": "{n} of {total} students have an email on file.",
-    "admin.bcNoRecipients": "No students have an email on file yet.",
-    "admin.bcConfirm": "Send this email to {n} student(s)?",
+    "admin.bcSend": "Send Email",
+    "admin.bcCount": "{n} of {total} registered students have an email on file.",
+    "admin.bcCountSheet": "Will send to all enquiry contacts in the Google Sheet.",
+    "admin.bcCountBoth": "{n} registered student(s) + all enquiry contacts in the Google Sheet.",
+    "admin.bcNoRecipients": "No registered students have an email on file yet.",
+    "admin.bcConfirm": "Send this email to {n} registered student(s)?",
+    "admin.bcConfirmSheet": "Send this email to all enquiry contacts in the Google Sheet?",
+    "admin.bcConfirmBoth": "Send to {n} registered student(s) plus all enquiry contacts in the Google Sheet?",
     "admin.bcSending": "Sending…",
-    "admin.bcQueued": "✅ Email queued to {n} students.",
+    "admin.bcQueued": "✅ Email queued to {n} registered student(s).",
+    "admin.bcQueuedSheet": "✅ Email queued to your enquiry contacts.",
+    "admin.bcQueuedBoth": "✅ Email queued to registered students + enquiry contacts.",
     "admin.bcErrSend": "Could not send. Please try again.",
     "admin.bcMissing": "Please enter a subject and message.",
     "admin.delete": "Delete",
@@ -155,15 +165,25 @@ var I18N = {
     "admin.postAnnounce": "घोषणा प्रकाशित करा",
     "admin.existingAnnounce": "विद्यमान घोषणा",
     "admin.noAnnounce": "अद्याप घोषणा नाहीत.",
-    "admin.broadcastTitle": "सर्व विद्यार्थ्यांना ईमेल पाठवा",
+    "admin.broadcastTitle": "ईमेल पाठवा",
+    "admin.bcAudienceLabel": "यांना पाठवा",
+    "admin.bcAudReg": "नोंदणीकृत पोर्टल विद्यार्थी",
+    "admin.bcAudSheet": "चौकशी संपर्क (Google Sheet)",
+    "admin.bcAudBoth": "दोन्ही (नोंदणीकृत + चौकशी)",
     "admin.bcSubject": "विषय",
     "admin.bcBody": "संदेश",
-    "admin.bcSend": "सर्व विद्यार्थ्यांना पाठवा",
-    "admin.bcCount": "{total} पैकी {n} विद्यार्थ्यांचा ईमेल नोंदलेला आहे.",
-    "admin.bcNoRecipients": "अद्याप कोणत्याही विद्यार्थ्याचा ईमेल नोंदलेला नाही.",
-    "admin.bcConfirm": "हा ईमेल {n} विद्यार्थ्यांना पाठवायचा?",
+    "admin.bcSend": "ईमेल पाठवा",
+    "admin.bcCount": "{total} पैकी {n} नोंदणीकृत विद्यार्थ्यांचा ईमेल नोंदलेला आहे.",
+    "admin.bcCountSheet": "Google Sheet मधील सर्व चौकशी संपर्कांना पाठवले जाईल.",
+    "admin.bcCountBoth": "{n} नोंदणीकृत विद्यार्थी + Google Sheet मधील सर्व चौकशी संपर्क.",
+    "admin.bcNoRecipients": "अद्याप कोणत्याही नोंदणीकृत विद्यार्थ्याचा ईमेल नोंदलेला नाही.",
+    "admin.bcConfirm": "हा ईमेल {n} नोंदणीकृत विद्यार्थ्यांना पाठवायचा?",
+    "admin.bcConfirmSheet": "हा ईमेल Google Sheet मधील सर्व चौकशी संपर्कांना पाठवायचा?",
+    "admin.bcConfirmBoth": "{n} नोंदणीकृत विद्यार्थी व Google Sheet मधील सर्व चौकशी संपर्कांना पाठवायचा?",
     "admin.bcSending": "पाठवत आहे…",
-    "admin.bcQueued": "✅ ईमेल {n} विद्यार्थ्यांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcQueued": "✅ ईमेल {n} नोंदणीकृत विद्यार्थ्यांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcQueuedSheet": "✅ ईमेल तुमच्या चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcQueuedBoth": "✅ ईमेल नोंदणीकृत विद्यार्थी + चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcErrSend": "पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
     "admin.bcMissing": "कृपया विषय व संदेश भरा.",
     "admin.delete": "हटवा",
@@ -621,10 +641,27 @@ function collectRecipients() {
   return emails;
 }
 
+// Which recipient list is selected: "registered" | "sheet" | "both".
+function getAudience() {
+  var form = el("broadcastForm");
+  if (!form || !form.elements || !form.elements.audience) return "registered";
+  return form.elements.audience.value || "registered";
+}
+
 function updateBroadcastCount() {
   var node = el("broadcastCount");
   if (!node) return;
+  var audience = getAudience();
   var recipients = collectRecipients();
+  if (audience === "sheet") {
+    setNote(node, t("admin.bcCountSheet"), "");
+    return;
+  }
+  if (audience === "both") {
+    setNote(node, t("admin.bcCountBoth").replace("{n}", recipients.length), "");
+    return;
+  }
+  // registered
   if (!recipients.length) {
     setNote(node, t("admin.bcNoRecipients"), "");
     return;
@@ -636,15 +673,34 @@ function initBroadcastForm() {
   var form = el("broadcastForm");
   var note = el("broadcastNote");
   if (!form) return;
+
+  // Recompute the recipient summary whenever the audience changes.
+  var radios = form.querySelectorAll('input[name="audience"]');
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].addEventListener("change", updateBroadcastCount);
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var subject = form.elements.subject.value.trim();
     var body = form.elements.body.value.trim();
     if (!subject || !body) { setNote(note, t("admin.bcMissing"), "err"); return; }
 
+    var audience = getAudience();
     var recipients = collectRecipients();
-    if (!recipients.length) { setNote(note, t("admin.bcNoRecipients"), "err"); return; }
-    if (!window.confirm(t("admin.bcConfirm").replace("{n}", recipients.length))) return;
+
+    // Only "registered" requires client-collected emails; sheet/both let the
+    // server pull contacts from the enquiry Google Sheet.
+    if (audience === "registered" && !recipients.length) {
+      setNote(note, t("admin.bcNoRecipients"), "err");
+      return;
+    }
+
+    var confirmMsg;
+    if (audience === "sheet") confirmMsg = t("admin.bcConfirmSheet");
+    else if (audience === "both") confirmMsg = t("admin.bcConfirmBoth").replace("{n}", recipients.length);
+    else confirmMsg = t("admin.bcConfirm").replace("{n}", recipients.length);
+    if (!window.confirm(confirmMsg)) return;
 
     var btn = form.querySelector("button[type=submit]");
     if (btn) btn.disabled = true;
@@ -658,14 +714,21 @@ function initBroadcastForm() {
         params.append("idToken", idToken);
         params.append("subject", subject);
         params.append("body", body);
+        params.append("audience", audience);
+        // Registered/both: send the client-collected Firestore emails. The server
+        // ignores this for "sheet" and reads the sheet's Email column itself.
         params.append("recipients", recipients.join(","));
         params.append("lang", lang);
         // no-cors: the response is opaque/unreadable by design (cross-origin Apps Script).
         return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
       })
       .then(function () {
-        // Opaque response — show an optimistic success message.
-        setNote(note, t("admin.bcQueued").replace("{n}", recipients.length), "ok");
+        // Opaque response — show an optimistic success message per audience.
+        var okMsg;
+        if (audience === "sheet") okMsg = t("admin.bcQueuedSheet");
+        else if (audience === "both") okMsg = t("admin.bcQueuedBoth");
+        else okMsg = t("admin.bcQueued").replace("{n}", recipients.length);
+        setNote(note, okMsg, "ok");
         form.elements.subject.value = "";
         form.elements.body.value = "";
       })

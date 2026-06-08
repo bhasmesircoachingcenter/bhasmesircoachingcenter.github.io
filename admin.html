@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=3" />
+  <link rel="stylesheet" href="auth/auth.css?v=4" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -184,9 +184,17 @@
       <!-- ===================== BROADCAST EMAIL ===================== -->
       <section class="admin-panel" id="panel-broadcast">
         <div class="admin-card">
-          <h2 data-i18n="admin.broadcastTitle">Broadcast Email to All Students</h2>
+          <h2 data-i18n="admin.broadcastTitle">Broadcast Email</h2>
           <p class="admin-note" id="broadcastCount" role="status" aria-live="polite"></p>
           <form class="admin-form" id="broadcastForm" novalidate>
+            <div class="field full">
+              <label data-i18n="admin.bcAudienceLabel">Send to</label>
+              <div class="bc-audience" role="radiogroup" aria-label="Recipients">
+                <label class="bc-radio"><input type="radio" name="audience" value="registered" checked /> <span data-i18n="admin.bcAudReg">Registered portal students</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="sheet" /> <span data-i18n="admin.bcAudSheet">Enquiry contacts (Google Sheet)</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="both" /> <span data-i18n="admin.bcAudBoth">Both (registered + enquiry)</span></label>
+              </div>
+            </div>
             <div class="field full">
               <label for="bcSubject" data-i18n="admin.bcSubject">Subject</label>
               <input type="text" id="bcSubject" name="subject" maxlength="160" required />
@@ -205,6 +213,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=2"></script>
+  <script type="module" src="auth/admin.js?v=3"></script>
 </body>
 </html>

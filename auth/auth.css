@@ -318,6 +318,14 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   padding: 9px 12px; margin-bottom: 14px; font-size: .9rem;
 }
 #broadcastForm textarea { min-height: 140px; }
+.bc-audience { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.bc-radio {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-alt); font-size: .92rem; color: var(--navy);
+}
+.bc-radio:hover { border-color: var(--navy); }
+.bc-radio input { width: auto; margin: 0; accent-color: var(--navy); }
 
 @media (max-width: 560px) {
   .admin-form { grid-template-columns: 1fr; }

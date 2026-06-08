@@ -129,35 +129,47 @@ attendance/results/announcements and any student profile).
 ## Admin broadcast email ("Email Students")
 
 The admin panel (`admin.html` → **Email Students** tab) lets an admin send one
-email to every student who has an `email` on file. There is **no** Cloud
-Function: sending is delegated to the existing **Google Apps Script web app**
-(the same `/exec` endpoint used for enquiry capture in `script.js`).
+email to a chosen audience. There is **no** Cloud Function: sending is delegated
+to the existing **Google Apps Script web app** (the same `/exec` endpoint used
+for enquiry capture in `script.js`).
+
+**Audience selector** — the admin picks who receives the email:
+
+| `audience` value | Recipients | Source |
+|------------------|------------|--------|
+| `registered` | Registered portal students with an `email` on file | Firestore `students` collection (collected client-side) |
+| `sheet`      | Enquiry / contact-form leads | The enquiry Google Sheet's **Email** column (read **server-side** by the Apps Script) |
+| `both`       | Registered students **+** enquiry contacts, merged & de-duplicated | Both of the above |
 
 **Flow**
 
-1. The admin opens the Broadcast tab, which shows a live count
-   (`X of Y students have an email on file`).
-2. `admin.js` reads the whole `students` collection client-side and collects
-   every non-empty, valid-looking, de-duplicated `email` into a recipients list.
-3. The admin enters a **subject** + **message** and confirms the recipient count.
+1. The admin opens the Broadcast tab and chooses an audience; a live summary
+   updates (registered count, or "all enquiry contacts in the Google Sheet").
+2. For `registered`/`both`, `admin.js` reads the whole `students` collection
+   client-side and collects every non-empty, valid, de-duplicated `email`.
+   For `sheet`, no client list is needed — the server reads the sheet itself.
+3. The admin enters a **subject** + **message** and confirms.
 4. `admin.js` obtains the admin's Firebase **ID token**
    (`await auth.currentUser.getIdToken()`) and POSTs a form-urlencoded request
    to the Apps Script `/exec` URL with `mode: 'no-cors'`, `keepalive: true`.
 5. The Apps Script (owner-maintained, **server-side**) verifies the ID token
-   belongs to an authorized admin email, then BCC-emails the recipients.
+   belongs to an authorized admin email, then builds the recipient set from
+   `recipients` (registered/both) and/or the sheet's Email column (sheet/both),
+   de-dupes, and BCC-emails them in batches.
 6. Because the `no-cors` response is opaque/unreadable, the client shows an
-   **optimistic** success message (`✅ Email queued to N students.`).
+   **optimistic** success message.
 
 **POST parameters** (`application/x-www-form-urlencoded`):
 
-| Param        | Value                                                        |
-|--------------|--------------------------------------------------------------|
-| `action`     | `broadcast`                                                  |
-| `idToken`    | Firebase ID token of the signed-in admin (server verifies)   |
-| `subject`    | Email subject                                                |
-| `body`       | Email message body                                           |
-| `recipients` | Comma-joined list of student emails                          |
-| `lang`       | Current UI language (`en` / `mr`)                            |
+| Param        | Value                                                                 |
+|--------------|-----------------------------------------------------------------------|
+| `action`     | `broadcast`                                                           |
+| `idToken`    | Firebase ID token of the signed-in admin (server verifies)            |
+| `audience`   | `registered` \| `sheet` \| `both`                                     |
+| `subject`    | Email subject                                                         |
+| `body`       | Email message body                                                   |
+| `recipients` | Comma-joined registered-student emails (used for `registered`/`both`) |
+| `lang`       | Current UI language (`en` / `mr`)                                    |
 
 > Security: authorization is enforced entirely by the server verifying the
 > Firebase `idToken` (admin email allow-list). **No static secret/token is
