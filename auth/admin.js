@@ -41,6 +41,7 @@ var I18N = {
     "admin.deniedBody": "This area is for administrators only.",
     "admin.backToPortal": "Back to portal",
     "admin.tabStudents": "Students",
+    "admin.tabDetails": "Student Details",
     "admin.tabAttendance": "Attendance",
     "admin.tabResults": "Results",
     "admin.tabAnnouncements": "Announcements",
@@ -98,6 +99,31 @@ var I18N = {
     "admin.bcQueuedBoth": "✅ Email queued to registered students + enquiry contacts.",
     "admin.bcErrSend": "Could not send. Please try again.",
     "admin.bcMissing": "Please enter a subject and message.",
+    "admin.detailsTitle": "Student Details",
+    "admin.detailsSource": "Source",
+    "admin.detailsSrcRegistered": "Registered students (portal)",
+    "admin.detailsSrcEnquiry": "Enquiry contacts (Google Sheet)",
+    "admin.detailsSrcBoth": "Both (merged & de-duplicated by email)",
+    "admin.detailsLoading": "Loading…",
+    "admin.detailsCount": "Showing {n} records",
+    "admin.detailsEmpty": "No records to show.",
+    "admin.detailsErr": "Could not load enquiry contacts. The owner may need to add/redeploy the Apps Script doGet endpoint.",
+    "dcol.name": "Name",
+    "dcol.email": "Email",
+    "dcol.phone": "Phone",
+    "dcol.batch": "Batch",
+    "dcol.schedule": "Schedule",
+    "dcol.registered": "Registered",
+    "dcol.timestamp": "Timestamp",
+    "dcol.purpose": "Purpose",
+    "dcol.course": "Course",
+    "dcol.message": "Message",
+    "dcol.language": "Language",
+    "dcol.source": "Source",
+    "dcol.details": "Details",
+    "src.registered": "Registered",
+    "src.enquiry": "Enquiry",
+    "src.both": "Both",
     "admin.delete": "Delete",
     "admin.confirmDelete": "Delete this entry?",
     "admin.added": "Added.",
@@ -129,6 +155,7 @@ var I18N = {
     "admin.deniedBody": "हा भाग फक्त प्रशासकांसाठी आहे.",
     "admin.backToPortal": "पोर्टलकडे परत",
     "admin.tabStudents": "विद्यार्थी",
+    "admin.tabDetails": "विद्यार्थी तपशील",
     "admin.tabAttendance": "हजेरी",
     "admin.tabResults": "निकाल",
     "admin.tabAnnouncements": "घोषणा",
@@ -186,6 +213,31 @@ var I18N = {
     "admin.bcQueuedBoth": "✅ ईमेल नोंदणीकृत विद्यार्थी + चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcErrSend": "पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
     "admin.bcMissing": "कृपया विषय व संदेश भरा.",
+    "admin.detailsTitle": "विद्यार्थी तपशील",
+    "admin.detailsSource": "स्रोत",
+    "admin.detailsSrcRegistered": "नोंदणीकृत विद्यार्थी (पोर्टल)",
+    "admin.detailsSrcEnquiry": "चौकशी संपर्क (Google Sheet)",
+    "admin.detailsSrcBoth": "दोन्ही (ईमेलनुसार एकत्रित व डुप्लिकेट काढून)",
+    "admin.detailsLoading": "लोड होत आहे…",
+    "admin.detailsCount": "{n} नोंदी दर्शवित आहे",
+    "admin.detailsEmpty": "दर्शविण्यासाठी नोंदी नाहीत.",
+    "admin.detailsErr": "चौकशी संपर्क लोड करता आले नाहीत. मालकाला Apps Script doGet जोडून पुन्हा डिप्लॉय करावे लागेल.",
+    "dcol.name": "नाव",
+    "dcol.email": "ईमेल",
+    "dcol.phone": "फोन",
+    "dcol.batch": "बॅच",
+    "dcol.schedule": "वेळापत्रक",
+    "dcol.registered": "नोंदणी",
+    "dcol.timestamp": "वेळ",
+    "dcol.purpose": "उद्देश",
+    "dcol.course": "अभ्यासक्रम",
+    "dcol.message": "संदेश",
+    "dcol.language": "भाषा",
+    "dcol.source": "स्रोत",
+    "dcol.details": "तपशील",
+    "src.registered": "नोंदणीकृत",
+    "src.enquiry": "चौकशी",
+    "src.both": "दोन्ही",
     "admin.delete": "हटवा",
     "admin.confirmDelete": "ही नोंद हटवायची?",
     "admin.added": "जोडले.",
@@ -214,7 +266,16 @@ if (!I18N[lang]) lang = "en";
 
 function t(key) { return (I18N[lang] && I18N[lang][key]) || (I18N.en[key] || key); }
 
-var state = { students: [], selectedAtt: "", selectedRes: "" };
+var state = {
+  students: [],
+  studentsLoaded: false,
+  selectedAtt: "",
+  selectedRes: "",
+  // Student Details tab
+  detailsSource: "registered",
+  detailsInit: false,
+  enquiries: null // cached enquiry rows fetched from the sheet via JSONP
+};
 
 // Basic email shape check (matches auth.js). Used to filter broadcast recipients.
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -246,6 +307,7 @@ function applyLang(next) {
   if (state.selectedRes) renderResultList(state.selectedRes);
   renderAnnouncements();
   updateBroadcastCount();
+  if (state.detailsInit) renderDetails();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -287,9 +349,10 @@ function loadStudents() {
   return getDocs(collection(db, "students")).then(function (qs) {
     state.students = qs.docs.map(function (d) {
       var data = d.data() || {};
-      return { id: d.id, name: data.name || "", email: data.email || "", phone: data.phone || "", batch: data.batch || "", schedule: data.schedule || "" };
+      return { id: d.id, name: data.name || "", email: data.email || "", phone: data.phone || "", batch: data.batch || "", schedule: data.schedule || "", createdAt: data.createdAt || null };
     });
     state.students.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    state.studentsLoaded = true;
   });
 }
 
@@ -741,6 +804,239 @@ function initBroadcastForm() {
   });
 }
 
+/* ---------------- Student Details (table view) ---------------- */
+// Coerce any sheet/Firestore value to display text, falling back to an em dash.
+function dtext(v) {
+  if (v === undefined || v === null || v === "") return t("dash");
+  return String(v);
+}
+
+// Ensure the Firestore students list is loaded once (reuse if already present).
+function ensureStudents() {
+  if (state.studentsLoaded) return Promise.resolve();
+  return loadStudents().catch(function () { /* leave students as-is on failure */ });
+}
+
+// Fetch enquiry contacts from the Apps Script web app via JSONP. A normal fetch()
+// response from Apps Script is blocked by CORS, so we inject a <script> tag whose
+// callback receives the JSON payload. Authorization is the admin's Firebase ID
+// token (verified server-side) — no static secret is embedded here.
+function fetchEnquiries() {
+  return new Promise(function (resolve, reject) {
+    var user = auth.currentUser;
+    if (!user) { reject(new Error("no-user")); return; }
+    user.getIdToken().then(function (idToken) {
+      var cbName = "__bccEnq_" + Date.now() + "_" + Math.floor(Math.random() * 1e9);
+      var script = document.createElement("script");
+      var timer = null;
+
+      function cleanup() {
+        if (timer) { clearTimeout(timer); timer = null; }
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      timer = setTimeout(function () { cleanup(); reject(new Error("timeout")); }, 15000);
+
+      window[cbName] = function (payload) {
+        cleanup();
+        if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
+          resolve(payload.rows);
+        } else {
+          reject(new Error((payload && payload.error) || "bad-response"));
+        }
+      };
+
+      script.onerror = function () { cleanup(); reject(new Error("network")); };
+      script.src = SHEET_ENDPOINT +
+        "?action=enquiries&idToken=" + encodeURIComponent(idToken) +
+        "&callback=" + encodeURIComponent(cbName);
+      document.head.appendChild(script);
+    }).catch(reject);
+  });
+}
+
+// Load enquiry rows once and cache them for the session.
+function ensureEnquiries() {
+  if (state.enquiries) return Promise.resolve(state.enquiries);
+  return fetchEnquiries().then(function (rows) {
+    state.enquiries = Array.isArray(rows) ? rows : [];
+    return state.enquiries;
+  });
+}
+
+// Build a real <table> from header strings + an array of string-cell rows.
+// Every cell is created with textContent (via cell()), so untrusted sheet/message
+// content can never be interpreted as HTML.
+function buildDetailsTable(headers, rows) {
+  var table = document.createElement("table");
+  table.className = "data-table";
+  var thead = document.createElement("thead");
+  var htr = document.createElement("tr");
+  headers.forEach(function (h) { htr.appendChild(cell("th", h)); });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+  var tbody = document.createElement("tbody");
+  rows.forEach(function (r) {
+    var tr = document.createElement("tr");
+    r.forEach(function (val) { tr.appendChild(cell("td", val)); });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+function registeredHeaders() {
+  return [t("dcol.name"), t("dcol.email"), t("dcol.phone"), t("dcol.batch"), t("dcol.schedule"), t("dcol.registered")];
+}
+function buildRegisteredRows() {
+  return state.students.map(function (s) {
+    return [dtext(s.name), dtext(s.email), dtext(s.phone), dtext(s.batch), dtext(s.schedule), fmtDate(s.createdAt)];
+  });
+}
+
+// Enquiry rows are header-mapped objects keyed by the sheet's HEADERS.
+function enquiryHeaders() {
+  return [t("dcol.timestamp"), t("dcol.name"), t("dcol.phone"), t("dcol.email"), t("dcol.purpose"), t("dcol.course"), t("dcol.message"), t("dcol.language")];
+}
+function buildEnquiryRows(rows) {
+  return rows.map(function (r) {
+    r = r || {};
+    return [dtext(r.Timestamp), dtext(r.Name), dtext(r.Phone), dtext(r.Email), dtext(r.Purpose), dtext(r.Course), dtext(r.Message), dtext(r.Language)];
+  });
+}
+
+// Merge registered + enquiry into one set, de-duplicated by lowercased email.
+function bothHeaders() {
+  return [t("dcol.source"), t("dcol.name"), t("dcol.email"), t("dcol.phone"), t("dcol.details")];
+}
+function joinDetails(parts) {
+  var clean = parts.filter(function (p) { return p && String(p).trim(); });
+  return clean.length ? clean.join(" · ") : t("dash");
+}
+function buildBothRows(students, enquiries) {
+  var map = {};
+  var order = [];
+  function entryFor(email, fallbackKey) {
+    var e = (email || "").trim().toLowerCase();
+    var key = e ? "e:" + e : "u:" + fallbackKey;
+    if (!map[key]) {
+      map[key] = { name: "", email: email || "", phone: "", details: "", reg: false, enq: false };
+      order.push(key);
+    }
+    return map[key];
+  }
+  (students || []).forEach(function (s, i) {
+    var en = entryFor(s.email, "r" + i);
+    en.reg = true;
+    if (!en.name) en.name = s.name || "";
+    if (!en.email) en.email = s.email || "";
+    if (!en.phone) en.phone = s.phone || "";
+    var regDetails = joinDetails([s.batch, s.schedule]);
+    en.details = en.details ? en.details : (regDetails === t("dash") ? "" : regDetails);
+  });
+  (enquiries || []).forEach(function (r, i) {
+    r = r || {};
+    var en = entryFor(r.Email, "q" + i);
+    en.enq = true;
+    if (!en.name) en.name = r.Name || "";
+    if (!en.email) en.email = r.Email || "";
+    if (!en.phone) en.phone = r.Phone || "";
+    var enqDetails = joinDetails([r.Purpose, r.Course]);
+    if (enqDetails !== t("dash")) {
+      en.details = en.details ? en.details + " · " + enqDetails : enqDetails;
+    }
+  });
+  return order.map(function (key) {
+    var e = map[key];
+    var srcLabel = e.reg && e.enq ? t("src.both") : (e.reg ? t("src.registered") : t("src.enquiry"));
+    return [srcLabel, dtext(e.name), dtext(e.email), dtext(e.phone), e.details ? e.details : t("dash")];
+  });
+}
+
+function setDetailsCount(n) {
+  var node = el("detailsCount");
+  if (node) setNote(node, t("admin.detailsCount").replace("{n}", n), "");
+}
+function detailsMessage(text) {
+  var wrap = el("detailsTableWrap");
+  if (!wrap) return;
+  wrap.textContent = "";
+  var p = document.createElement("p");
+  p.className = "empty-state";
+  p.textContent = text;
+  wrap.appendChild(p);
+}
+function setDetailsLoading() {
+  detailsMessage(t("admin.detailsLoading"));
+  var node = el("detailsCount");
+  if (node) setNote(node, "", "");
+}
+function setDetailsError() {
+  detailsMessage(t("admin.detailsErr"));
+  var node = el("detailsCount");
+  if (node) setNote(node, "", "");
+}
+function showDetailsTable(headers, rows) {
+  var wrap = el("detailsTableWrap");
+  if (!wrap) return;
+  if (!rows.length) {
+    detailsMessage(t("admin.detailsEmpty"));
+    setDetailsCount(0);
+    return;
+  }
+  wrap.textContent = "";
+  wrap.appendChild(buildDetailsTable(headers, rows));
+  setDetailsCount(rows.length);
+}
+
+function renderDetails() {
+  var wrap = el("detailsTableWrap");
+  if (!wrap) return;
+  var src = state.detailsSource || "registered";
+  setDetailsLoading();
+
+  if (src === "registered") {
+    ensureStudents().then(function () {
+      if (state.detailsSource !== src) return;
+      showDetailsTable(registeredHeaders(), buildRegisteredRows());
+    });
+    return;
+  }
+
+  if (src === "enquiry") {
+    ensureEnquiries().then(function (enq) {
+      if (state.detailsSource !== src) return;
+      showDetailsTable(enquiryHeaders(), buildEnquiryRows(enq));
+    }).catch(function () {
+      if (state.detailsSource !== src) return;
+      setDetailsError();
+    });
+    return;
+  }
+
+  // both
+  Promise.all([ensureStudents(), ensureEnquiries()]).then(function (res) {
+    if (state.detailsSource !== src) return;
+    showDetailsTable(bothHeaders(), buildBothRows(state.students, res[1]));
+  }).catch(function () {
+    if (state.detailsSource !== src) return;
+    setDetailsError();
+  });
+}
+
+function initDetailsTab() {
+  var sel = el("detailsSource");
+  if (!sel) return;
+  state.detailsSource = sel.value || "registered";
+  state.detailsInit = true;
+  sel.addEventListener("change", function () {
+    state.detailsSource = sel.value || "registered";
+    renderDetails();
+  });
+  renderDetails();
+}
+
 /* ---------------- Boot ---------------- */
 var langToggle = document.getElementById("langToggle");
 if (langToggle) langToggle.addEventListener("click", function () { applyLang(lang === "en" ? "mr" : "en"); });
@@ -778,11 +1074,13 @@ onAuthStateChanged(auth, function (user) {
     initResultForm();
     initAnnounceForm();
     initBroadcastForm();
+    initDetailsTab();
 
     loadStudents().then(function () {
       renderStudents();
       populateStudentSelects();
       updateBroadcastCount();
+      if (state.detailsInit) renderDetails();
     }).catch(function () { renderStudents(); });
 
     renderAnnouncements();

@@ -327,6 +327,25 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 .bc-radio:hover { border-color: var(--navy); }
 .bc-radio input { width: auto; margin: 0; accent-color: var(--navy); }
 
+/* Student details source picker */
+.details-controls { max-width: 380px; margin-bottom: 14px; }
+.details-controls label {
+  display: block; font-weight: 600; font-size: .9rem; color: var(--navy); margin-bottom: 6px;
+}
+.details-controls select {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+  font: inherit; font-size: 16px; color: var(--ink); background: #fff;
+}
+.details-controls select:focus {
+  outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,158,158,.15);
+}
+#detailsCount {
+  color: var(--navy); font-weight: 600; background: var(--bg-alt);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 12px; margin-bottom: 14px; font-size: .9rem;
+}
+#detailsCount:empty { display: none; }
+
 @media (max-width: 560px) {
   .admin-form { grid-template-columns: 1fr; }
   .student-edit { grid-template-columns: 1fr; }

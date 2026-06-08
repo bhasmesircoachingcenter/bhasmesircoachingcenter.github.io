@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=4" />
+  <link rel="stylesheet" href="auth/auth.css?v=5" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -48,6 +48,7 @@
 
       <div class="admin-tabs" role="tablist">
         <button class="admin-tab active" data-tab="students" data-i18n="admin.tabStudents">Students</button>
+        <button class="admin-tab" data-tab="details" data-i18n="admin.tabDetails">Student Details</button>
         <button class="admin-tab" data-tab="attendance" data-i18n="admin.tabAttendance">Attendance</button>
         <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
         <button class="admin-tab" data-tab="announcements" data-i18n="admin.tabAnnouncements">Announcements</button>
@@ -61,6 +62,25 @@
           <p class="admin-note" id="studentsNote" role="status" aria-live="polite"></p>
           <div id="studentsList">
             <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== STUDENT DETAILS ===================== -->
+      <section class="admin-panel" id="panel-details">
+        <div class="admin-card">
+          <h2 data-i18n="admin.detailsTitle">Student Details</h2>
+          <div class="details-controls">
+            <label for="detailsSource" data-i18n="admin.detailsSource">Source</label>
+            <select id="detailsSource" name="detailsSource">
+              <option value="registered" data-i18n="admin.detailsSrcRegistered">Registered students (portal)</option>
+              <option value="enquiry" data-i18n="admin.detailsSrcEnquiry">Enquiry contacts (Google Sheet)</option>
+              <option value="both" data-i18n="admin.detailsSrcBoth">Both (merged & de-duplicated by email)</option>
+            </select>
+          </div>
+          <p class="admin-note" id="detailsCount" role="status" aria-live="polite"></p>
+          <div class="table-scroll" id="detailsTableWrap">
+            <p class="empty-state" data-i18n="admin.detailsEmpty">No records to show.</p>
           </div>
         </div>
       </section>
@@ -213,6 +233,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=3"></script>
+  <script type="module" src="auth/admin.js?v=4"></script>
 </body>
 </html>
