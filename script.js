@@ -24,7 +24,7 @@
 
       "hero.eyebrow": "Maharashtra State Board (SSC) • Maths Coaching • Admissions Open",
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
-      "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>1 July 2026</strong>.',
+      "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>10 July 2026</strong>.',
       "hero.demo": "Book a Free Demo Class",
       "hero.viewCourses": "View Courses",
       "hero.stat1num": "35",
@@ -95,7 +95,7 @@
 
       "launch.tag": "Now Enrolling",
       "launch.h2": "Be part of our very first batch",
-      "launch.p": 'Bhasme Sir Coaching Center opens its doors on <strong>1 July 2026</strong>. Join the inaugural batch and learn directly from an award-winning, 35-year-experienced teacher — with limited seats for focused, personal attention.',
+      "launch.p": 'Bhasme Sir Coaching Center opens its doors on <strong>10 July 2026</strong>. Join the inaugural batch and learn directly from an award-winning, 35-year-experienced teacher — with limited seats for focused, personal attention.',
       "launch.cta": "Reserve Your Seat",
       "promise.eyebrow": "Our Promise",
       "promise.h2": "What every student can expect",
@@ -125,7 +125,7 @@
       "ci.call": "Call / WhatsApp",
       "ci.email": "Email",
       "ci.start": "New Batches Start",
-      "ci.startVal": "1 July 2026 — Admissions Open",
+      "ci.startVal": "10 July 2026 — Admissions Open",
       "ci.batches": "Batches",
       "ci.batchesVal": "Class 8th, 9th & 10th Maths (SSC)",
       "ci.qr": "Scan to open &amp; share our website",
@@ -153,7 +153,7 @@
 
       "hero.eyebrow": "महाराष्ट्र राज्य मंडळ (एस.एस.सी.) • गणित कोचिंग • प्रवेश सुरू",
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
-      "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१ जुलै २०२६</strong> पासून सुरू.',
+      "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१० जुलै २०२६</strong> पासून सुरू.',
       "hero.demo": "मोफत डेमो वर्ग बुक करा",
       "hero.viewCourses": "अभ्यासक्रम पाहा",
       "hero.stat1num": "३५",
@@ -224,7 +224,7 @@
 
       "launch.tag": "प्रवेश सुरू",
       "launch.h2": "आमच्या पहिल्याच बॅचचा भाग व्हा",
-      "launch.p": 'भस्मे सर कोचिंग सेंटर <strong>१ जुलै २०२६</strong> रोजी सुरू होत आहे. पुरस्कारप्राप्त, ३५ वर्षांचा अनुभव असलेल्या शिक्षकांकडून थेट शिका — मर्यादित जागा, वैयक्तिक लक्ष.',
+      "launch.p": 'भस्मे सर कोचिंग सेंटर <strong>१० जुलै २०२६</strong> रोजी सुरू होत आहे. पुरस्कारप्राप्त, ३५ वर्षांचा अनुभव असलेल्या शिक्षकांकडून थेट शिका — मर्यादित जागा, वैयक्तिक लक्ष.',
       "launch.cta": "तुमची जागा राखून ठेवा",
       "promise.eyebrow": "आमचे वचन",
       "promise.h2": "प्रत्येक विद्यार्थ्याला काय मिळेल",
@@ -254,7 +254,7 @@
       "ci.call": "कॉल / व्हॉट्सॲप",
       "ci.email": "ईमेल",
       "ci.start": "नवीन बॅच सुरू",
-      "ci.startVal": "१ जुलै २०२६ — प्रवेश सुरू",
+      "ci.startVal": "१० जुलै २०२६ — प्रवेश सुरू",
       "ci.batches": "बॅच",
       "ci.batchesVal": "इयत्ता ८वी, ९वी व १०वी गणित (SSC)",
       "ci.qr": "वेबसाइट उघडण्यासाठी व शेअर करण्यासाठी स्कॅन करा",
