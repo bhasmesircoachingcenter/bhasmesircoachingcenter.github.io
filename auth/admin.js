@@ -74,7 +74,8 @@ var I18N = {
     "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
-    "admin.attErrRoster": "Could not load names from your admission sheet (Form_Responses / Admissions tab). Paste latest Code.gs in Apps Script → Deploy → New version.",
+    "admin.attErrRoster": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version. Your Admissions tab has students but the website cannot read them yet.",
+    "admin.attErrScript": "Apps Script missing admissions API. Open Extensions → Apps Script, paste full Code.gs, Deploy → New version.",
     "admin.colAttStatus": "Attendance",
     "admin.resultsTitle": "Add Test Result",
     "admin.testName": "Test Name",
@@ -220,7 +221,8 @@ var I18N = {
     "admin.attSavedPortal": "हजेरी जतन झाली (Sheet + विद्यार्थी पोर्टल).",
     "admin.attErrLoad": "हजेरी लोड करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
     "admin.attErrSave": "हजेरी जतन करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
-    "admin.attErrRoster": "Admissions sheet वरून नावे लोड होऊ शकली नाहीत. Code.gs Apps Script मध्ये paste करा → Deploy → New version.",
+    "admin.attErrRoster": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → New version. Admissions टॅबमध्ये विद्यार्थी आहेत पण वेबसाइट अद्याप वाचू शकत नाही.",
+    "admin.attErrScript": "Apps Script मध्ये admissions API नाही. Extensions → Apps Script, पूर्ण Code.gs paste करा, Deploy → New version.",
     "admin.colAttStatus": "हजेरी",
     "admin.resultsTitle": "चाचणी निकाल जोडा",
     "admin.testName": "चाचणीचे नाव",
@@ -620,23 +622,28 @@ function mapRosterPayload(roster) {
   }).filter(function (s) { return s.name; });
 }
 
+function tryAttendanceRosterApi() {
+  return sheetAdminRequest("attendance", { subaction: "roster" })
+    .then(function (payload) { return mapRosterPayload(payload.roster); })
+    .catch(function () { return []; });
+}
+
 function ensureAttendanceRoster(forceRefresh) {
   if (!forceRefresh && state.attendanceRoster.length) {
     return Promise.resolve(state.attendanceRoster);
   }
 
-  // Prefer admissions API (already deployed) — roster subaction is optional.
   return ensureAdmissions(forceRefresh).then(function (rows) {
     state.attendanceRoster = buildAttendanceRoster(rows);
     if (state.attendanceRoster.length) return state.attendanceRoster;
-
-    return sheetAdminRequest("attendance", { subaction: "roster" }).then(function (payload) {
-      state.attendanceRoster = mapRosterPayload(payload.roster);
+    return tryAttendanceRosterApi().then(function (roster) {
+      state.attendanceRoster = roster;
       return state.attendanceRoster;
     });
-  }).catch(function () {
-    return sheetAdminRequest("attendance", { subaction: "roster" }).then(function (payload) {
-      state.attendanceRoster = mapRosterPayload(payload.roster);
+  }).catch(function (err) {
+    state.admissionsError = err && err.message ? err.message : "fetch-failed";
+    return tryAttendanceRosterApi().then(function (roster) {
+      state.attendanceRoster = roster;
       return state.attendanceRoster;
     });
   });
@@ -786,6 +793,9 @@ function loadAttendanceForDate(date) {
   ensureAttendanceRoster(true).then(function () {
     if (!state.attendanceRoster.length) {
       renderAttendanceGrid();
+      if (note && state.admissionsError) {
+        setNote(note, t("admin.attErrScript"), "err");
+      }
       return;
     }
 
@@ -813,7 +823,7 @@ function loadAttendanceForDate(date) {
   }).catch(function () {
     state.attendanceRoster = [];
     renderAttendanceGrid();
-    if (note) setNote(note, t("admin.attErrRoster"), "err");
+    if (note) setNote(note, t("admin.attErrScript"), "err");
   });
 }
 
