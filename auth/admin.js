@@ -62,17 +62,19 @@ var I18N = {
     "admin.status": "Status",
     "admin.note": "Note (optional)",
     "admin.attendanceTitle": "Mark Daily Attendance",
-    "admin.attendanceHint": "Choose a date, mark each registered student Present or Absent, then save. Records are stored in your Google Sheet (Attendance tab).",
+    "admin.attendanceHint": "Students are loaded from your Admission form (Admissions sheet). Pick a date, tick Present for each student, then save to the Attendance tab.",
     "admin.attAllPresent": "All Present",
     "admin.attAllAbsent": "All Absent",
     "admin.attSave": "Save Attendance to Sheet",
     "admin.attLoading": "Loading students…",
-    "admin.attNoStudents": "No registered students yet. Students appear here after they sign up on the portal.",
+    "admin.attNoAdmissions": "No students on the Admissions sheet yet. Submit the online admission form first.",
+    "admin.attPresent": "Present",
     "admin.attSummary": "{present} present · {absent} absent · {total} students",
     "admin.attSaved": "Attendance saved to Google Sheet.",
     "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
+    "admin.attErrRoster": "Could not load student names from Admissions sheet. Paste latest Code.gs in Apps Script → Deploy → New version.",
     "admin.colAttStatus": "Attendance",
     "admin.resultsTitle": "Add Test Result",
     "admin.testName": "Test Name",
@@ -206,17 +208,19 @@ var I18N = {
     "admin.status": "स्थिती",
     "admin.note": "टीप (पर्यायी)",
     "admin.attendanceTitle": "दैनिक हजेरी नोंदवा",
-    "admin.attendanceHint": "दिनांक निवडा, प्रत्येक नोंदणीकृत विद्यार्थ्यासाठी हजर/गैरहजर निवडा आणि जतन करा. नोंदी Google Sheet (Attendance टॅब) मध्ये जतन होतात.",
+    "admin.attendanceHint": "विद्यार्थी प्रवेश अर्जातून (Admissions sheet) लोड होतात. दिनांक निवडा, हजर विद्यार्थ्यासाठी खूण करा आणि Attendance टॅबमध्ये जतन करा.",
     "admin.attAllPresent": "सर्व हजर",
     "admin.attAllAbsent": "सर्व गैरहजर",
     "admin.attSave": "हजेरी Sheet मध्ये जतन करा",
     "admin.attLoading": "विद्यार्थी लोड होत आहेत…",
-    "admin.attNoStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
+    "admin.attNoAdmissions": "Admissions sheet वर अद्याप विद्यार्थी नाहीत. प्रथम ऑनलाइन प्रवेश अर्ज भरा.",
+    "admin.attPresent": "हजर",
     "admin.attSummary": "{present} हजर · {absent} गैरहजर · {total} विद्यार्थी",
     "admin.attSaved": "हजेरी Google Sheet मध्ये जतन झाली.",
     "admin.attSavedPortal": "हजेरी जतन झाली (Sheet + विद्यार्थी पोर्टल).",
     "admin.attErrLoad": "हजेरी लोड करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
     "admin.attErrSave": "हजेरी जतन करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
+    "admin.attErrRoster": "Admissions sheet वरून नावे लोड होऊ शकली नाहीत. Code.gs Apps Script मध्ये paste करा → Deploy → New version.",
     "admin.colAttStatus": "हजेरी",
     "admin.resultsTitle": "चाचणी निकाल जोडा",
     "admin.testName": "चाचणीचे नाव",
@@ -332,6 +336,7 @@ var state = {
   selectedRes: "",
   attendanceDate: "",
   attendanceMap: {},
+  attendanceRoster: [], // students from Admissions sheet (admission form)
   // Student Details tab
   detailsSource: "registered",
   detailsInit: false,
@@ -535,15 +540,87 @@ function populateStudentSelects() {
   });
 }
 
-/* ---------------- Daily attendance (Google Sheet + portal) ---------------- */
+/* ---------------- Daily attendance (Admissions sheet + Google Sheet) ---------------- */
 
-function studentAttKey(s) {
-  var email = studentSheetEmail(s).toLowerCase();
-  return email || ("id:" + s.id);
+function buildAttendanceRoster(admissionRows) {
+  var seen = {};
+  var list = [];
+  (admissionRows || []).forEach(function (r) {
+    var name = String(r.Name || "").trim();
+    if (!name) return;
+    var email = String(r.Email || "").trim();
+    var mobile = String(r.Mobile || "").trim();
+    var key = email && email.indexOf("@") > 0
+      ? email.toLowerCase()
+      : ("name:" + name.toLowerCase() + "|" + mobile);
+    if (seen[key]) return;
+    seen[key] = true;
+    list.push({
+      name: name,
+      email: email,
+      mobile: mobile,
+      batch: String(r.Class || r.Batch || "").trim()
+    });
+  });
+  return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
 }
 
-function studentSheetEmail(s) {
-  return (s.email || "").trim();
+function rosterAttKey(s) {
+  var email = String(s.email || "").trim().toLowerCase();
+  if (email && email.indexOf("@") > 0) return email;
+  var name = String(s.name || "").trim().toLowerCase();
+  var mobile = String(s.mobile || "").trim();
+  return "name:" + name + "|" + mobile;
+}
+
+function matchRecordToRosterKey(r) {
+  var email = String(r.email || "").trim().toLowerCase();
+  if (email && email.indexOf("@") > 0) return email;
+  var name = String(r.name || "").trim().toLowerCase();
+  for (var i = 0; i < state.attendanceRoster.length; i++) {
+    var s = state.attendanceRoster[i];
+    if (String(s.name || "").trim().toLowerCase() === name) return rosterAttKey(s);
+  }
+  return "name:" + name;
+}
+
+function rosterSheetEmail(s) {
+  var email = String(s.email || "").trim();
+  return email && email.indexOf("@") > 0 ? email : "";
+}
+
+function portalStudentByEmail(email) {
+  if (!email || email.indexOf("@") <= 0) return null;
+  var lower = email.toLowerCase();
+  for (var i = 0; i < state.students.length; i++) {
+    if ((state.students[i].email || "").toLowerCase() === lower) return state.students[i];
+  }
+  return null;
+}
+
+function ensureAttendanceRoster(forceRefresh) {
+  if (!forceRefresh && state.attendanceRoster.length) {
+    return Promise.resolve(state.attendanceRoster);
+  }
+  return sheetAdminRequest("attendance", { subaction: "roster" })
+    .then(function (payload) {
+      var roster = Array.isArray(payload.roster) ? payload.roster : [];
+      state.attendanceRoster = roster.map(function (r) {
+        return {
+          name: String((r && r.name) || "").trim(),
+          email: String((r && r.email) || "").trim(),
+          mobile: String((r && r.mobile) || "").trim(),
+          batch: String((r && r.batch) || "").trim()
+        };
+      }).filter(function (s) { return s.name; });
+      return state.attendanceRoster;
+    })
+    .catch(function () {
+      return ensureAdmissions().then(function (rows) {
+        state.attendanceRoster = buildAttendanceRoster(rows);
+        return state.attendanceRoster;
+      });
+    });
 }
 
 function sheetAdminRequest(action, fields) {
@@ -594,26 +671,24 @@ function updateAttSummary() {
   if (!node) return;
   var present = 0;
   var absent = 0;
-  state.students.forEach(function (s) {
-    var rec = state.attendanceMap[studentAttKey(s)] || { status: "present" };
+  state.attendanceRoster.forEach(function (s) {
+    var rec = state.attendanceMap[rosterAttKey(s)] || { status: "present" };
     if (rec.status === "absent") absent++;
     else present++;
   });
   node.textContent = t("admin.attSummary")
     .replace("{present}", present)
     .replace("{absent}", absent)
-    .replace("{total}", state.students.length);
+    .replace("{total}", state.attendanceRoster.length);
 }
 
-function setAttStatus(key, status, rowEl) {
-  state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
-  state.attendanceMap[key].status = status;
-  if (rowEl) {
-    rowEl.querySelectorAll(".att-pill").forEach(function (btn) { btn.classList.remove("active"); });
-    var active = rowEl.querySelector(".att-pill." + status);
-    if (active) active.classList.add("active");
-  }
-  updateAttSummary();
+function setAttPresentAll(present) {
+  state.attendanceRoster.forEach(function (s) {
+    var key = rosterAttKey(s);
+    state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+    state.attendanceMap[key].status = present ? "present" : "absent";
+  });
+  renderAttendanceGrid();
 }
 
 function renderAttendanceGrid() {
@@ -621,69 +696,54 @@ function renderAttendanceGrid() {
   if (!wrap) return;
   wrap.textContent = "";
 
-  if (!state.students.length) {
+  if (!state.attendanceRoster.length) {
     var empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = t("admin.attNoStudents");
+    empty.textContent = t("admin.attNoAdmissions");
     wrap.appendChild(empty);
     updateAttSummary();
     return;
   }
 
   var table = document.createElement("table");
-  table.className = "data-table";
+  table.className = "data-table att-table";
   var thead = document.createElement("thead");
   var htr = document.createElement("tr");
-  [t("dcol.name"), t("dcol.batch"), t("admin.colAttStatus"), t("admin.note")].forEach(function (h) {
-    htr.appendChild(cell("th", h));
-  });
+  var thCheck = document.createElement("th");
+  thCheck.className = "att-check-col";
+  thCheck.textContent = t("admin.attPresent");
+  htr.appendChild(thCheck);
+  htr.appendChild(cell("th", t("dcol.name")));
+  htr.appendChild(cell("th", t("dcol.batch")));
   thead.appendChild(htr);
   table.appendChild(thead);
 
   var tbody = document.createElement("tbody");
-  state.students.forEach(function (s) {
-    var key = studentAttKey(s);
+  state.attendanceRoster.forEach(function (s) {
+    var key = rosterAttKey(s);
     var rec = state.attendanceMap[key] || { status: "present", note: "" };
     var tr = document.createElement("tr");
+    tr.setAttribute("data-att-key", key);
+
+    var tdCheck = document.createElement("td");
+    tdCheck.className = "att-check-cell";
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "att-present-cb";
+    cb.checked = rec.status !== "absent";
+    cb.setAttribute("aria-label", t("status.present") + ": " + (s.name || ""));
+    cb.addEventListener("change", function () {
+      state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+      state.attendanceMap[key].status = cb.checked ? "present" : "absent";
+      updateAttSummary();
+    });
+    tdCheck.appendChild(cb);
+    tr.appendChild(tdCheck);
 
     var tdName = cell("td", s.name || t("dash"));
     tdName.className = "att-name";
     tr.appendChild(tdName);
     tr.appendChild(cell("td", s.batch || t("dash")));
-
-    var tdStatus = document.createElement("td");
-    var btns = document.createElement("div");
-    btns.className = "att-status-btns";
-
-    var pBtn = document.createElement("button");
-    pBtn.type = "button";
-    pBtn.className = "att-pill present" + (rec.status === "present" ? " active" : "");
-    pBtn.textContent = t("status.present");
-    pBtn.addEventListener("click", function () { setAttStatus(key, "present", tr); });
-
-    var aBtn = document.createElement("button");
-    aBtn.type = "button";
-    aBtn.className = "att-pill absent" + (rec.status === "absent" ? " active" : "");
-    aBtn.textContent = t("status.absent");
-    aBtn.addEventListener("click", function () { setAttStatus(key, "absent", tr); });
-
-    btns.appendChild(pBtn);
-    btns.appendChild(aBtn);
-    tdStatus.appendChild(btns);
-    tr.appendChild(tdStatus);
-
-    var tdNote = document.createElement("td");
-    var noteInput = document.createElement("input");
-    noteInput.type = "text";
-    noteInput.className = "att-note-input";
-    noteInput.maxLength = 120;
-    noteInput.value = rec.note || "";
-    noteInput.addEventListener("input", function () {
-      state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
-      state.attendanceMap[key].note = noteInput.value.trim();
-    });
-    tdNote.appendChild(noteInput);
-    tr.appendChild(tdNote);
 
     tbody.appendChild(tr);
   });
@@ -704,22 +764,21 @@ function loadAttendanceForDate(date) {
   }
   if (note) setNote(note, "", "");
 
-  ensureStudents().then(function () {
-    if (!state.students.length) {
+  ensureAttendanceRoster(true).then(function () {
+    if (!state.attendanceRoster.length) {
       renderAttendanceGrid();
       return;
     }
 
     state.attendanceMap = {};
-    state.students.forEach(function (s) {
-      state.attendanceMap[studentAttKey(s)] = { status: "present", note: "" };
+    state.attendanceRoster.forEach(function (s) {
+      state.attendanceMap[rosterAttKey(s)] = { status: "present", note: "" };
     });
 
     return sheetAdminRequest("attendance", { subaction: "get", date: date })
       .then(function (payload) {
         (payload.records || []).forEach(function (r) {
-          var email = String(r.email || "").trim().toLowerCase();
-          var key = email || ("name:" + String(r.name || "").trim().toLowerCase());
+          var key = matchRecordToRosterKey(r);
           if (!key || key === "name:") return;
           state.attendanceMap[key] = {
             status: r.status === "absent" ? "absent" : "present",
@@ -732,6 +791,10 @@ function loadAttendanceForDate(date) {
         renderAttendanceGrid();
         if (note) setNote(note, t("admin.attErrLoad"), "err");
       });
+  }).catch(function () {
+    state.attendanceRoster = [];
+    renderAttendanceGrid();
+    if (note) setNote(note, t("admin.attErrRoster"), "err");
   });
 }
 
@@ -745,17 +808,17 @@ function saveDailyAttendance() {
     if (note) setNote(note, t("admin.errRequired"), "err");
     return;
   }
-  if (!state.students.length) {
-    if (note) setNote(note, t("admin.attNoStudents"), "err");
+  if (!state.attendanceRoster.length) {
+    if (note) setNote(note, t("admin.attNoAdmissions"), "err");
     return;
   }
 
-  var records = state.students.map(function (s) {
-    var key = studentAttKey(s);
+  var records = state.attendanceRoster.map(function (s) {
+    var key = rosterAttKey(s);
     var rec = state.attendanceMap[key] || { status: "present", note: "" };
     return {
       name: s.name || "",
-      email: studentSheetEmail(s),
+      email: rosterSheetEmail(s),
       batch: s.batch || "",
       status: rec.status === "absent" ? "absent" : "present",
       note: rec.note || ""
@@ -770,16 +833,22 @@ function saveDailyAttendance() {
     date: date,
     records: JSON.stringify(records)
   }).then(function () {
-    return Promise.all(state.students.map(function (s) {
-      var key = studentAttKey(s);
-      var rec = state.attendanceMap[key] || { status: "present", note: "" };
-      return setDoc(doc(db, "students", s.id, "attendance", date), {
-        date: date,
-        status: rec.status === "absent" ? "absent" : "present",
-        note: rec.note || "",
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    }));
+    return ensureStudents().then(function () {
+      var portalSync = [];
+      state.attendanceRoster.forEach(function (s) {
+        var portal = portalStudentByEmail(s.email);
+        if (!portal) return;
+        var key = rosterAttKey(s);
+        var rec = state.attendanceMap[key] || { status: "present", note: "" };
+        portalSync.push(setDoc(doc(db, "students", portal.id, "attendance", date), {
+          date: date,
+          status: rec.status === "absent" ? "absent" : "present",
+          note: rec.note || "",
+          updatedAt: serverTimestamp()
+        }, { merge: true }));
+      });
+      return Promise.all(portalSync);
+    });
   }).then(function () {
     if (note) setNote(note, t("admin.attSavedPortal"), "ok");
   }).catch(function () {
@@ -804,25 +873,11 @@ function initDailyAttendance() {
   });
 
   if (allP) {
-    allP.addEventListener("click", function () {
-      state.students.forEach(function (s) {
-        var k = studentAttKey(s);
-        state.attendanceMap[k] = state.attendanceMap[k] || { status: "present", note: "" };
-        state.attendanceMap[k].status = "present";
-      });
-      renderAttendanceGrid();
-    });
+    allP.addEventListener("click", function () { setAttPresentAll(true); });
   }
 
   if (allA) {
-    allA.addEventListener("click", function () {
-      state.students.forEach(function (s) {
-        var k = studentAttKey(s);
-        state.attendanceMap[k] = state.attendanceMap[k] || { status: "absent", note: "" };
-        state.attendanceMap[k].status = "absent";
-      });
-      renderAttendanceGrid();
-    });
+    allA.addEventListener("click", function () { setAttPresentAll(false); });
   }
 
   if (saveBtn) saveBtn.addEventListener("click", saveDailyAttendance);
@@ -918,6 +973,9 @@ function initTabs() {
       document.querySelectorAll(".admin-panel").forEach(function (panel) {
         panel.classList.toggle("active", panel.id === "panel-" + name);
       });
+      if (name === "attendance") {
+        loadAttendanceForDate(state.attendanceDate || todayIso());
+      }
     });
   });
 }

@@ -342,6 +342,11 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 }
 .att-note-input:focus { outline: none; border-color: var(--navy); }
 .data-table .att-name { font-weight: 600; color: var(--navy); }
+.att-present-cb {
+  width: 20px; height: 20px; accent-color: #1f9d55; cursor: pointer;
+}
+.data-table td.att-check-cell { width: 48px; text-align: center; vertical-align: middle; }
+.data-table th.att-check-col { width: 48px; text-align: center; }
 .bc-radio {
   display: flex; align-items: center; gap: 9px; cursor: pointer;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;

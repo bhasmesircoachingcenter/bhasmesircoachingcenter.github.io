@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=7" />
+  <link rel="stylesheet" href="auth/auth.css?v=8" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -90,7 +90,7 @@
       <section class="admin-panel" id="panel-attendance">
         <div class="admin-card">
           <h2 data-i18n="admin.attendanceTitle">Mark Daily Attendance</h2>
-          <p class="admin-hint" data-i18n="admin.attendanceHint">Choose a date, mark each registered student Present or Absent, then save. Records are stored in your Google Sheet (Attendance tab).</p>
+          <p class="admin-hint" data-i18n="admin.attendanceHint">Students are loaded from your Admission form (Admissions sheet). Pick a date, tick Present for each student, then save to the Attendance tab.</p>
           <div class="att-toolbar">
             <div class="field">
               <label for="attDate" data-i18n="admin.date">Date</label>
@@ -222,6 +222,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=8"></script>
+  <script type="module" src="auth/admin.js?v=10"></script>
 </body>
 </html>
