@@ -5,16 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Apply Online – Bhasme Sir Coaching Center</title>
   <meta name="description" content="Online admission form for Bhasme Sir Coaching Center — Class 8th, 9th &amp; 10th Maths (SSC)." />
-  <link rel="canonical" href="https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform" />
-  <meta http-equiv="refresh" content="0;url=https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform" />
-  <script>
-    location.replace("https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform");
-  </script>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; text-align: center; color: #1a2b4a; line-height: 1.5; }
+    a { color: #1a5fb4; }
+    .err { color: #b42318; max-width: 28rem; margin: 1rem auto; }
+  </style>
 </head>
 <body>
-  <p style="font-family: system-ui, sans-serif; padding: 2rem; text-align: center;">
-    Opening admission form…
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform">Click here</a> if you are not redirected.
-  </p>
+  <p id="status">Opening admission form…</p>
+  <p id="err" class="err" hidden></p>
+  <script>
+    (function () {
+      var ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+      var status = document.getElementById("status");
+      var err = document.getElementById("err");
+
+      function showError(msg) {
+        status.textContent = "Admission form is temporarily unavailable.";
+        err.hidden = false;
+        err.textContent = msg || "Please call +91 70585 05983 or use the contact form on our website.";
+      }
+
+      function go(url) {
+        if (!url || url.indexOf("docs.google.com/forms") === -1) {
+          showError("The form link has not been set up yet.");
+          return;
+        }
+        location.replace(url);
+      }
+
+      var cb = "bccApply_" + Date.now();
+      window[cb] = function (data) {
+        try { delete window[cb]; } catch (e) {}
+        go(data && data.url);
+      };
+
+      var script = document.createElement("script");
+      script.src = ENDPOINT + "?action=admissionForm&callback=" + encodeURIComponent(cb);
+      script.onerror = function () {
+        try { delete window[cb]; } catch (e) {}
+        showError("Could not reach the server. Try again in a minute.");
+      };
+      document.head.appendChild(script);
+
+      setTimeout(function () {
+        if (document.visibilityState !== "hidden" && !err.hidden === false) {
+          /* still on page after 12s */
+        }
+      }, 12000);
+    })();
+  </script>
 </body>
 </html>
