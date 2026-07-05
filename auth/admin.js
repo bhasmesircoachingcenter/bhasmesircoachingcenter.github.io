@@ -69,7 +69,11 @@ var I18N = {
     "admin.attLoading": "Loading students…",
     "admin.attNoAdmissions": "No students on the Admissions sheet yet. Submit the online admission form first.",
     "admin.attPresent": "Present",
+    "admin.attFilterClass": "Class",
+    "admin.attAllClasses": "All classes",
+    "admin.attNoClassMatch": "No students in this class.",
     "admin.attSummary": "{present} present · {absent} absent · {total} students",
+    "admin.attSummaryFiltered": "{present} present · {absent} absent · {total} in {className}",
     "admin.attSaved": "Attendance saved to Google Sheet.",
     "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
@@ -216,7 +220,11 @@ var I18N = {
     "admin.attLoading": "विद्यार्थी लोड होत आहेत…",
     "admin.attNoAdmissions": "Admissions sheet वर अद्याप विद्यार्थी नाहीत. प्रथम ऑनलाइन प्रवेश अर्ज भरा.",
     "admin.attPresent": "हजर",
+    "admin.attFilterClass": "इयत्ता",
+    "admin.attAllClasses": "सर्व इयत्ता",
+    "admin.attNoClassMatch": "या इयत्तेत विद्यार्थी नाहीत.",
     "admin.attSummary": "{present} हजर · {absent} गैरहजर · {total} विद्यार्थी",
+    "admin.attSummaryFiltered": "{present} हजर · {absent} गैरहजर · {total} — {className}",
     "admin.attSaved": "हजेरी Google Sheet मध्ये जतन झाली.",
     "admin.attSavedPortal": "हजेरी जतन झाली (Sheet + विद्यार्थी पोर्टल).",
     "admin.attErrLoad": "हजेरी लोड करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
@@ -373,6 +381,7 @@ function applyLang(next) {
   // Re-render data-driven sections that aren't covered by data-i18n.
   renderStudents();
   if (state.attendanceDate) {
+    populateAttClassFilter();
     renderAttendanceGrid();
     updateAttSummary();
   }
@@ -692,24 +701,82 @@ function sheetAdminRequest(action, fields) {
   });
 }
 
+function getAttClassFilter() {
+  var sel = el("attClassFilter");
+  return sel && sel.value ? sel.value : "all";
+}
+
+function normalizeAttClass(batch) {
+  return String(batch || "").trim();
+}
+
+function getFilteredAttendanceRoster() {
+  var filter = getAttClassFilter();
+  if (!filter || filter === "all") return state.attendanceRoster;
+  return state.attendanceRoster.filter(function (s) {
+    return normalizeAttClass(s.batch) === filter;
+  });
+}
+
+function populateAttClassFilter() {
+  var sel = el("attClassFilter");
+  var wrap = sel ? sel.closest(".att-class-filter") : null;
+  if (!sel) return;
+
+  var prev = getAttClassFilter();
+  var classes = {};
+  state.attendanceRoster.forEach(function (s) {
+    var c = normalizeAttClass(s.batch);
+    if (c) classes[c] = true;
+  });
+  var list = Object.keys(classes).sort(function (a, b) { return a.localeCompare(b); });
+
+  sel.textContent = "";
+  var allOpt = document.createElement("option");
+  allOpt.value = "all";
+  allOpt.textContent = t("admin.attAllClasses");
+  sel.appendChild(allOpt);
+  list.forEach(function (c) {
+    var opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    sel.appendChild(opt);
+  });
+
+  if (prev !== "all" && classes[prev]) sel.value = prev;
+  else sel.value = "all";
+
+  if (wrap) wrap.classList.toggle("hidden", list.length === 0);
+}
+
 function updateAttSummary() {
   var node = el("attSummary");
   if (!node) return;
   var present = 0;
   var absent = 0;
-  state.attendanceRoster.forEach(function (s) {
+  var roster = getFilteredAttendanceRoster();
+  roster.forEach(function (s) {
     var rec = state.attendanceMap[rosterAttKey(s)] || { status: "present" };
     if (rec.status === "absent") absent++;
     else present++;
   });
-  node.textContent = t("admin.attSummary")
-    .replace("{present}", present)
-    .replace("{absent}", absent)
-    .replace("{total}", state.attendanceRoster.length);
+  var filter = getAttClassFilter();
+  if (filter && filter !== "all") {
+    node.textContent = t("admin.attSummaryFiltered")
+      .replace("{present}", present)
+      .replace("{absent}", absent)
+      .replace("{total}", roster.length)
+      .replace("{className}", filter);
+  } else {
+    node.textContent = t("admin.attSummary")
+      .replace("{present}", present)
+      .replace("{absent}", absent)
+      .replace("{total}", roster.length);
+  }
 }
 
 function setAttPresentAll(present) {
-  state.attendanceRoster.forEach(function (s) {
+  getFilteredAttendanceRoster().forEach(function (s) {
     var key = rosterAttKey(s);
     state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
     state.attendanceMap[key].status = present ? "present" : "absent";
@@ -731,6 +798,17 @@ function renderAttendanceGrid() {
     return;
   }
 
+  populateAttClassFilter();
+  var visible = getFilteredAttendanceRoster();
+  if (!visible.length) {
+    var noClass = document.createElement("p");
+    noClass.className = "empty-state";
+    noClass.textContent = t("admin.attNoClassMatch");
+    wrap.appendChild(noClass);
+    updateAttSummary();
+    return;
+  }
+
   var table = document.createElement("table");
   table.className = "data-table att-table";
   var thead = document.createElement("thead");
@@ -740,12 +818,12 @@ function renderAttendanceGrid() {
   thCheck.textContent = t("admin.attPresent");
   htr.appendChild(thCheck);
   htr.appendChild(cell("th", t("dcol.name")));
-  htr.appendChild(cell("th", t("dcol.batch")));
+  htr.appendChild(cell("th", t("admin.attFilterClass")));
   thead.appendChild(htr);
   table.appendChild(thead);
 
   var tbody = document.createElement("tbody");
-  state.attendanceRoster.forEach(function (s) {
+  visible.forEach(function (s) {
     var key = rosterAttKey(s);
     var rec = state.attendanceMap[key] || { status: "present", note: "" };
     var tr = document.createElement("tr");
@@ -775,7 +853,7 @@ function renderAttendanceGrid() {
     tr.appendChild(tdName);
     var tdBatch = cell("td", s.batch || t("dash"));
     tdBatch.className = "att-batch-cell";
-    tdBatch.setAttribute("data-label", t("dcol.batch"));
+    tdBatch.setAttribute("data-label", t("admin.attFilterClass"));
     tr.appendChild(tdBatch);
 
     tbody.appendChild(tr);
@@ -899,6 +977,7 @@ function initDailyAttendance() {
   var saveBtn = el("attSaveBtn");
   var allP = el("attAllPresent");
   var allA = el("attAllAbsent");
+  var classFilter = el("attClassFilter");
   if (!dateInput) return;
 
   state.attendanceDate = dateInput.value || todayIso();
@@ -907,6 +986,12 @@ function initDailyAttendance() {
     state.attendanceDate = dateInput.value;
     loadAttendanceForDate(state.attendanceDate);
   });
+
+  if (classFilter) {
+    classFilter.addEventListener("change", function () {
+      renderAttendanceGrid();
+    });
+  }
 
   if (allP) {
     allP.addEventListener("click", function () { setAttPresentAll(true); });

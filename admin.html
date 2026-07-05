@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=10" />
+  <link rel="stylesheet" href="auth/auth.css?v=11" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -97,6 +97,12 @@
             <div class="field">
               <label for="attDate" data-i18n="admin.date">Date</label>
               <input type="date" id="attDate" name="date" required />
+            </div>
+            <div class="field att-class-filter">
+              <label for="attClassFilter" data-i18n="admin.attFilterClass">Class</label>
+              <select id="attClassFilter" name="classFilter" aria-label="Filter by class">
+                <option value="all" data-i18n="admin.attAllClasses">All classes</option>
+              </select>
             </div>
             <div class="att-actions-row">
               <button type="button" class="btn btn-outline btn-sm" id="attAllPresent" data-i18n="admin.attAllPresent">All Present</button>
@@ -224,6 +230,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=14"></script>
+  <script type="module" src="auth/admin.js?v=15"></script>
 </body>
 </html>
