@@ -107,7 +107,9 @@ var I18N = {
     "admin.detailsLoading": "Loading…",
     "admin.detailsCount": "Showing {n} records",
     "admin.detailsEmpty": "No records to show.",
-    "admin.detailsErr": "Could not load enquiry contacts. The owner may need to add/redeploy the Apps Script doGet endpoint.",
+    "admin.detailsErr": "Could not load enquiry contacts. Redeploy Apps Script (new version), then refresh.",
+    "admin.detailsUnauthorized": "Not signed in as admin. On this phone, log in with bhasmesircoachingcenter@gmail.com in the admin panel.",
+    "admin.detailsTimeout": "Loading timed out on slow network. Pull down to refresh or try again on Wi‑Fi.",
     "dcol.name": "Name",
     "dcol.email": "Email",
     "dcol.phone": "Phone",
@@ -221,7 +223,9 @@ var I18N = {
     "admin.detailsLoading": "लोड होत आहे…",
     "admin.detailsCount": "{n} नोंदी दर्शवित आहे",
     "admin.detailsEmpty": "दर्शविण्यासाठी नोंदी नाहीत.",
-    "admin.detailsErr": "चौकशी संपर्क लोड करता आले नाहीत. मालकाला Apps Script doGet जोडून पुन्हा डिप्लॉय करावे लागेल.",
+    "admin.detailsErr": "चौकशी संपर्क लोड करता आले नाहीत. Apps Script पुन्हा डिप्लॉय करा, नंतर रिफ्रेश करा.",
+    "admin.detailsUnauthorized": "अॅडमिन म्हणून साइन इन नाही. या फोनवर bhasmesircoachingcenter@gmail.com ने लॉगिन करा.",
+    "admin.detailsTimeout": "नेटवर्क मंद असल्याने वेळ संपली. पुन्हा प्रयत्न करा किंवा Wi‑Fi वापरा.",
     "dcol.name": "नाव",
     "dcol.email": "ईमेल",
     "dcol.phone": "फोन",
@@ -817,41 +821,81 @@ function ensureStudents() {
   return loadStudents().catch(function () { /* leave students as-is on failure */ });
 }
 
-// Fetch enquiry contacts from the Apps Script web app via JSONP. A normal fetch()
-// response from Apps Script is blocked by CORS, so we inject a <script> tag whose
-// callback receives the JSON payload. Authorization is the admin's Firebase ID
-// token (verified server-side) — no static secret is embedded here.
+// Fetch enquiry contacts from Apps Script. Uses POST first (mobile-friendly — token not in URL),
+// then falls back to JSONP GET.
+function fetchEnquiriesJsonp(idToken, cbName) {
+  return new Promise(function (resolve, reject) {
+    var script = document.createElement("script");
+    var timer = setTimeout(function () { cleanup(); reject(new Error("timeout")); }, 30000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function (payload) {
+      cleanup();
+      if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
+        resolve(payload.rows);
+      } else {
+        reject(new Error((payload && payload.error) || "bad-response"));
+      }
+    };
+
+    script.onerror = function () { cleanup(); reject(new Error("network")); };
+    script.src = SHEET_ENDPOINT +
+      "?action=enquiries&idToken=" + encodeURIComponent(idToken) +
+      "&callback=" + encodeURIComponent(cbName);
+    document.head.appendChild(script);
+  });
+}
+
+function parseJsonpText(text) {
+  if (!text) throw new Error("bad-response");
+  var start = text.indexOf("(");
+  var end = text.lastIndexOf(")");
+  if (start === -1 || end <= start) throw new Error("bad-response");
+  return JSON.parse(text.slice(start + 1, end));
+}
+
 function fetchEnquiries() {
   return new Promise(function (resolve, reject) {
     var user = auth.currentUser;
     if (!user) { reject(new Error("no-user")); return; }
     user.getIdToken().then(function (idToken) {
-      var cbName = "__bccEnq_" + Date.now() + "_" + Math.floor(Math.random() * 1e9);
-      var script = document.createElement("script");
-      var timer = null;
+      var cbName = "__bccEnq_" + Date.now();
+      var params = new URLSearchParams();
+      params.append("action", "enquiries");
+      params.append("idToken", idToken);
+      params.append("callback", cbName);
 
-      function cleanup() {
-        if (timer) { clearTimeout(timer); timer = null; }
-        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
-        if (script && script.parentNode) script.parentNode.removeChild(script);
+      var timer = setTimeout(function () {
+        reject(new Error("timeout"));
+      }, 30000);
+
+      function done(rows) {
+        clearTimeout(timer);
+        resolve(rows);
+      }
+      function fail(err) {
+        clearTimeout(timer);
+        reject(err);
       }
 
-      timer = setTimeout(function () { cleanup(); reject(new Error("timeout")); }, 15000);
-
-      window[cbName] = function (payload) {
-        cleanup();
-        if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
-          resolve(payload.rows);
-        } else {
-          reject(new Error((payload && payload.error) || "bad-response"));
-        }
-      };
-
-      script.onerror = function () { cleanup(); reject(new Error("network")); };
-      script.src = SHEET_ENDPOINT +
-        "?action=enquiries&idToken=" + encodeURIComponent(idToken) +
-        "&callback=" + encodeURIComponent(cbName);
-      document.head.appendChild(script);
+      fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          var payload = parseJsonpText(text);
+          if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
+            done(payload.rows);
+          } else {
+            fail(new Error((payload && payload.error) || "bad-response"));
+          }
+        })
+        .catch(function () {
+          fetchEnquiriesJsonp(idToken, cbName).then(done, fail);
+        });
     }).catch(reject);
   });
 }
@@ -972,8 +1016,11 @@ function setDetailsLoading() {
   var node = el("detailsCount");
   if (node) setNote(node, "", "");
 }
-function setDetailsError() {
-  detailsMessage(t("admin.detailsErr"));
+function setDetailsError(err) {
+  var code = err && err.message;
+  if (code === "unauthorized") detailsMessage(t("admin.detailsUnauthorized"));
+  else if (code === "timeout") detailsMessage(t("admin.detailsTimeout"));
+  else detailsMessage(t("admin.detailsErr"));
   var node = el("detailsCount");
   if (node) setNote(node, "", "");
 }
@@ -1008,9 +1055,9 @@ function renderDetails() {
     ensureEnquiries().then(function (enq) {
       if (state.detailsSource !== src) return;
       showDetailsTable(enquiryHeaders(), buildEnquiryRows(enq));
-    }).catch(function () {
+    }).catch(function (err) {
       if (state.detailsSource !== src) return;
-      setDetailsError();
+      setDetailsError(err);
     });
     return;
   }
@@ -1019,9 +1066,9 @@ function renderDetails() {
   Promise.all([ensureStudents(), ensureEnquiries()]).then(function (res) {
     if (state.detailsSource !== src) return;
     showDetailsTable(bothHeaders(), buildBothRows(state.students, res[1]));
-  }).catch(function () {
+  }).catch(function (err) {
     if (state.detailsSource !== src) return;
-    setDetailsError();
+    setDetailsError(err);
   });
 }
 
