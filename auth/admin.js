@@ -74,7 +74,7 @@ var I18N = {
     "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
-    "admin.attErrRoster": "Could not load student names from Admissions sheet. Paste latest Code.gs in Apps Script → Deploy → New version.",
+    "admin.attErrRoster": "Could not load names from your admission sheet (Form_Responses / Admissions tab). Paste latest Code.gs in Apps Script → Deploy → New version.",
     "admin.colAttStatus": "Attendance",
     "admin.resultsTitle": "Add Test Result",
     "admin.testName": "Test Name",
