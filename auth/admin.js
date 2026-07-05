@@ -57,6 +57,7 @@ var I18N = {
     "admin.phone": "Phone",
     "admin.saved": "Saved.",
     "admin.student": "Student",
+    "admin.selectStudent": "Select a student to see entries.",
     "admin.date": "Date",
     "admin.status": "Status",
     "admin.note": "Note (optional)",
@@ -200,6 +201,7 @@ var I18N = {
     "admin.phone": "फोन",
     "admin.saved": "जतन झाले.",
     "admin.student": "विद्यार्थी",
+    "admin.selectStudent": "नोंदी पाहण्यासाठी विद्यार्थी निवडा.",
     "admin.date": "दिनांक",
     "admin.status": "स्थिती",
     "admin.note": "टीप (पर्यायी)",
@@ -363,7 +365,10 @@ function applyLang(next) {
   try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
   // Re-render data-driven sections that aren't covered by data-i18n.
   renderStudents();
-  if (state.selectedAtt) renderAttendanceList(state.selectedAtt);
+  if (state.attendanceDate) {
+    renderAttendanceGrid();
+    updateAttSummary();
+  }
   if (state.selectedRes) renderResultList(state.selectedRes);
   renderAnnouncements();
   updateBroadcastCount();
@@ -530,42 +535,297 @@ function populateStudentSelects() {
   });
 }
 
-/* ---------------- Attendance ---------------- */
-function renderAttendanceList(uid) {
-  var wrap = el("attendanceListWrap");
-  if (!wrap) return;
-  if (!uid) {
-    wrap.textContent = "";
-    var p = document.createElement("p"); p.className = "empty-state"; p.textContent = t("admin.selectStudent");
-    wrap.appendChild(p); return;
+/* ---------------- Daily attendance (Google Sheet + portal) ---------------- */
+
+function studentAttKey(s) {
+  var email = studentSheetEmail(s).toLowerCase();
+  return email || ("id:" + s.id);
+}
+
+function studentSheetEmail(s) {
+  return (s.email || "").trim();
+}
+
+function sheetAdminRequest(action, fields) {
+  return new Promise(function (resolve, reject) {
+    var user = auth.currentUser;
+    if (!user) { reject(new Error("no-user")); return; }
+    user.getIdToken().then(function (idToken) {
+      var cbName = "__bccSh_" + Date.now();
+      var params = new URLSearchParams();
+      params.append("action", action);
+      params.append("idToken", idToken);
+      params.append("callback", cbName);
+      Object.keys(fields || {}).forEach(function (k) {
+        params.append(k, fields[k]);
+      });
+
+      var timer = setTimeout(function () { reject(new Error("timeout")); }, 30000);
+
+      function finish(payload) {
+        clearTimeout(timer);
+        if (payload && payload.result === "success") resolve(payload);
+        else reject(new Error((payload && payload.error) || "bad-response"));
+      }
+
+      function fallbackJsonp() {
+        var script = document.createElement("script");
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+        window[cbName] = function (payload) { cleanup(); finish(payload); };
+        script.onerror = function () { cleanup(); reject(new Error("network")); };
+        script.src = SHEET_ENDPOINT + "?" + params.toString();
+        document.head.appendChild(script);
+      }
+
+      fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
+        .then(function (r) { return r.text(); })
+        .then(function (text) { finish(parseJsonpText(text)); })
+        .catch(fallbackJsonp);
+    }).catch(reject);
+  });
+}
+
+function updateAttSummary() {
+  var node = el("attSummary");
+  if (!node) return;
+  var present = 0;
+  var absent = 0;
+  state.students.forEach(function (s) {
+    var rec = state.attendanceMap[studentAttKey(s)] || { status: "present" };
+    if (rec.status === "absent") absent++;
+    else present++;
+  });
+  node.textContent = t("admin.attSummary")
+    .replace("{present}", present)
+    .replace("{absent}", absent)
+    .replace("{total}", state.students.length);
+}
+
+function setAttStatus(key, status, rowEl) {
+  state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+  state.attendanceMap[key].status = status;
+  if (rowEl) {
+    rowEl.querySelectorAll(".att-pill").forEach(function (btn) { btn.classList.remove("active"); });
+    var active = rowEl.querySelector(".att-pill." + status);
+    if (active) active.classList.add("active");
   }
-  getDocs(collection(db, "students", uid, "attendance")).then(function (qs) {
-    var rows = sortByDateDesc(qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }));
-    wrap.textContent = "";
-    if (!rows.length) {
-      var p = document.createElement("p"); p.className = "empty-state"; p.textContent = t("admin.selectStudent");
-      wrap.appendChild(p); return;
-    }
-    var table = document.createElement("table");
-    table.className = "data-table";
-    var thead = document.createElement("thead");
-    var htr = document.createElement("tr");
-    [t("col.date"), t("col.status"), t("col.note"), t("col.actions")].forEach(function (h) { htr.appendChild(cell("th", h)); });
-    thead.appendChild(htr); table.appendChild(thead);
-    var tbody = document.createElement("tbody");
-    rows.forEach(function (r) {
-      var tr = document.createElement("tr");
-      tr.appendChild(cell("td", fmtDate(r.date)));
-      tr.appendChild(cell("td", r.status === "present" ? t("status.present") : t("status.absent")));
-      tr.appendChild(cell("td", r.note || ""));
-      var td = document.createElement("td");
-      td.appendChild(makeDeleteBtn(function () { return deleteDoc(doc(db, "students", uid, "attendance", r.id)); }, function () { renderAttendanceList(uid); }));
-      tr.appendChild(td);
-      tbody.appendChild(tr);
+  updateAttSummary();
+}
+
+function renderAttendanceGrid() {
+  var wrap = el("attendanceGridWrap");
+  if (!wrap) return;
+  wrap.textContent = "";
+
+  if (!state.students.length) {
+    var empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = t("admin.attNoStudents");
+    wrap.appendChild(empty);
+    updateAttSummary();
+    return;
+  }
+
+  var table = document.createElement("table");
+  table.className = "data-table";
+  var thead = document.createElement("thead");
+  var htr = document.createElement("tr");
+  [t("dcol.name"), t("dcol.batch"), t("admin.colAttStatus"), t("admin.note")].forEach(function (h) {
+    htr.appendChild(cell("th", h));
+  });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  var tbody = document.createElement("tbody");
+  state.students.forEach(function (s) {
+    var key = studentAttKey(s);
+    var rec = state.attendanceMap[key] || { status: "present", note: "" };
+    var tr = document.createElement("tr");
+
+    var tdName = cell("td", s.name || t("dash"));
+    tdName.className = "att-name";
+    tr.appendChild(tdName);
+    tr.appendChild(cell("td", s.batch || t("dash")));
+
+    var tdStatus = document.createElement("td");
+    var btns = document.createElement("div");
+    btns.className = "att-status-btns";
+
+    var pBtn = document.createElement("button");
+    pBtn.type = "button";
+    pBtn.className = "att-pill present" + (rec.status === "present" ? " active" : "");
+    pBtn.textContent = t("status.present");
+    pBtn.addEventListener("click", function () { setAttStatus(key, "present", tr); });
+
+    var aBtn = document.createElement("button");
+    aBtn.type = "button";
+    aBtn.className = "att-pill absent" + (rec.status === "absent" ? " active" : "");
+    aBtn.textContent = t("status.absent");
+    aBtn.addEventListener("click", function () { setAttStatus(key, "absent", tr); });
+
+    btns.appendChild(pBtn);
+    btns.appendChild(aBtn);
+    tdStatus.appendChild(btns);
+    tr.appendChild(tdStatus);
+
+    var tdNote = document.createElement("td");
+    var noteInput = document.createElement("input");
+    noteInput.type = "text";
+    noteInput.className = "att-note-input";
+    noteInput.maxLength = 120;
+    noteInput.value = rec.note || "";
+    noteInput.addEventListener("input", function () {
+      state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+      state.attendanceMap[key].note = noteInput.value.trim();
     });
-    table.appendChild(tbody);
-    wrap.appendChild(table);
-  }).catch(function () { /* leave as-is */ });
+    tdNote.appendChild(noteInput);
+    tr.appendChild(tdNote);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  updateAttSummary();
+}
+
+function loadAttendanceForDate(date) {
+  var wrap = el("attendanceGridWrap");
+  var note = el("attendanceNote");
+  if (wrap) {
+    wrap.textContent = "";
+    var loading = document.createElement("p");
+    loading.className = "empty-state";
+    loading.textContent = t("admin.attLoading");
+    wrap.appendChild(loading);
+  }
+  if (note) setNote(note, "", "");
+
+  ensureStudents().then(function () {
+    if (!state.students.length) {
+      renderAttendanceGrid();
+      return;
+    }
+
+    state.attendanceMap = {};
+    state.students.forEach(function (s) {
+      state.attendanceMap[studentAttKey(s)] = { status: "present", note: "" };
+    });
+
+    return sheetAdminRequest("attendance", { subaction: "get", date: date })
+      .then(function (payload) {
+        (payload.records || []).forEach(function (r) {
+          var email = String(r.email || "").trim().toLowerCase();
+          var key = email || ("name:" + String(r.name || "").trim().toLowerCase());
+          if (!key || key === "name:") return;
+          state.attendanceMap[key] = {
+            status: r.status === "absent" ? "absent" : "present",
+            note: r.note || ""
+          };
+        });
+        renderAttendanceGrid();
+      })
+      .catch(function () {
+        renderAttendanceGrid();
+        if (note) setNote(note, t("admin.attErrLoad"), "err");
+      });
+  });
+}
+
+function saveDailyAttendance() {
+  var note = el("attendanceNote");
+  var saveBtn = el("attSaveBtn");
+  var dateInput = el("attDate");
+  var date = (dateInput && dateInput.value) || state.attendanceDate || todayIso();
+
+  if (!date) {
+    if (note) setNote(note, t("admin.errRequired"), "err");
+    return;
+  }
+  if (!state.students.length) {
+    if (note) setNote(note, t("admin.attNoStudents"), "err");
+    return;
+  }
+
+  var records = state.students.map(function (s) {
+    var key = studentAttKey(s);
+    var rec = state.attendanceMap[key] || { status: "present", note: "" };
+    return {
+      name: s.name || "",
+      email: studentSheetEmail(s),
+      batch: s.batch || "",
+      status: rec.status === "absent" ? "absent" : "present",
+      note: rec.note || ""
+    };
+  });
+
+  if (saveBtn) saveBtn.disabled = true;
+  if (note) setNote(note, "", "");
+
+  sheetAdminRequest("attendance", {
+    subaction: "save",
+    date: date,
+    records: JSON.stringify(records)
+  }).then(function () {
+    return Promise.all(state.students.map(function (s) {
+      var key = studentAttKey(s);
+      var rec = state.attendanceMap[key] || { status: "present", note: "" };
+      return setDoc(doc(db, "students", s.id, "attendance", date), {
+        date: date,
+        status: rec.status === "absent" ? "absent" : "present",
+        note: rec.note || "",
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }));
+  }).then(function () {
+    if (note) setNote(note, t("admin.attSavedPortal"), "ok");
+  }).catch(function () {
+    if (note) setNote(note, t("admin.attErrSave"), "err");
+  }).finally(function () {
+    if (saveBtn) saveBtn.disabled = false;
+  });
+}
+
+function initDailyAttendance() {
+  var dateInput = el("attDate");
+  var saveBtn = el("attSaveBtn");
+  var allP = el("attAllPresent");
+  var allA = el("attAllAbsent");
+  if (!dateInput) return;
+
+  state.attendanceDate = dateInput.value || todayIso();
+
+  dateInput.addEventListener("change", function () {
+    state.attendanceDate = dateInput.value;
+    loadAttendanceForDate(state.attendanceDate);
+  });
+
+  if (allP) {
+    allP.addEventListener("click", function () {
+      state.students.forEach(function (s) {
+        var k = studentAttKey(s);
+        state.attendanceMap[k] = state.attendanceMap[k] || { status: "present", note: "" };
+        state.attendanceMap[k].status = "present";
+      });
+      renderAttendanceGrid();
+    });
+  }
+
+  if (allA) {
+    allA.addEventListener("click", function () {
+      state.students.forEach(function (s) {
+        var k = studentAttKey(s);
+        state.attendanceMap[k] = state.attendanceMap[k] || { status: "absent", note: "" };
+        state.attendanceMap[k].status = "absent";
+      });
+      renderAttendanceGrid();
+    });
+  }
+
+  if (saveBtn) saveBtn.addEventListener("click", saveDailyAttendance);
 }
 
 /* ---------------- Results ---------------- */
@@ -659,34 +919,6 @@ function initTabs() {
         panel.classList.toggle("active", panel.id === "panel-" + name);
       });
     });
-  });
-}
-
-/* ---------------- Form handlers ---------------- */
-function initAttendanceForm() {
-  var form = el("attendanceForm");
-  var note = el("attendanceNote");
-  var sel = el("attStudent");
-  if (sel) sel.addEventListener("change", function () { state.selectedAtt = sel.value; renderAttendanceList(sel.value); });
-  if (!form) return;
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var uid = sel.value;
-    var date = form.elements.date.value;
-    var status = form.elements.status.value;
-    var noteVal = form.elements.note.value.trim();
-    if (!uid || !date || !status) { setNote(note, t("admin.errRequired"), "err"); return; }
-    var btn = form.querySelector("button[type=submit]");
-    if (btn) btn.disabled = true;
-    addDoc(collection(db, "students", uid, "attendance"), { date: date, status: status, note: noteVal, createdAt: serverTimestamp() })
-      .then(function () {
-        setNote(note, t("admin.added"), "ok");
-        form.elements.note.value = "";
-        state.selectedAtt = uid;
-        renderAttendanceList(uid);
-      })
-      .catch(function () { setNote(note, t("admin.errSave"), "err"); })
-      .finally(function () { if (btn) btn.disabled = false; });
   });
 }
 
@@ -1290,7 +1522,7 @@ onAuthStateChanged(auth, function (user) {
     if (emailEl) emailEl.textContent = user.email || "";
 
     initTabs();
-    initAttendanceForm();
+    initDailyAttendance();
     initResultForm();
     initAnnounceForm();
     initBroadcastForm();
@@ -1300,6 +1532,7 @@ onAuthStateChanged(auth, function (user) {
       renderStudents();
       populateStudentSelects();
       updateBroadcastCount();
+      loadAttendanceForDate(state.attendanceDate || todayIso());
       if (state.detailsInit) renderDetails();
     }).catch(function () { renderStudents(); });
 
