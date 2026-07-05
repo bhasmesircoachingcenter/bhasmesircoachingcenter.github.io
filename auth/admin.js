@@ -60,10 +60,19 @@ var I18N = {
     "admin.date": "Date",
     "admin.status": "Status",
     "admin.note": "Note (optional)",
-    "admin.attendanceTitle": "Mark Attendance",
-    "admin.addAttendance": "Add Attendance",
-    "admin.recentAttendance": "Recent Attendance",
-    "admin.selectStudent": "Select a student to see entries.",
+    "admin.attendanceTitle": "Mark Daily Attendance",
+    "admin.attendanceHint": "Choose a date, mark each registered student Present or Absent, then save. Records are stored in your Google Sheet (Attendance tab).",
+    "admin.attAllPresent": "All Present",
+    "admin.attAllAbsent": "All Absent",
+    "admin.attSave": "Save Attendance to Sheet",
+    "admin.attLoading": "Loading students…",
+    "admin.attNoStudents": "No registered students yet. Students appear here after they sign up on the portal.",
+    "admin.attSummary": "{present} present · {absent} absent · {total} students",
+    "admin.attSaved": "Attendance saved to Google Sheet.",
+    "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
+    "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
+    "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
+    "admin.colAttStatus": "Attendance",
     "admin.resultsTitle": "Add Test Result",
     "admin.testName": "Test Name",
     "admin.subject": "Subject",
@@ -103,11 +112,13 @@ var I18N = {
     "admin.detailsSource": "Source",
     "admin.detailsSrcRegistered": "Registered students (portal)",
     "admin.detailsSrcEnquiry": "Enquiry contacts (Google Sheet)",
+    "admin.detailsSrcAdmission": "Admission form (Google Form)",
     "admin.detailsSrcBoth": "Both (merged & de-duplicated by email)",
     "admin.detailsLoading": "Loading…",
     "admin.detailsCount": "Showing {n} records",
     "admin.detailsEmpty": "No records to show.",
     "admin.detailsErr": "Could not load enquiry contacts. Redeploy Apps Script (new version), then refresh.",
+    "admin.detailsErrAdmission": "Could not load admission form responses. Redeploy Apps Script (new version), then refresh.",
     "admin.detailsUnauthorized": "Not signed in as admin. On this phone, log in with bhasmesircoachingcenter@gmail.com in the admin panel.",
     "admin.detailsTimeout": "Loading timed out on slow network. Pull down to refresh or try again on Wi‑Fi.",
     "dcol.name": "Name",
@@ -123,6 +134,22 @@ var I18N = {
     "dcol.language": "Language",
     "dcol.source": "Source",
     "dcol.details": "Details",
+    "dcol.admDob": "Date of Birth",
+    "dcol.admAge": "Age",
+    "dcol.admGender": "Gender",
+    "dcol.admSchool": "School",
+    "dcol.admClass": "Class",
+    "dcol.admMarks": "Marks (%)",
+    "dcol.admMedium": "Medium",
+    "dcol.admFather": "Father / Guardian",
+    "dcol.admMother": "Mother",
+    "dcol.admOccupation": "Occupation",
+    "dcol.admAltMobile": "Alt. Mobile",
+    "dcol.admAddress": "Address",
+    "dcol.admReferral": "Referral",
+    "dcol.admNote": "Note",
+    "dcol.admFeePlan": "Fee plan",
+    "dcol.admPayMode": "Pay mode",
     "src.registered": "Registered",
     "src.enquiry": "Enquiry",
     "src.both": "Both",
@@ -176,10 +203,19 @@ var I18N = {
     "admin.date": "दिनांक",
     "admin.status": "स्थिती",
     "admin.note": "टीप (पर्यायी)",
-    "admin.attendanceTitle": "हजेरी नोंदवा",
-    "admin.addAttendance": "हजेरी जोडा",
-    "admin.recentAttendance": "अलीकडील हजेरी",
-    "admin.selectStudent": "नोंदी पाहण्यासाठी विद्यार्थी निवडा.",
+    "admin.attendanceTitle": "दैनिक हजेरी नोंदवा",
+    "admin.attendanceHint": "दिनांक निवडा, प्रत्येक नोंदणीकृत विद्यार्थ्यासाठी हजर/गैरहजर निवडा आणि जतन करा. नोंदी Google Sheet (Attendance टॅब) मध्ये जतन होतात.",
+    "admin.attAllPresent": "सर्व हजर",
+    "admin.attAllAbsent": "सर्व गैरहजर",
+    "admin.attSave": "हजेरी Sheet मध्ये जतन करा",
+    "admin.attLoading": "विद्यार्थी लोड होत आहेत…",
+    "admin.attNoStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
+    "admin.attSummary": "{present} हजर · {absent} गैरहजर · {total} विद्यार्थी",
+    "admin.attSaved": "हजेरी Google Sheet मध्ये जतन झाली.",
+    "admin.attSavedPortal": "हजेरी जतन झाली (Sheet + विद्यार्थी पोर्टल).",
+    "admin.attErrLoad": "हजेरी लोड करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
+    "admin.attErrSave": "हजेरी जतन करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
+    "admin.colAttStatus": "हजेरी",
     "admin.resultsTitle": "चाचणी निकाल जोडा",
     "admin.testName": "चाचणीचे नाव",
     "admin.subject": "विषय",
@@ -219,11 +255,13 @@ var I18N = {
     "admin.detailsSource": "स्रोत",
     "admin.detailsSrcRegistered": "नोंदणीकृत विद्यार्थी (पोर्टल)",
     "admin.detailsSrcEnquiry": "चौकशी संपर्क (Google Sheet)",
+    "admin.detailsSrcAdmission": "प्रवेश अर्ज (Google Form)",
     "admin.detailsSrcBoth": "दोन्ही (ईमेलनुसार एकत्रित व डुप्लिकेट काढून)",
     "admin.detailsLoading": "लोड होत आहे…",
     "admin.detailsCount": "{n} नोंदी दर्शवित आहे",
     "admin.detailsEmpty": "दर्शविण्यासाठी नोंदी नाहीत.",
     "admin.detailsErr": "चौकशी संपर्क लोड करता आले नाहीत. Apps Script पुन्हा डिप्लॉय करा, नंतर रिफ्रेश करा.",
+    "admin.detailsErrAdmission": "प्रवेश अर्ज प्रतिसाद लोड करता आले नाहीत. Apps Script पुन्हा डिप्लॉय करा, नंतर रिफ्रेश करा.",
     "admin.detailsUnauthorized": "अॅडमिन म्हणून साइन इन नाही. या फोनवर bhasmesircoachingcenter@gmail.com ने लॉगिन करा.",
     "admin.detailsTimeout": "नेटवर्क मंद असल्याने वेळ संपली. पुन्हा प्रयत्न करा किंवा Wi‑Fi वापरा.",
     "dcol.name": "नाव",
@@ -239,6 +277,22 @@ var I18N = {
     "dcol.language": "भाषा",
     "dcol.source": "स्रोत",
     "dcol.details": "तपशील",
+    "dcol.admDob": "जन्मतारीख",
+    "dcol.admAge": "वय",
+    "dcol.admGender": "लिंग",
+    "dcol.admSchool": "शाळा",
+    "dcol.admClass": "इयत्ता",
+    "dcol.admMarks": "गुण (%)",
+    "dcol.admMedium": "माध्यम",
+    "dcol.admFather": "वडील / पालक",
+    "dcol.admMother": "आई",
+    "dcol.admOccupation": "व्यवसाय",
+    "dcol.admAltMobile": "पर्यायी मोबाइल",
+    "dcol.admAddress": "पत्ता",
+    "dcol.admReferral": "संदर्भ",
+    "dcol.admNote": "टीप",
+    "dcol.admFeePlan": "फी योजना",
+    "dcol.admPayMode": "पेमेंट पद्धत",
     "src.registered": "नोंदणीकृत",
     "src.enquiry": "चौकशी",
     "src.both": "दोन्ही",
@@ -273,12 +327,14 @@ function t(key) { return (I18N[lang] && I18N[lang][key]) || (I18N.en[key] || key
 var state = {
   students: [],
   studentsLoaded: false,
-  selectedAtt: "",
   selectedRes: "",
+  attendanceDate: "",
+  attendanceMap: {},
   // Student Details tab
   detailsSource: "registered",
   detailsInit: false,
-  enquiries: null // cached enquiry rows fetched from the sheet via JSONP
+  enquiries: null, // cached enquiry rows fetched from the sheet via JSONP
+  admissions: null // cached admission form rows from Admissions tab
 };
 
 // Basic email shape check (matches auth.js). Used to filter broadcast recipients.
@@ -455,14 +511,14 @@ function makeField(labelText, value) {
 }
 
 function populateStudentSelects() {
-  ["attStudent", "resStudent"].forEach(function (id) {
-    var sel = el(id);
-    if (!sel) return;
+  var sel = el("resStudent");
+  if (!sel) return;
+  ensureStudents().then(function () {
     var current = sel.value;
     sel.textContent = "";
     var placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = t("admin.selectStudent");
+    placeholder.textContent = t("admin.student");
     sel.appendChild(placeholder);
     state.students.forEach(function (s) {
       var opt = document.createElement("option");
@@ -909,6 +965,83 @@ function ensureEnquiries() {
   });
 }
 
+function fetchAdmissionsJsonp(idToken, cbName) {
+  return new Promise(function (resolve, reject) {
+    var script = document.createElement("script");
+    var timer = setTimeout(function () { cleanup(); reject(new Error("timeout")); }, 30000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function (payload) {
+      cleanup();
+      if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
+        resolve(payload.rows);
+      } else {
+        reject(new Error((payload && payload.error) || "bad-response"));
+      }
+    };
+
+    script.onerror = function () { cleanup(); reject(new Error("network")); };
+    script.src = SHEET_ENDPOINT +
+      "?action=admissions&idToken=" + encodeURIComponent(idToken) +
+      "&callback=" + encodeURIComponent(cbName);
+    document.head.appendChild(script);
+  });
+}
+
+function fetchAdmissions() {
+  return new Promise(function (resolve, reject) {
+    var user = auth.currentUser;
+    if (!user) { reject(new Error("no-user")); return; }
+    user.getIdToken().then(function (idToken) {
+      var cbName = "__bccAdm_" + Date.now();
+      var params = new URLSearchParams();
+      params.append("action", "admissions");
+      params.append("idToken", idToken);
+      params.append("callback", cbName);
+
+      var timer = setTimeout(function () {
+        reject(new Error("timeout"));
+      }, 30000);
+
+      function done(rows) {
+        clearTimeout(timer);
+        resolve(rows);
+      }
+      function fail(err) {
+        clearTimeout(timer);
+        reject(err);
+      }
+
+      fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          var payload = parseJsonpText(text);
+          if (payload && payload.result === "success" && Array.isArray(payload.rows)) {
+            done(payload.rows);
+          } else {
+            fail(new Error((payload && payload.error) || "bad-response"));
+          }
+        })
+        .catch(function () {
+          fetchAdmissionsJsonp(idToken, cbName).then(done, fail);
+        });
+    }).catch(reject);
+  });
+}
+
+function ensureAdmissions() {
+  if (state.admissions) return Promise.resolve(state.admissions);
+  return fetchAdmissions().then(function (rows) {
+    state.admissions = Array.isArray(rows) ? rows : [];
+    return state.admissions;
+  });
+}
+
 // Build a real <table> from header strings + an array of string-cell rows.
 // Every cell is created with textContent (via cell()), so untrusted sheet/message
 // content can never be interpreted as HTML.
@@ -947,6 +1080,34 @@ function buildEnquiryRows(rows) {
   return rows.map(function (r) {
     r = r || {};
     return [dtext(r.Timestamp), dtext(r.Name), dtext(r.Phone), dtext(r.Email), dtext(r.Purpose), dtext(r.Course), dtext(r.Message), dtext(r.Language)];
+  });
+}
+
+function admissionHeaders() {
+  return [
+    t("dcol.timestamp"), t("dcol.name"), t("dcol.admClass"), t("dcol.phone"), t("dcol.email"),
+    t("dcol.admDob"), t("dcol.admAge"), t("dcol.admGender"), t("dcol.admSchool"), t("dcol.admMarks"),
+    t("dcol.admMedium"), t("dcol.admFather"), t("dcol.admMother"), t("dcol.admOccupation"),
+    t("dcol.admAltMobile"), t("dcol.admAddress"), t("dcol.batch"), t("dcol.admReferral"),
+    t("dcol.admNote"), t("dcol.admFeePlan"), t("dcol.admPayMode")
+  ];
+}
+function fmtAdmissionDate(v) {
+  if (!v) return t("dash");
+  var d = new Date(v);
+  if (!isNaN(d.getTime())) return d.toLocaleDateString();
+  return dtext(v);
+}
+function buildAdmissionRows(rows) {
+  return rows.map(function (r) {
+    r = r || {};
+    return [
+      dtext(r.Timestamp), dtext(r.Name), dtext(r.Class), dtext(r.Mobile), dtext(r.Email),
+      fmtAdmissionDate(r.DOB), dtext(r.Age), dtext(r.Gender), dtext(r.School), dtext(r.Marks),
+      dtext(r.Medium), dtext(r.Father), dtext(r.Mother), dtext(r.Occupation),
+      dtext(r.AltMobile), dtext(r.Address), dtext(r.Batch), dtext(r.Referral),
+      dtext(r.Note), dtext(r.FeePlan), dtext(r.PayMode)
+    ];
   });
 }
 
@@ -1016,10 +1177,11 @@ function setDetailsLoading() {
   var node = el("detailsCount");
   if (node) setNote(node, "", "");
 }
-function setDetailsError(err) {
+function setDetailsError(err, src) {
   var code = err && err.message;
   if (code === "unauthorized") detailsMessage(t("admin.detailsUnauthorized"));
   else if (code === "timeout") detailsMessage(t("admin.detailsTimeout"));
+  else if (src === "admission") detailsMessage(t("admin.detailsErrAdmission"));
   else detailsMessage(t("admin.detailsErr"));
   var node = el("detailsCount");
   if (node) setNote(node, "", "");
@@ -1057,7 +1219,18 @@ function renderDetails() {
       showDetailsTable(enquiryHeaders(), buildEnquiryRows(enq));
     }).catch(function (err) {
       if (state.detailsSource !== src) return;
-      setDetailsError(err);
+      setDetailsError(err, src);
+    });
+    return;
+  }
+
+  if (src === "admission") {
+    ensureAdmissions().then(function (adm) {
+      if (state.detailsSource !== src) return;
+      showDetailsTable(admissionHeaders(), buildAdmissionRows(adm));
+    }).catch(function (err) {
+      if (state.detailsSource !== src) return;
+      setDetailsError(err, src);
     });
     return;
   }
@@ -1068,7 +1241,7 @@ function renderDetails() {
     showDetailsTable(bothHeaders(), buildBothRows(state.students, res[1]));
   }).catch(function (err) {
     if (state.detailsSource !== src) return;
-    setDetailsError(err);
+    setDetailsError(err, src);
   });
 }
 

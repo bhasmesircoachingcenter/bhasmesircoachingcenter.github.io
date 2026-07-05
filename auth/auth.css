@@ -319,6 +319,29 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 }
 #broadcastForm textarea { min-height: 140px; }
 .bc-audience { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.att-toolbar {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+  margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.att-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.att-summary { margin: 0; font-size: .92rem; font-weight: 600; color: var(--navy); flex: 1; min-width: 140px; }
+.att-save-row { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.admin-hint { font-size: .9rem; color: var(--muted); margin: -4px 0 16px; line-height: 1.45; }
+.att-status-btns { display: flex; gap: 6px; flex-wrap: nowrap; }
+.att-pill {
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+  font-size: .82rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--muted);
+  white-space: nowrap;
+}
+.att-pill:hover { border-color: var(--navy); }
+.att-pill.active.present { background: #e8f7ee; border-color: #1f9d55; color: #1a6b38; }
+.att-pill.active.absent { background: #fdecec; border-color: #d64545; color: #9b2c2c; }
+.att-note-input {
+  width: 100%; min-width: 80px; max-width: 160px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 8px; font-size: .85rem;
+}
+.att-note-input:focus { outline: none; border-color: var(--navy); }
+.data-table .att-name { font-weight: 600; color: var(--navy); }
 .bc-radio {
   display: flex; align-items: center; gap: 9px; cursor: pointer;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;

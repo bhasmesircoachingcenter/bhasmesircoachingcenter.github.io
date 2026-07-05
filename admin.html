@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=5" />
+  <link rel="stylesheet" href="auth/auth.css?v=7" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -75,6 +75,7 @@
             <select id="detailsSource" name="detailsSource">
               <option value="registered" data-i18n="admin.detailsSrcRegistered">Registered students (portal)</option>
               <option value="enquiry" data-i18n="admin.detailsSrcEnquiry">Enquiry contacts (Google Sheet)</option>
+              <option value="admission" data-i18n="admin.detailsSrcAdmission">Admission form (Google Form)</option>
               <option value="both" data-i18n="admin.detailsSrcBoth">Both (merged & de-duplicated by email)</option>
             </select>
           </div>
@@ -88,37 +89,25 @@
       <!-- ===================== ATTENDANCE ===================== -->
       <section class="admin-panel" id="panel-attendance">
         <div class="admin-card">
-          <h2 data-i18n="admin.attendanceTitle">Mark Attendance</h2>
-          <form class="admin-form" id="attendanceForm" novalidate>
-            <div class="field full">
-              <label for="attStudent" data-i18n="admin.student">Student</label>
-              <select id="attStudent" name="student" required></select>
-            </div>
+          <h2 data-i18n="admin.attendanceTitle">Mark Daily Attendance</h2>
+          <p class="admin-hint" data-i18n="admin.attendanceHint">Choose a date, mark each registered student Present or Absent, then save. Records are stored in your Google Sheet (Attendance tab).</p>
+          <div class="att-toolbar">
             <div class="field">
               <label for="attDate" data-i18n="admin.date">Date</label>
               <input type="date" id="attDate" name="date" required />
             </div>
-            <div class="field">
-              <label for="attStatus" data-i18n="admin.status">Status</label>
-              <select id="attStatus" name="status" required>
-                <option value="present" data-i18n="status.present">Present</option>
-                <option value="absent" data-i18n="status.absent">Absent</option>
-              </select>
+            <div class="att-actions-row">
+              <button type="button" class="btn btn-outline btn-sm" id="attAllPresent" data-i18n="admin.attAllPresent">All Present</button>
+              <button type="button" class="btn btn-outline btn-sm" id="attAllAbsent" data-i18n="admin.attAllAbsent">All Absent</button>
             </div>
-            <div class="field full">
-              <label for="attNote" data-i18n="admin.note">Note (optional)</label>
-              <input type="text" id="attNote" name="note" maxlength="200" />
-            </div>
-            <div class="actions">
-              <button type="submit" class="btn btn-primary" data-i18n="admin.addAttendance">Add Attendance</button>
-              <p class="admin-note" id="attendanceNote" role="status" aria-live="polite"></p>
-            </div>
-          </form>
-        </div>
-        <div class="admin-card">
-          <h2 data-i18n="admin.recentAttendance">Recent Attendance</h2>
-          <div class="table-scroll" id="attendanceListWrap">
-            <p class="empty-state" data-i18n="admin.selectStudent">Select a student to see entries.</p>
+            <p class="att-summary" id="attSummary" aria-live="polite"></p>
+          </div>
+          <div class="table-scroll" id="attendanceGridWrap">
+            <p class="empty-state" data-i18n="admin.attLoading">Loading students…</p>
+          </div>
+          <div class="actions att-save-row">
+            <button type="button" class="btn btn-primary" id="attSaveBtn" data-i18n="admin.attSave">Save Attendance to Sheet</button>
+            <p class="admin-note" id="attendanceNote" role="status" aria-live="polite"></p>
           </div>
         </div>
       </section>
@@ -233,6 +222,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=5"></script>
+  <script type="module" src="auth/admin.js?v=7"></script>
 </body>
 </html>
