@@ -756,7 +756,7 @@ function updateAttSummary() {
   var absent = 0;
   var roster = getFilteredAttendanceRoster();
   roster.forEach(function (s) {
-    var rec = state.attendanceMap[rosterAttKey(s)] || { status: "present" };
+    var rec = state.attendanceMap[rosterAttKey(s)] || { status: "absent" };
     if (rec.status === "absent") absent++;
     else present++;
   });
@@ -778,7 +778,7 @@ function updateAttSummary() {
 function setAttPresentAll(present) {
   getFilteredAttendanceRoster().forEach(function (s) {
     var key = rosterAttKey(s);
-    state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+    state.attendanceMap[key] = state.attendanceMap[key] || { status: "absent", note: "" };
     state.attendanceMap[key].status = present ? "present" : "absent";
   });
   renderAttendanceGrid();
@@ -825,7 +825,7 @@ function renderAttendanceGrid() {
   var tbody = document.createElement("tbody");
   visible.forEach(function (s) {
     var key = rosterAttKey(s);
-    var rec = state.attendanceMap[key] || { status: "present", note: "" };
+    var rec = state.attendanceMap[key] || { status: "absent", note: "" };
     var tr = document.createElement("tr");
     tr.setAttribute("data-att-key", key);
 
@@ -838,7 +838,7 @@ function renderAttendanceGrid() {
     cb.checked = rec.status !== "absent";
     cb.setAttribute("aria-label", t("status.present") + ": " + (s.name || ""));
     cb.addEventListener("change", function () {
-      state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
+      state.attendanceMap[key] = state.attendanceMap[key] || { status: "absent", note: "" };
       state.attendanceMap[key].status = cb.checked ? "present" : "absent";
       tr.classList.toggle("absent-row", !cb.checked);
       updateAttSummary();
@@ -886,7 +886,7 @@ function loadAttendanceForDate(date) {
 
     state.attendanceMap = {};
     state.attendanceRoster.forEach(function (s) {
-      state.attendanceMap[rosterAttKey(s)] = { status: "present", note: "" };
+      state.attendanceMap[rosterAttKey(s)] = { status: "absent", note: "" };
     });
 
     return sheetAdminRequest("attendance", { subaction: "get", date: date })
@@ -929,7 +929,7 @@ function saveDailyAttendance() {
 
   var records = state.attendanceRoster.map(function (s) {
     var key = rosterAttKey(s);
-    var rec = state.attendanceMap[key] || { status: "present", note: "" };
+    var rec = state.attendanceMap[key] || { status: "absent", note: "" };
     return {
       name: s.name || "",
       email: rosterSheetEmail(s),
@@ -953,7 +953,7 @@ function saveDailyAttendance() {
         var portal = portalStudentByEmail(s.email);
         if (!portal) return;
         var key = rosterAttKey(s);
-        var rec = state.attendanceMap[key] || { status: "present", note: "" };
+        var rec = state.attendanceMap[key] || { status: "absent", note: "" };
         portalSync.push(setDoc(doc(db, "students", portal.id, "attendance", date), {
           date: date,
           status: rec.status === "absent" ? "absent" : "present",
