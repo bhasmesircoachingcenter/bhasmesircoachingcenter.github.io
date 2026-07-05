@@ -542,25 +542,36 @@ function populateStudentSelects() {
 
 /* ---------------- Daily attendance (Admissions sheet + Google Sheet) ---------------- */
 
+function admissionRowField(r, exactKey, keyPattern) {
+  if (!r) return "";
+  if (r[exactKey] && String(r[exactKey]).trim()) return String(r[exactKey]).trim();
+  var keys = Object.keys(r);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (k === exactKey) continue;
+    if (keyPattern.test(k)) {
+      var v = String(r[k] || "").trim();
+      if (v) return v;
+    }
+  }
+  return "";
+}
+
 function buildAttendanceRoster(admissionRows) {
   var seen = {};
   var list = [];
   (admissionRows || []).forEach(function (r) {
-    var name = String(r.Name || "").trim();
+    var name = admissionRowField(r, "Name", /name/i);
     if (!name) return;
-    var email = String(r.Email || "").trim();
-    var mobile = String(r.Mobile || "").trim();
+    var email = admissionRowField(r, "Email", /email/i);
+    var mobile = admissionRowField(r, "Mobile", /mobile|whatsapp|phone/i);
+    var batch = admissionRowField(r, "Class", /class/i) || admissionRowField(r, "Batch", /batch|timing/i);
     var key = email && email.indexOf("@") > 0
       ? email.toLowerCase()
       : ("name:" + name.toLowerCase() + "|" + mobile);
     if (seen[key]) return;
     seen[key] = true;
-    list.push({
-      name: name,
-      email: email,
-      mobile: mobile,
-      batch: String(r.Class || r.Batch || "").trim()
-    });
+    list.push({ name: name, email: email, mobile: mobile, batch: batch });
   });
   return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
 }
@@ -598,29 +609,37 @@ function portalStudentByEmail(email) {
   return null;
 }
 
+function mapRosterPayload(roster) {
+  return (roster || []).map(function (r) {
+    return {
+      name: String((r && r.name) || "").trim(),
+      email: String((r && r.email) || "").trim(),
+      mobile: String((r && r.mobile) || "").trim(),
+      batch: String((r && r.batch) || "").trim()
+    };
+  }).filter(function (s) { return s.name; });
+}
+
 function ensureAttendanceRoster(forceRefresh) {
   if (!forceRefresh && state.attendanceRoster.length) {
     return Promise.resolve(state.attendanceRoster);
   }
-  return sheetAdminRequest("attendance", { subaction: "roster" })
-    .then(function (payload) {
-      var roster = Array.isArray(payload.roster) ? payload.roster : [];
-      state.attendanceRoster = roster.map(function (r) {
-        return {
-          name: String((r && r.name) || "").trim(),
-          email: String((r && r.email) || "").trim(),
-          mobile: String((r && r.mobile) || "").trim(),
-          batch: String((r && r.batch) || "").trim()
-        };
-      }).filter(function (s) { return s.name; });
+
+  // Prefer admissions API (already deployed) — roster subaction is optional.
+  return ensureAdmissions(forceRefresh).then(function (rows) {
+    state.attendanceRoster = buildAttendanceRoster(rows);
+    if (state.attendanceRoster.length) return state.attendanceRoster;
+
+    return sheetAdminRequest("attendance", { subaction: "roster" }).then(function (payload) {
+      state.attendanceRoster = mapRosterPayload(payload.roster);
       return state.attendanceRoster;
-    })
-    .catch(function () {
-      return ensureAdmissions().then(function (rows) {
-        state.attendanceRoster = buildAttendanceRoster(rows);
-        return state.attendanceRoster;
-      });
     });
+  }).catch(function () {
+    return sheetAdminRequest("attendance", { subaction: "roster" }).then(function (payload) {
+      state.attendanceRoster = mapRosterPayload(payload.roster);
+      return state.attendanceRoster;
+    });
+  });
 }
 
 function sheetAdminRequest(action, fields) {
@@ -1324,8 +1343,8 @@ function fetchAdmissions() {
   });
 }
 
-function ensureAdmissions() {
-  if (state.admissions) return Promise.resolve(state.admissions);
+function ensureAdmissions(forceRefresh) {
+  if (!forceRefresh && state.admissions) return Promise.resolve(state.admissions);
   return fetchAdmissions().then(function (rows) {
     state.admissions = Array.isArray(rows) ? rows : [];
     return state.admissions;
