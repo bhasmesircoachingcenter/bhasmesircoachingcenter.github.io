@@ -349,8 +349,8 @@
      handles emailing the student + admin server-side. */
   var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
 
-  /* Set after createAdmissionGoogleForm runs; also loaded via doGet?action=admissionForm */
-  var ADMISSION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform";
+  /* Short link: https://bhasmesircoachingcenter.github.io/apply */
+  var ADMISSION_FORM_URL = "https://bhasmesircoachingcenter.github.io/apply";
 
   function wireAdmissionFormLinks(url) {
     if (!url) return;
