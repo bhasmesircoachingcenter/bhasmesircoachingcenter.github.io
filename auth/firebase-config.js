@@ -32,3 +32,7 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Secondary Auth app — create/delete student logins without signing out the admin.
+export const provisionApp = initializeApp(firebaseConfig, "bccProvision");
+export const provisionAuth = getAuth(provisionApp);

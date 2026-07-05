@@ -11,10 +11,14 @@
 // so NO Firestore composite index is required.
 // =============================================================================
 
-import { auth, db } from "./firebase-config.js";
+import { auth, db, provisionAuth } from "./firebase-config.js";
 import {
   onAuthStateChanged,
-  signOut
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  deleteUser,
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   doc,
@@ -53,7 +57,7 @@ var I18N = {
     "admin.noStudents": "No students registered yet.",
     "admin.accountsTitle": "Portal Accounts",
     "admin.accountsHint": "Create login accounts from the Admissions sheet. Students sign in with their email; initial password is their 10-digit mobile number.",
-    "admin.accountsLoginHint": "Tell students: Login = email from admission form · Password = 10-digit mobile (no +91)",
+    "admin.accountsLoginHint": "Tell students: Login = email from admission form · Password = 10-digit mobile (no +91). Firebase may send a verification email — they can ignore it and log in.",
     "admin.accountsLoading": "Loading admissions and portal accounts…",
     "admin.accountsPendingTitle": "From Admissions (no account yet)",
     "admin.accountsActiveTitle": "Portal accounts (registered)",
@@ -231,7 +235,7 @@ var I18N = {
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
     "admin.accountsTitle": "पोर्टल खाती",
     "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. विद्यार्थी ईमेलने लॉगिन करतात; प्रारंभिक पासवर्ड १० अंकी मोबाइल नंबर.",
-    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको)",
+    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको). Firebase पडताळणी ईमेल पाठवू शकते — लॉगिन करता येईल.",
     "admin.accountsLoading": "प्रवेश व पोर्टल खाती लोड होत आहेत…",
     "admin.accountsPendingTitle": "Admissions मधून (अद्याप खाते नाही)",
     "admin.accountsActiveTitle": "पोर्टल खाती (नोंदणीकृत)",
@@ -627,18 +631,44 @@ function buildAdmissionAccountList(rows) {
 }
 
 function portalAccountsErrorKey(err) {
-  var code = err && err.message;
+  var code = (err && err.code) || (err && err.message) || "";
+  if (code === "auth/email-already-in-use") return "admin.accountsErrExists";
+  if (code === "auth/invalid-email") return "admin.accountsNoEmail";
+  if (code === "auth/weak-password") return "admin.accountsNoPhone";
+  if (code === "auth/wrong-password" || code === "auth/invalid-credential" || code === "auth/user-not-found") {
+    return "admin.accountsErrRemove";
+  }
   if (code === "unauthorized") return "admin.detailsUnauthorized";
   if (code === "timeout") return "admin.detailsTimeout";
-  if (code === "network" || code === "bad-response") return "admin.accountsErrFunctions";
-  if (code === "unknown subaction" || code === "unknown action") return "admin.accountsErrFunctions";
-  if (code === "already-exists") return "admin.accountsErrExists";
-  if (code === "invalid-phone" || code === "weak-password") return "admin.accountsNoPhone";
-  if (code === "missing-email" || code === "invalid-email") return "admin.accountsNoEmail";
-  if (code === "missing-name") return "admin.accountsErrCreate";
-  if (code === "auth-failed" || code === "auth-error") return "admin.accountsErrRemove";
-  if (code === "permission-denied" || code === "firestore-failed") return "admin.accountsErrFirestore";
+  if (code === "firestore-failed") return "admin.accountsErrFirestore";
   return null;
+}
+
+function provisionCreateAuthUser(email, phone, name) {
+  return createUserWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
+    var user = cred.user;
+    var uid = user.uid;
+    var done = name ? updateProfile(user, { displayName: name }) : Promise.resolve();
+    return done.then(function () {
+      return signOut(provisionAuth).then(function () { return uid; });
+    });
+  }).catch(function (err) {
+    if (err && err.code === "auth/email-already-in-use") {
+      return signInWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
+        var uid = cred.user.uid;
+        return signOut(provisionAuth).then(function () { return uid; });
+      });
+    }
+    throw err;
+  });
+}
+
+function provisionDeleteAuthUser(email, phone) {
+  return signInWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
+    return deleteUser(cred.user).then(function () {
+      return signOut(provisionAuth);
+    });
+  });
 }
 
 function deleteSubcollectionDocs(uid, subName) {
@@ -815,15 +845,9 @@ function createPortalAccount(admissionRow, btn) {
   if (btn) btn.disabled = true;
   if (note) setNote(note, "", "");
 
-  sheetAdminRequest("portalaccounts", {
-    subaction: "create",
-    name: admissionRow.name,
-    email: email,
-    phone: phone,
-    batch: admissionRow.batch || ""
-  }).then(function (payload) {
-    if (!payload || !payload.uid) throw new Error("bad-response");
-    return setDoc(doc(db, "students", payload.uid), {
+  provisionCreateAuthUser(email, phone, admissionRow.name).then(function (uid) {
+    if (!uid) throw new Error("bad-response");
+    return setDoc(doc(db, "students", uid), {
       name: admissionRow.name,
       email: email,
       phone: phone,
@@ -865,12 +889,13 @@ function removePortalAccount(student, btn) {
     return;
   }
 
-  sheetAdminRequest("portalaccounts", {
-    subaction: "delete",
-    email: student.email,
-    phone: phone
-  }).then(function () {
+  provisionDeleteAuthUser(student.email, phone).then(function () {
     return deleteStudentFirestoreData(student.id);
+  }).catch(function (err) {
+    if (err && err.code === "auth/user-not-found") {
+      return deleteStudentFirestoreData(student.id);
+    }
+    throw err;
   }).then(function () {
     if (note) setNote(note, t("admin.accountsRemoved"), "ok");
     return loadStudents();
