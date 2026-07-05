@@ -11,14 +11,11 @@
 // so NO Firestore composite index is required.
 // =============================================================================
 
-import { auth, db, functions } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 import {
   doc,
   getDoc,
@@ -27,6 +24,7 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
+  writeBatch,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -67,6 +65,7 @@ var I18N = {
     "admin.accountsCreated": "Account created. Student can log in with email + mobile as password.",
     "admin.accountsRemoved": "Portal account removed.",
     "admin.accountsNoEmail": "Email missing — cannot create account.",
+    "admin.accountsInvalidEmail": "Invalid email in Admissions — fix the sheet, then refresh.",
     "admin.accountsNoPhone": "Valid 10-digit mobile required for password.",
     "admin.accountsNoPending": "All admission students already have portal accounts.",
     "admin.accountsNoActive": "No portal accounts yet.",
@@ -75,7 +74,7 @@ var I18N = {
     "admin.accountsErrCreate": "Could not create account.",
     "admin.accountsErrRemove": "Could not remove account.",
     "admin.accountsErrExists": "This email already has a portal account.",
-    "admin.accountsErrFunctions": "Cloud Functions not deployed. See FUNCTIONS_DEPLOY.md — run firebase deploy --only functions.",
+    "admin.accountsErrFunctions": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version.",
     "admin.edit": "Edit",
     "admin.save": "Save",
     "admin.cancel": "Cancel",
@@ -242,6 +241,7 @@ var I18N = {
     "admin.accountsCreated": "खाते तयार झाले. विद्यार्थी ईमेल + मोबाइल पासवर्डने लॉगिन करू शकतो.",
     "admin.accountsRemoved": "पोर्टल खाते काढले.",
     "admin.accountsNoEmail": "ईमेल नाही — खाते तयार करता येत नाही.",
+    "admin.accountsInvalidEmail": "Admissions मध्ये चुकीचा ईमेल — शीट दुरुस्त करा, नंतर रिफ्रेश करा.",
     "admin.accountsNoPhone": "पासवर्डसाठी वैध १० अंकी मोबाइल हवा.",
     "admin.accountsNoPending": "सर्व प्रवेश विद्यार्थ्यांची पोर्टल खाती आहेत.",
     "admin.accountsNoActive": "अद्याप पोर्टल खाती नाहीत.",
@@ -250,7 +250,7 @@ var I18N = {
     "admin.accountsErrCreate": "खाते तयार करता आले नाही.",
     "admin.accountsErrRemove": "खाते काढता आले नाही.",
     "admin.accountsErrExists": "या ईमेलवर आधीच पोर्टल खाते आहे.",
-    "admin.accountsErrFunctions": "Cloud Functions deploy नाहीत. FUNCTIONS_DEPLOY.md पहा — firebase deploy --only functions चालवा.",
+    "admin.accountsErrFunctions": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → Manage deployments → New version.",
     "admin.edit": "संपादित करा",
     "admin.save": "जतन करा",
     "admin.cancel": "रद्द करा",
@@ -413,9 +413,6 @@ var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Authorization for broadcasts is done by passing the admin's Firebase ID token,
 // which the server verifies — no static secret/token is embedded here.
 var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
-
-var createStudentAccountFn = httpsCallable(functions, "createStudentAccount");
-var deleteStudentAccountFn = httpsCallable(functions, "deleteStudentAccount");
 
 function applyLang(next) {
   if (!I18N[next]) next = "en";
@@ -602,6 +599,14 @@ function admissionAccountRow(r) {
   };
 }
 
+function accountPendingStatus(email, phone) {
+  email = String(email || "").trim();
+  if (!email) return t("admin.accountsNoEmail");
+  if (!EMAIL_RE.test(email)) return t("admin.accountsInvalidEmail");
+  if (!normalizePhone(phone)) return t("admin.accountsNoPhone");
+  return t("admin.accountsStatusPending");
+}
+
 function buildAdmissionAccountList(rows) {
   var seen = {};
   var list = [];
@@ -617,16 +622,36 @@ function buildAdmissionAccountList(rows) {
   return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
 }
 
-function functionsErrorKey(err) {
-  var code = err && err.code;
-  if (code === "functions/not-found" || code === "functions/unavailable") {
-    return "admin.accountsErrFunctions";
-  }
-  var details = err && err.details;
-  if (details === "already-exists" || (err && err.message && err.message.indexOf("already") >= 0)) {
-    return "admin.accountsErrExists";
-  }
+function portalAccountsErrorKey(err) {
+  var code = err && err.message;
+  if (code === "unauthorized") return "admin.detailsUnauthorized";
+  if (code === "timeout") return "admin.detailsTimeout";
+  if (code === "network" || code === "bad-response") return "admin.accountsErrFunctions";
+  if (code === "unknown subaction") return "admin.accountsErrFunctions";
+  if (code === "already-exists") return "admin.accountsErrExists";
+  if (code === "invalid-phone") return "admin.accountsNoPhone";
+  if (code === "missing-email" || code === "invalid-email") return "admin.accountsNoEmail";
+  if (code === "auth-failed" || code === "auth-error") return "admin.accountsErrRemove";
   return null;
+}
+
+function deleteSubcollectionDocs(uid, subName) {
+  var colRef = collection(db, "students", uid, subName);
+  return getDocs(colRef).then(function (snap) {
+    if (snap.empty) return;
+    var batch = writeBatch(db);
+    snap.docs.forEach(function (d) { batch.delete(d.ref); });
+    return batch.commit().then(function () {
+      return deleteSubcollectionDocs(uid, subName);
+    });
+  });
+}
+
+function deleteStudentFirestoreData(uid) {
+  return deleteSubcollectionDocs(uid, "attendance")
+    .then(function () { return deleteSubcollectionDocs(uid, "results"); })
+    .then(function () { return deleteDoc(doc(db, "students", uid)); })
+    .catch(function () { return deleteDoc(doc(db, "students", uid)); });
 }
 
 function loadPortalAccounts() {
@@ -713,7 +738,7 @@ function renderPortalAccounts() {
           email || t("dash"),
           phone || (a.phone || t("dash")),
           a.batch || t("dash"),
-          canCreate ? t("admin.accountsStatusPending") : (email ? t("admin.accountsNoPhone") : t("admin.accountsNoEmail"))
+          accountPendingStatus(a.email, a.phone)
         ],
         canCreate: canCreate
       };
@@ -784,11 +809,22 @@ function createPortalAccount(admissionRow, btn) {
   if (btn) btn.disabled = true;
   if (note) setNote(note, "", "");
 
-  createStudentAccountFn({
+  sheetAdminRequest("portalaccounts", {
+    subaction: "create",
     name: admissionRow.name,
     email: email,
     phone: phone,
     batch: admissionRow.batch || ""
+  }).then(function (payload) {
+    return setDoc(doc(db, "students", payload.uid), {
+      name: admissionRow.name,
+      email: email,
+      phone: phone,
+      batch: admissionRow.batch || "",
+      schedule: "",
+      provisionedByAdmin: true,
+      createdAt: serverTimestamp()
+    });
   }).then(function () {
     if (note) setNote(note, t("admin.accountsCreated"), "ok");
     return loadStudents().then(function () {
@@ -801,7 +837,7 @@ function createPortalAccount(admissionRow, btn) {
     populateStudentSelects();
     updateBroadcastCount();
   }).catch(function (err) {
-    var key = functionsErrorKey(err) || "admin.accountsErrCreate";
+    var key = portalAccountsErrorKey(err) || "admin.accountsErrCreate";
     if (note) setNote(note, t(key), "err");
     if (btn) btn.disabled = false;
   });
@@ -815,7 +851,20 @@ function removePortalAccount(student, btn) {
   if (btn) btn.disabled = true;
   if (note) setNote(note, "", "");
 
-  deleteStudentAccountFn({ uid: student.id }).then(function () {
+  var phone = normalizePhone(student.phone);
+  if (!phone) {
+    if (note) setNote(note, t("admin.accountsNoPhone"), "err");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  sheetAdminRequest("portalaccounts", {
+    subaction: "delete",
+    email: student.email,
+    phone: phone
+  }).then(function () {
+    return deleteStudentFirestoreData(student.id);
+  }).then(function () {
     if (note) setNote(note, t("admin.accountsRemoved"), "ok");
     return loadStudents();
   }).then(function () {
@@ -824,7 +873,7 @@ function removePortalAccount(student, btn) {
     populateStudentSelects();
     updateBroadcastCount();
   }).catch(function (err) {
-    var key = functionsErrorKey(err) || "admin.accountsErrRemove";
+    var key = portalAccountsErrorKey(err) || "admin.accountsErrRemove";
     if (note) setNote(note, t(key), "err");
     if (btn) btn.disabled = false;
   });
