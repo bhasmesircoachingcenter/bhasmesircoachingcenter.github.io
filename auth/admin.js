@@ -753,6 +753,7 @@ function renderAttendanceGrid() {
 
     var tdCheck = document.createElement("td");
     tdCheck.className = "att-check-cell";
+    tdCheck.setAttribute("data-label", t("admin.attPresent"));
     var cb = document.createElement("input");
     cb.type = "checkbox";
     cb.className = "att-present-cb";
@@ -761,15 +762,21 @@ function renderAttendanceGrid() {
     cb.addEventListener("change", function () {
       state.attendanceMap[key] = state.attendanceMap[key] || { status: "present", note: "" };
       state.attendanceMap[key].status = cb.checked ? "present" : "absent";
+      tr.classList.toggle("absent-row", !cb.checked);
       updateAttSummary();
     });
+    tr.classList.toggle("absent-row", !cb.checked);
     tdCheck.appendChild(cb);
     tr.appendChild(tdCheck);
 
     var tdName = cell("td", s.name || t("dash"));
-    tdName.className = "att-name";
+    tdName.className = "att-name att-name-cell";
+    tdName.setAttribute("data-label", t("dcol.name"));
     tr.appendChild(tdName);
-    tr.appendChild(cell("td", s.batch || t("dash")));
+    var tdBatch = cell("td", s.batch || t("dash"));
+    tdBatch.className = "att-batch-cell";
+    tdBatch.setAttribute("data-label", t("dcol.batch"));
+    tr.appendChild(tdBatch);
 
     tbody.appendChild(tr);
   });
@@ -929,10 +936,7 @@ function renderResultList(uid) {
       wrap.appendChild(p); return;
     }
     var table = document.createElement("table");
-    table.className = "data-table";
-    var thead = document.createElement("thead");
-    var htr = document.createElement("tr");
-    [t("col.date"), t("col.test"), t("col.subject"), t("col.marks"), t("col.actions")].forEach(function (h) { htr.appendChild(cell("th", h)); });
+    table.className = "data-table details-table";
     thead.appendChild(htr); table.appendChild(thead);
     var tbody = document.createElement("tbody");
     rows.forEach(function (r) {
@@ -1002,6 +1006,7 @@ function initTabs() {
       document.querySelectorAll(".admin-panel").forEach(function (panel) {
         panel.classList.toggle("active", panel.id === "panel-" + name);
       });
+      tab.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
       if (name === "attendance") {
         loadAttendanceForDate(state.attendanceDate || todayIso());
       }
@@ -1366,7 +1371,7 @@ function ensureAdmissions(forceRefresh) {
 // content can never be interpreted as HTML.
 function buildDetailsTable(headers, rows) {
   var table = document.createElement("table");
-  table.className = "data-table";
+  table.className = "data-table details-table";
   var thead = document.createElement("thead");
   var htr = document.createElement("tr");
   headers.forEach(function (h) { htr.appendChild(cell("th", h)); });
