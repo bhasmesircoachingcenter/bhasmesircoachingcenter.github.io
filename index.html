@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body>
   <!-- Promotional announcement banner -->
@@ -67,6 +67,7 @@
         </p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary" data-i18n="hero.demo">Book a Free Demo Class</a>
+          <a href="#" class="btn btn-outline" data-admission-form hidden aria-hidden="true" target="_blank" rel="noopener noreferrer" data-i18n="hero.applyOnline">Apply Online</a>
           <a href="#courses" class="btn btn-outline" data-i18n="hero.viewCourses">View Courses</a>
         </div>
         <div class="hero-stats">
@@ -334,6 +335,11 @@
           </div>
           <button type="submit" class="btn btn-primary" data-i18n="form.send">Send Enquiry</button>
           <p class="form-note" id="formNote" role="status" aria-live="polite"></p>
+          <div class="admission-form-cta" hidden data-admission-form-wrap aria-hidden="true">
+            <p class="admission-form-cta-label" data-i18n="contact.applyOnline">Full admission form (online)</p>
+            <a href="#" class="btn btn-outline btn-block" data-admission-form target="_blank" rel="noopener noreferrer" data-i18n="hero.applyOnline">Apply Online</a>
+            <p class="form-note admission-form-cta-hint" data-i18n="contact.applyOnlineHint">All details are saved to our student records — same as the paper form at the center.</p>
+          </div>
         </form>
 
         <aside class="contact-info">
@@ -385,6 +391,6 @@
     <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M16 .5C7.4.5.5 7.4.5 16c0 2.8.7 5.4 2 7.7L.5 31.5l8-2c2.2 1.2 4.8 1.9 7.5 1.9 8.6 0 15.5-6.9 15.5-15.5S24.6.5 16 .5zm0 28c-2.4 0-4.7-.7-6.7-1.9l-.5-.3-4.7 1.2 1.3-4.6-.3-.5C3.7 20.3 3 18.2 3 16 3 8.8 8.8 3 16 3s13 5.8 13 13-5.8 12.5-13 12.5zm7.1-9.4c-.4-.2-2.3-1.1-2.6-1.2-.3-.1-.6-.2-.8.2-.2.4-.9 1.2-1.1 1.4-.2.2-.4.2-.8.1-.4-.2-1.6-.6-3.1-1.9-1.1-1-1.9-2.3-2.1-2.7-.2-.4 0-.6.2-.8.2-.2.4-.4.5-.7.2-.2.2-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.8-2-1.1-2.7-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-.9.5-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.5 3.8 6 5.3.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2.3-.9 2.6-1.8.3-.9.3-1.6.2-1.8-.1-.1-.3-.2-.7-.4z"/></svg>
   </a>
 
-  <script src="script.js?v=25"></script>
+  <script src="script.js?v=27"></script>
 </body>
 </html>

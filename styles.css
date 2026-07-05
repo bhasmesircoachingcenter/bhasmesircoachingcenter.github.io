@@ -287,6 +287,21 @@ body.lang-mr .brand-text strong {
 .form-note { font-size: .9rem; min-height: 1em; }
 .form-note.ok { color: #1f9d55; }
 .form-note.err { color: #d64545; }
+.admission-form-cta {
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  gap: 10px;
+}
+.admission-form-cta-label {
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0;
+}
+.admission-form-cta-hint { margin: 0; color: var(--muted); font-size: .85rem; }
+.btn-block { width: 100%; justify-content: center; }
 
 .contact-info h3 { color: var(--navy); margin-bottom: 18px; }
 .contact-list { list-style: none; display: grid; gap: 18px; margin-bottom: 24px; }

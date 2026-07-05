@@ -26,6 +26,7 @@
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
       "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>10 July 2026</strong>.',
       "hero.demo": "Book a Free Demo Class",
+      "hero.applyOnline": "Apply Online",
       "hero.viewCourses": "View Courses",
       "hero.stat1num": "35",
       "hero.stat1": "Years Experience",
@@ -106,6 +107,8 @@
       "contact.eyebrow": "Admissions & Contact",
       "contact.h2": "Book your free demo class",
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
+      "contact.applyOnline": "Full admission form (online)",
+      "contact.applyOnlineHint": "All details are saved to our student records — same as the paper form at the center.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone Number",
       "form.email": "Email",
@@ -155,6 +158,7 @@
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
       "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१० जुलै २०२६</strong> पासून सुरू.',
       "hero.demo": "मोफत डेमो वर्ग बुक करा",
+      "hero.applyOnline": "ऑनलाइन प्रवेश अर्ज",
       "hero.viewCourses": "अभ्यासक्रम पाहा",
       "hero.stat1num": "३५",
       "hero.stat1": "वर्षांचा अनुभव",
@@ -235,6 +239,8 @@
       "contact.eyebrow": "प्रवेश व संपर्क",
       "contact.h2": "तुमचा मोफत डेमो वर्ग बुक करा",
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
+      "contact.applyOnline": "पूर्ण प्रवेश अर्ज (ऑनलाइन)",
+      "contact.applyOnlineHint": "सर्व माहिती आमच्या विद्यार्थी नोंदींमध्ये जतन होते — केंद्रावरील कागदी अर्जासारखीच.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन नंबर",
       "form.email": "ईमेल",
@@ -342,6 +348,39 @@
      This is a public endpoint by design (not a secret). The script behind it
      handles emailing the student + admin server-side. */
   var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+
+  /* Set after createAdmissionGoogleForm runs; also loaded via doGet?action=admissionForm */
+  var ADMISSION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdwhBNwC3VPzpF0TJnvfxyzE4uHuhUsvWODEhPDmRe2MimGg/viewform";
+
+  function wireAdmissionFormLinks(url) {
+    if (!url) return;
+    document.querySelectorAll("[data-admission-form]").forEach(function (el) {
+      el.href = url;
+      el.hidden = false;
+      el.removeAttribute("aria-hidden");
+    });
+    var wrap = document.querySelector("[data-admission-form-wrap]");
+    if (wrap) {
+      wrap.hidden = false;
+      wrap.removeAttribute("aria-hidden");
+    }
+  }
+
+  (function loadAdmissionFormLink() {
+    if (ADMISSION_FORM_URL) {
+      wireAdmissionFormLinks(ADMISSION_FORM_URL);
+      return;
+    }
+    var cb = "bccAdmForm_" + Date.now();
+    window[cb] = function (data) {
+      try { delete window[cb]; } catch (e) {}
+      if (data && data.url) wireAdmissionFormLinks(data.url);
+    };
+    var script = document.createElement("script");
+    script.src = SHEET_ENDPOINT + "?action=admissionForm&callback=" + encodeURIComponent(cb);
+    script.onerror = function () { try { delete window[cb]; } catch (e) {} };
+    document.head.appendChild(script);
+  })();
 
   /* Canonical English course labels (keep the owner's sheet consistent regardless of site language) */
   var COURSE_EN = ["Class 8th Maths", "Class 9th Maths", "Class 10th Maths (SSC)"];
