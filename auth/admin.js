@@ -72,6 +72,8 @@ var I18N = {
     "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nLogin: {email}\nPassword: {phone} (10-digit mobile)",
     "admin.accountsConfirmRemove": "Remove portal account for {name}? This deletes their login and profile.",
     "admin.accountsErrCreate": "Could not create account.",
+    "admin.accountsErrWeakPassword": "Firebase rejected this password — use a different mobile number or contact support.",
+    "admin.accountsErrFirestore": "Login was created but student profile could not be saved. Try Create account again.",
     "admin.accountsErrRemove": "Could not remove account.",
     "admin.accountsErrExists": "This email already has a portal account.",
     "admin.accountsErrFunctions": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version.",
@@ -248,6 +250,8 @@ var I18N = {
     "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nलॉगिन: {email}\nपासवर्ड: {phone} (१० अंकी मोबाइल)",
     "admin.accountsConfirmRemove": "{name} चे पोर्टल खाते काढायचे? लॉगिन व प्रोफाइल हटवले जाईल.",
     "admin.accountsErrCreate": "खाते तयार करता आले नाही.",
+    "admin.accountsErrWeakPassword": "Firebase ने हा पासवर्ड नाकारला — वेगळा मोबाइल वापरा.",
+    "admin.accountsErrFirestore": "लॉगिन तयार झाले पण प्रोफाइल जतन झाली नाही. पुन्हा Create account दाबा.",
     "admin.accountsErrRemove": "खाते काढता आले नाही.",
     "admin.accountsErrExists": "या ईमेलवर आधीच पोर्टल खाते आहे.",
     "admin.accountsErrFunctions": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → Manage deployments → New version.",
@@ -627,11 +631,13 @@ function portalAccountsErrorKey(err) {
   if (code === "unauthorized") return "admin.detailsUnauthorized";
   if (code === "timeout") return "admin.detailsTimeout";
   if (code === "network" || code === "bad-response") return "admin.accountsErrFunctions";
-  if (code === "unknown subaction") return "admin.accountsErrFunctions";
+  if (code === "unknown subaction" || code === "unknown action") return "admin.accountsErrFunctions";
   if (code === "already-exists") return "admin.accountsErrExists";
-  if (code === "invalid-phone") return "admin.accountsNoPhone";
+  if (code === "invalid-phone" || code === "weak-password") return "admin.accountsNoPhone";
   if (code === "missing-email" || code === "invalid-email") return "admin.accountsNoEmail";
+  if (code === "missing-name") return "admin.accountsErrCreate";
   if (code === "auth-failed" || code === "auth-error") return "admin.accountsErrRemove";
+  if (code === "permission-denied" || code === "firestore-failed") return "admin.accountsErrFirestore";
   return null;
 }
 
@@ -816,6 +822,7 @@ function createPortalAccount(admissionRow, btn) {
     phone: phone,
     batch: admissionRow.batch || ""
   }).then(function (payload) {
+    if (!payload || !payload.uid) throw new Error("bad-response");
     return setDoc(doc(db, "students", payload.uid), {
       name: admissionRow.name,
       email: email,
@@ -824,7 +831,7 @@ function createPortalAccount(admissionRow, btn) {
       schedule: "",
       provisionedByAdmin: true,
       createdAt: serverTimestamp()
-    });
+    }).catch(function () { throw new Error("firestore-failed"); });
   }).then(function () {
     if (note) setNote(note, t("admin.accountsCreated"), "ok");
     return loadStudents().then(function () {
