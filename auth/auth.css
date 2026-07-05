@@ -496,3 +496,46 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   .att-actions-row { flex-direction: column; }
   .att-actions-row .btn { width: 100%; }
 }
+
+/* ---------- Login hint (admin-provisioned accounts) ---------- */
+.auth-login-hint {
+  font-size: .92rem; font-weight: 600; color: var(--navy);
+  background: #eef8f8; border: 1px solid rgba(47,158,158,.35);
+  border-radius: 10px; padding: 12px 14px; margin: 0 0 18px; line-height: 1.45;
+}
+.auth-provision-note {
+  font-size: .88rem; color: var(--muted); margin-top: 20px; line-height: 1.45; text-align: center;
+}
+
+/* ---------- Portal Accounts tab ---------- */
+.accounts-login-banner {
+  font-size: .88rem; font-weight: 600; color: #1a5c5c;
+  background: #e8f6f6; border-left: 4px solid var(--teal);
+  padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0 0 12px; line-height: 1.45;
+}
+.accounts-subtitle {
+  font-size: 1.05rem; font-weight: 600; color: var(--navy);
+  margin: 0 0 12px;
+}
+.accounts-table { min-width: 640px; }
+.accounts-action-cell { white-space: nowrap; width: 1%; }
+.accounts-remove-btn {
+  color: #9b2c2c; border-color: #f0c4c4; background: #fff5f5;
+}
+.accounts-remove-btn:hover { background: #fdecec; border-color: #d64545; }
+
+@media (max-width: 720px) {
+  .accounts-table { min-width: 0; }
+  .accounts-table thead { display: none; }
+  .accounts-table tbody tr {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 6px 10px; padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .accounts-table td { display: block; padding: 0; border: none; }
+  .accounts-table td.att-name { grid-column: 1 / -1; font-size: 1rem; }
+  .accounts-table td.accounts-action-cell { grid-column: 2; grid-row: 1; align-self: start; }
+  .accounts-table td:not(.att-name):not(.accounts-action-cell)::before {
+    content: attr(data-label) ": ";
+    font-weight: 600; color: var(--navy); font-size: .8rem;
+  }
+}

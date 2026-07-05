@@ -11,11 +11,14 @@
 // so NO Firestore composite index is required.
 // =============================================================================
 
-import { auth, db } from "./firebase-config.js";
+import { auth, db, functions } from "./firebase-config.js";
 import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 import {
   doc,
   getDoc,
@@ -41,6 +44,7 @@ var I18N = {
     "admin.deniedBody": "This area is for administrators only.",
     "admin.backToPortal": "Back to portal",
     "admin.tabStudents": "Students",
+    "admin.tabAccounts": "Portal Accounts",
     "admin.tabDetails": "Student Details",
     "admin.tabAttendance": "Attendance",
     "admin.tabResults": "Results",
@@ -49,6 +53,29 @@ var I18N = {
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
+    "admin.accountsTitle": "Portal Accounts",
+    "admin.accountsHint": "Create login accounts from the Admissions sheet. Students sign in with their email; initial password is their 10-digit mobile number.",
+    "admin.accountsLoginHint": "Tell students: Login = email from admission form · Password = 10-digit mobile (no +91)",
+    "admin.accountsLoading": "Loading admissions and portal accounts…",
+    "admin.accountsPendingTitle": "From Admissions (no account yet)",
+    "admin.accountsActiveTitle": "Portal accounts (registered)",
+    "admin.accountsColStatus": "Status",
+    "admin.accountsStatusPending": "No account",
+    "admin.accountsStatusActive": "Active",
+    "admin.accountsCreate": "Create account",
+    "admin.accountsRemove": "Remove account",
+    "admin.accountsCreated": "Account created. Student can log in with email + mobile as password.",
+    "admin.accountsRemoved": "Portal account removed.",
+    "admin.accountsNoEmail": "Email missing — cannot create account.",
+    "admin.accountsNoPhone": "Valid 10-digit mobile required for password.",
+    "admin.accountsNoPending": "All admission students already have portal accounts.",
+    "admin.accountsNoActive": "No portal accounts yet.",
+    "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nLogin: {email}\nPassword: {phone} (10-digit mobile)",
+    "admin.accountsConfirmRemove": "Remove portal account for {name}? This deletes their login and profile.",
+    "admin.accountsErrCreate": "Could not create account.",
+    "admin.accountsErrRemove": "Could not remove account.",
+    "admin.accountsErrExists": "This email already has a portal account.",
+    "admin.accountsErrFunctions": "Cloud Functions not deployed. See FUNCTIONS_DEPLOY.md — run firebase deploy --only functions.",
     "admin.edit": "Edit",
     "admin.save": "Save",
     "admin.cancel": "Cancel",
@@ -192,6 +219,7 @@ var I18N = {
     "admin.deniedBody": "हा भाग फक्त प्रशासकांसाठी आहे.",
     "admin.backToPortal": "पोर्टलकडे परत",
     "admin.tabStudents": "विद्यार्थी",
+    "admin.tabAccounts": "पोर्टल खाती",
     "admin.tabDetails": "विद्यार्थी तपशील",
     "admin.tabAttendance": "हजेरी",
     "admin.tabResults": "निकाल",
@@ -200,6 +228,29 @@ var I18N = {
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
+    "admin.accountsTitle": "पोर्टल खाती",
+    "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. विद्यार्थी ईमेलने लॉगिन करतात; प्रारंभिक पासवर्ड १० अंकी मोबाइल नंबर.",
+    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको)",
+    "admin.accountsLoading": "प्रवेश व पोर्टल खाती लोड होत आहेत…",
+    "admin.accountsPendingTitle": "Admissions मधून (अद्याप खाते नाही)",
+    "admin.accountsActiveTitle": "पोर्टल खाती (नोंदणीकृत)",
+    "admin.accountsColStatus": "स्थिती",
+    "admin.accountsStatusPending": "खाते नाही",
+    "admin.accountsStatusActive": "सक्रिय",
+    "admin.accountsCreate": "खाते तयार करा",
+    "admin.accountsRemove": "खाते काढा",
+    "admin.accountsCreated": "खाते तयार झाले. विद्यार्थी ईमेल + मोबाइल पासवर्डने लॉगिन करू शकतो.",
+    "admin.accountsRemoved": "पोर्टल खाते काढले.",
+    "admin.accountsNoEmail": "ईमेल नाही — खाते तयार करता येत नाही.",
+    "admin.accountsNoPhone": "पासवर्डसाठी वैध १० अंकी मोबाइल हवा.",
+    "admin.accountsNoPending": "सर्व प्रवेश विद्यार्थ्यांची पोर्टल खाती आहेत.",
+    "admin.accountsNoActive": "अद्याप पोर्टल खाती नाहीत.",
+    "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nलॉगिन: {email}\nपासवर्ड: {phone} (१० अंकी मोबाइल)",
+    "admin.accountsConfirmRemove": "{name} चे पोर्टल खाते काढायचे? लॉगिन व प्रोफाइल हटवले जाईल.",
+    "admin.accountsErrCreate": "खाते तयार करता आले नाही.",
+    "admin.accountsErrRemove": "खाते काढता आले नाही.",
+    "admin.accountsErrExists": "या ईमेलवर आधीच पोर्टल खाते आहे.",
+    "admin.accountsErrFunctions": "Cloud Functions deploy नाहीत. FUNCTIONS_DEPLOY.md पहा — firebase deploy --only functions चालवा.",
     "admin.edit": "संपादित करा",
     "admin.save": "जतन करा",
     "admin.cancel": "रद्द करा",
@@ -351,7 +402,8 @@ var state = {
   detailsSource: "registered",
   detailsInit: false,
   enquiries: null, // cached enquiry rows fetched from the sheet via JSONP
-  admissions: null // cached admission form rows from Admissions tab
+  admissions: null, // cached admission form rows from Admissions tab
+  accountsInit: false
 };
 
 // Basic email shape check (matches auth.js). Used to filter broadcast recipients.
@@ -361,6 +413,9 @@ var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Authorization for broadcasts is done by passing the admin's Firebase ID token,
 // which the server verifies — no static secret/token is embedded here.
 var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+
+var createStudentAccountFn = httpsCallable(functions, "createStudentAccount");
+var deleteStudentAccountFn = httpsCallable(functions, "deleteStudentAccount");
 
 function applyLang(next) {
   if (!I18N[next]) next = "en";
@@ -389,6 +444,7 @@ function applyLang(next) {
   renderAnnouncements();
   updateBroadcastCount();
   if (state.detailsInit) renderDetails();
+  if (state.accountsInit) renderPortalAccounts();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -516,6 +572,267 @@ function renderStudents() {
     row.appendChild(editor);
     wrap.appendChild(row);
   });
+}
+
+/* ---------------- Portal accounts (admin-provisioned login) ---------------- */
+
+function normalizePhone(raw) {
+  var digits = String(raw || "").replace(/[\s\-()]/g, "");
+  digits = digits.replace(/^\+91/, "").replace(/^0+/, "");
+  if (/^[6-9]\d{9}$/.test(digits)) return digits;
+  return null;
+}
+
+function studentByEmail(email) {
+  var lower = String(email || "").trim().toLowerCase();
+  if (!lower) return null;
+  for (var i = 0; i < state.students.length; i++) {
+    if ((state.students[i].email || "").trim().toLowerCase() === lower) return state.students[i];
+  }
+  return null;
+}
+
+function admissionAccountRow(r) {
+  r = r || {};
+  return {
+    name: admissionRowField(r, "Name", /name/i),
+    email: admissionRowField(r, "Email", /email/i),
+    phone: admissionRowField(r, "Mobile", /mobile|whatsapp|phone/i),
+    batch: admissionRowField(r, "Class", /class/i) || admissionRowField(r, "Batch", /batch|timing/i)
+  };
+}
+
+function buildAdmissionAccountList(rows) {
+  var seen = {};
+  var list = [];
+  (rows || []).forEach(function (r) {
+    var row = admissionAccountRow(r);
+    if (!row.name) return;
+    var emailKey = row.email ? row.email.trim().toLowerCase() : "";
+    var key = emailKey || ("n:" + row.name.toLowerCase() + "|" + row.phone);
+    if (seen[key]) return;
+    seen[key] = true;
+    list.push(row);
+  });
+  return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+
+function functionsErrorKey(err) {
+  var code = err && err.code;
+  if (code === "functions/not-found" || code === "functions/unavailable") {
+    return "admin.accountsErrFunctions";
+  }
+  var details = err && err.details;
+  if (details === "already-exists" || (err && err.message && err.message.indexOf("already") >= 0)) {
+    return "admin.accountsErrExists";
+  }
+  return null;
+}
+
+function loadPortalAccounts() {
+  var pendingWrap = el("accountsPendingWrap");
+  var activeWrap = el("accountsActiveWrap");
+  var note = el("accountsNote");
+  if (pendingWrap) {
+    pendingWrap.textContent = "";
+    var loading = document.createElement("p");
+    loading.className = "empty-state";
+    loading.textContent = t("admin.accountsLoading");
+    pendingWrap.appendChild(loading);
+  }
+  if (activeWrap) activeWrap.textContent = "";
+  if (note) setNote(note, "", "");
+
+  return Promise.all([
+    ensureAdmissions(true),
+    loadStudents().then(function () { return state.students; })
+  ]).then(function () {
+    renderPortalAccounts();
+  }).catch(function () {
+    renderPortalAccounts();
+    if (note) setNote(note, t("admin.accountsErrCreate"), "err");
+  });
+}
+
+function renderAccountsTable(headers, rows, actionBuilder) {
+  var table = document.createElement("table");
+  table.className = "data-table accounts-table";
+  var thead = document.createElement("thead");
+  var htr = document.createElement("tr");
+  headers.forEach(function (h) { htr.appendChild(cell("th", h)); });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+  var tbody = document.createElement("tbody");
+  rows.forEach(function (row) {
+    var tr = document.createElement("tr");
+    row.cells.forEach(function (txt, i) {
+      var td = cell("td", txt);
+      if (row.nameCell && i === 0) td.className = "att-name";
+      if (headers[i]) td.setAttribute("data-label", headers[i]);
+      tr.appendChild(td);
+    });
+    var tdAct = document.createElement("td");
+    tdAct.className = "accounts-action-cell";
+    var btn = actionBuilder(row);
+    if (btn) tdAct.appendChild(btn);
+    tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+function renderPortalAccounts() {
+  var pendingWrap = el("accountsPendingWrap");
+  var activeWrap = el("accountsActiveWrap");
+  if (!pendingWrap || !activeWrap) return;
+
+  var admissions = buildAdmissionAccountList(state.admissions || []);
+  var pending = admissions.filter(function (a) { return !studentByEmail(a.email); });
+  var active = state.students.slice().sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); });
+
+  pendingWrap.textContent = "";
+  activeWrap.textContent = "";
+
+  var pendingHeaders = [t("dcol.name"), t("dcol.email"), t("admin.phone"), t("admin.attFilterClass"), t("admin.accountsColStatus")];
+  if (!pending.length) {
+    var pEmpty = document.createElement("p");
+    pEmpty.className = "empty-state";
+    pEmpty.textContent = admissions.length ? t("admin.accountsNoPending") : t("admin.attNoAdmissions");
+    pendingWrap.appendChild(pEmpty);
+  } else {
+    var pendingRows = pending.map(function (a) {
+      var email = (a.email || "").trim();
+      var phone = normalizePhone(a.phone);
+      var canCreate = email && EMAIL_RE.test(email) && phone;
+      return {
+        data: a,
+        nameCell: true,
+        cells: [
+          a.name || t("dash"),
+          email || t("dash"),
+          phone || (a.phone || t("dash")),
+          a.batch || t("dash"),
+          canCreate ? t("admin.accountsStatusPending") : (email ? t("admin.accountsNoPhone") : t("admin.accountsNoEmail"))
+        ],
+        canCreate: canCreate
+      };
+    });
+    pendingWrap.appendChild(renderAccountsTable(pendingHeaders.concat([""]), pendingRows, function (row) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-primary btn-sm";
+      btn.textContent = t("admin.accountsCreate");
+      if (!row.canCreate) {
+        btn.disabled = true;
+        return btn;
+      }
+      btn.addEventListener("click", function () { createPortalAccount(row.data, btn); });
+      return btn;
+    }));
+  }
+
+  var activeHeaders = [t("dcol.name"), t("dcol.email"), t("admin.phone"), t("admin.batch"), t("admin.accountsColStatus")];
+  if (!active.length) {
+    var aEmpty = document.createElement("p");
+    aEmpty.className = "empty-state";
+    aEmpty.textContent = t("admin.accountsNoActive");
+    activeWrap.appendChild(aEmpty);
+  } else {
+    var activeRows = active.map(function (s) {
+      return {
+        data: s,
+        nameCell: true,
+        cells: [
+          s.name || t("dash"),
+          s.email || t("dash"),
+          s.phone || t("dash"),
+          s.batch || t("dash"),
+          t("admin.accountsStatusActive")
+        ]
+      };
+    });
+    activeWrap.appendChild(renderAccountsTable(activeHeaders.concat([""]), activeRows, function (row) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "icon-btn accounts-remove-btn";
+      btn.textContent = t("admin.accountsRemove");
+      btn.addEventListener("click", function () { removePortalAccount(row.data, btn); });
+      return btn;
+    }));
+  }
+}
+
+function createPortalAccount(admissionRow, btn) {
+  var note = el("accountsNote");
+  var email = String(admissionRow.email || "").trim().toLowerCase();
+  var phone = normalizePhone(admissionRow.phone);
+  if (!email || !EMAIL_RE.test(email)) {
+    if (note) setNote(note, t("admin.accountsNoEmail"), "err");
+    return;
+  }
+  if (!phone) {
+    if (note) setNote(note, t("admin.accountsNoPhone"), "err");
+    return;
+  }
+  var msg = t("admin.accountsConfirmCreate")
+    .replace("{name}", admissionRow.name || "")
+    .replace("{email}", email)
+    .replace("{phone}", phone);
+  if (!window.confirm(msg)) return;
+
+  if (btn) btn.disabled = true;
+  if (note) setNote(note, "", "");
+
+  createStudentAccountFn({
+    name: admissionRow.name,
+    email: email,
+    phone: phone,
+    batch: admissionRow.batch || ""
+  }).then(function () {
+    if (note) setNote(note, t("admin.accountsCreated"), "ok");
+    return loadStudents().then(function () {
+      state.admissions = null;
+      return ensureAdmissions(true);
+    });
+  }).then(function () {
+    renderPortalAccounts();
+    renderStudents();
+    populateStudentSelects();
+    updateBroadcastCount();
+  }).catch(function (err) {
+    var key = functionsErrorKey(err) || "admin.accountsErrCreate";
+    if (note) setNote(note, t(key), "err");
+    if (btn) btn.disabled = false;
+  });
+}
+
+function removePortalAccount(student, btn) {
+  var note = el("accountsNote");
+  var msg = t("admin.accountsConfirmRemove").replace("{name}", student.name || student.email || "");
+  if (!window.confirm(msg)) return;
+
+  if (btn) btn.disabled = true;
+  if (note) setNote(note, "", "");
+
+  deleteStudentAccountFn({ uid: student.id }).then(function () {
+    if (note) setNote(note, t("admin.accountsRemoved"), "ok");
+    return loadStudents();
+  }).then(function () {
+    renderPortalAccounts();
+    renderStudents();
+    populateStudentSelects();
+    updateBroadcastCount();
+  }).catch(function (err) {
+    var key = functionsErrorKey(err) || "admin.accountsErrRemove";
+    if (note) setNote(note, t(key), "err");
+    if (btn) btn.disabled = false;
+  });
+}
+
+function initAccountsTab() {
+  state.accountsInit = true;
+  loadPortalAccounts();
 }
 
 function makeField(labelText, value) {
@@ -1094,6 +1411,11 @@ function initTabs() {
       tab.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
       if (name === "attendance") {
         loadAttendanceForDate(state.attendanceDate || todayIso());
+      }
+      if (name === "accounts" && !state.accountsInit) {
+        initAccountsTab();
+      } else if (name === "accounts") {
+        renderPortalAccounts();
       }
     });
   });

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=11" />
+  <link rel="stylesheet" href="auth/auth.css?v=12" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -50,6 +50,7 @@
 
       <div class="admin-tabs" role="tablist">
         <button class="admin-tab active" data-tab="students" data-i18n="admin.tabStudents">Students</button>
+        <button class="admin-tab" data-tab="accounts" data-i18n="admin.tabAccounts">Portal Accounts</button>
         <button class="admin-tab" data-tab="details" data-i18n="admin.tabDetails">Student Details</button>
         <button class="admin-tab" data-tab="attendance" data-i18n="admin.tabAttendance">Attendance</button>
         <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
@@ -63,6 +64,28 @@
           <h2 data-i18n="admin.studentsTitle">Students</h2>
           <p class="admin-note" id="studentsNote" role="status" aria-live="polite"></p>
           <div id="studentsList">
+            <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PORTAL ACCOUNTS ===================== -->
+      <section class="admin-panel" id="panel-accounts">
+        <div class="admin-card">
+          <h2 data-i18n="admin.accountsTitle">Portal Accounts</h2>
+          <p class="admin-hint" data-i18n="admin.accountsHint">Create login accounts from the Admissions sheet. Students sign in with their email; initial password is their 10-digit mobile number.</p>
+          <p class="accounts-login-banner" data-i18n="admin.accountsLoginHint">Tell students: Login = email from admission form · Password = 10-digit mobile (no +91)</p>
+          <p class="admin-note" id="accountsNote" role="status" aria-live="polite"></p>
+        </div>
+        <div class="admin-card">
+          <h3 class="accounts-subtitle" data-i18n="admin.accountsPendingTitle">From Admissions (no account yet)</h3>
+          <div class="table-scroll" id="accountsPendingWrap">
+            <p class="empty-state" data-i18n="admin.accountsLoading">Loading admissions and portal accounts…</p>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3 class="accounts-subtitle" data-i18n="admin.accountsActiveTitle">Portal accounts (registered)</h3>
+          <div class="table-scroll" id="accountsActiveWrap">
             <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
           </div>
         </div>
@@ -230,6 +253,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=17"></script>
+  <script type="module" src="auth/admin.js?v=18"></script>
 </body>
 </html>
