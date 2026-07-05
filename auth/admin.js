@@ -62,7 +62,7 @@ var I18N = {
     "admin.status": "Status",
     "admin.note": "Note (optional)",
     "admin.attendanceTitle": "Mark Daily Attendance",
-    "admin.attendanceHint": "Students are loaded from your Admission form (Admissions sheet). Pick a date, tick Present for each student, then save to the Attendance tab.",
+    "admin.attendanceHint": "Students load from the Admissions sheet. Pick a date, filter by class, tick Present, then save to the Attendance tab.",
     "admin.attAllPresent": "All Present",
     "admin.attAllAbsent": "All Absent",
     "admin.attSave": "Save Attendance to Sheet",
@@ -213,7 +213,7 @@ var I18N = {
     "admin.status": "स्थिती",
     "admin.note": "टीप (पर्यायी)",
     "admin.attendanceTitle": "दैनिक हजेरी नोंदवा",
-    "admin.attendanceHint": "विद्यार्थी प्रवेश अर्जातून (Admissions sheet) लोड होतात. दिनांक निवडा, हजर विद्यार्थ्यासाठी खूण करा आणि Attendance टॅबमध्ये जतन करा.",
+    "admin.attendanceHint": "विद्यार्थी Admissions sheet वरून लोड होतात. दिनांक निवडा, इयत्तेनुसार फिल्टर करा, हजर खूण करा आणि Attendance टॅबमध्ये जतन करा.",
     "admin.attAllPresent": "सर्व हजर",
     "admin.attAllAbsent": "सर्व गैरहजर",
     "admin.attSave": "हजेरी Sheet मध्ये जतन करा",
@@ -746,7 +746,7 @@ function populateAttClassFilter() {
   if (prev !== "all" && classes[prev]) sel.value = prev;
   else sel.value = "all";
 
-  if (wrap) wrap.classList.toggle("hidden", list.length === 0);
+  if (wrap) wrap.classList.toggle("hidden", !state.attendanceRoster.length);
 }
 
 function updateAttSummary() {
