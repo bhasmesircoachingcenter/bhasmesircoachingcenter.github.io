@@ -64,6 +64,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ---- daily attendance backup (admin writes from portal; Apps Script syncs to Sheet) ----
+    match /attendanceDaily/{dateId} {
+      allow read, write: if isAdmin();
+    }
+
     // ---- admins : readable so the client/rules can check admin status; only
     // admins can modify the admin list (bootstrap the first admin from console). ----
     match /admins/{uid} {

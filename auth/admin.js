@@ -114,6 +114,7 @@ var I18N = {
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSaveDetail": "Could not save attendance: {detail}",
+    "admin.attSavedSheetWarn": "Backup saved in Firebase. Google Sheet sync failed — redeploy Apps Script (new version), then save again.",
     "admin.attSavedPortalWarn": "Attendance saved to Google Sheet. Portal sync had an issue for some students.",
     "admin.attErrRoster": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version. Your Admissions tab has students but the website cannot read them yet.",
     "admin.attErrScript": "Apps Script missing admissions API. Open Extensions → Apps Script, paste full Code.gs, Deploy → New version.",
@@ -330,6 +331,7 @@ var I18N = {
     "admin.attErrSave": "हजेरी जतन करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
     "admin.attErrSaveDetail": "हजेरी जतन करता आली नाही: {detail}",
     "admin.attSavedPortalWarn": "हजेरी Google Sheet मध्ये जतन झाली. काही विद्यार्थ्यांचा पोर्टल सिंक अपूर्ण.",
+    "admin.attSavedSheetWarn": "Firebase मध्ये बॅकअप जतन झाला. Google Sheet सिंक अयशस्वी — Apps Script पुन्हा डिप्लॉय करा.",
     "admin.attErrRoster": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → New version. Admissions टॅबमध्ये विद्यार्थी आहेत पण वेबसाइट अद्याप वाचू शकत नाही.",
     "admin.attErrScript": "Apps Script मध्ये admissions API नाही. Extensions → Apps Script, पूर्ण Code.gs paste करा, Deploy → New version.",
     "admin.colAttStatus": "हजेरी",
@@ -1115,39 +1117,31 @@ function sheetAdminRequest(action, fields) {
   return new Promise(function (resolve, reject) {
     var user = auth.currentUser;
     if (!user) { reject(new Error("no-user")); return; }
-
-    var attendanceSave = action === "attendance" && fields && fields.subaction === "save" && fields.records;
-    if (attendanceSave) {
-      try {
-        var allRecords = JSON.parse(fields.records);
-        if (Array.isArray(allRecords) && allRecords.length > 60) {
-          user.getIdToken().then(function (idToken) {
-            saveAttendanceInChunks(idToken, fields.date, allRecords).then(resolve).catch(reject);
-          }).catch(reject);
-          return;
-        }
-      } catch (e) { /* fall through to single request */ }
-    }
-
     user.getIdToken().then(function (idToken) {
       jsonpSheetRequest(idToken, action, fields).then(resolve).catch(reject);
     }).catch(reject);
   });
 }
 
-/** Apps Script web app accepts GET (JSONP); POST returns 404 on this deployment. */
+function buildSheetQueryUrl(idToken, action, fields) {
+  var parts = [
+    "action=" + encodeURIComponent(action),
+    "idToken=" + encodeURIComponent(idToken)
+  ];
+  Object.keys(fields || {}).forEach(function (k) {
+    parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(fields[k] == null ? "" : String(fields[k])));
+  });
+  return SHEET_ENDPOINT + "?" + parts.join("&");
+}
+
+/** Apps Script web app: use GET JSONP (POST body is lost on redirect). */
 function jsonpSheetRequest(idToken, action, fields) {
   return new Promise(function (resolve, reject) {
     var cbName = "__bccSh_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
-    var params = new URLSearchParams();
-    params.append("action", action);
-    params.append("idToken", idToken);
-    params.append("callback", cbName);
-    Object.keys(fields || {}).forEach(function (k) {
-      params.append(k, fields[k]);
-    });
+    fields = Object.assign({}, fields || {});
+    fields.callback = cbName;
 
-    var url = SHEET_ENDPOINT + "?" + params.toString();
+    var url = buildSheetQueryUrl(idToken, action, fields);
     if (url.length > 7800) {
       reject(new Error("payload-too-large"));
       return;
@@ -1171,26 +1165,6 @@ function jsonpSheetRequest(idToken, action, fields) {
     script.src = url;
     document.head.appendChild(script);
   });
-}
-
-function saveAttendanceInChunks(idToken, date, records) {
-  var CHUNK = 50;
-  var i = 0;
-
-  function nextChunk() {
-    if (i >= records.length) return Promise.resolve({ result: "success", saved: records.length });
-    var slice = records.slice(i, i + CHUNK);
-    var isFirst = i === 0;
-    i += CHUNK;
-    return jsonpSheetRequest(idToken, "attendance", {
-      subaction: "save",
-      date: date,
-      mode: isFirst ? "replace" : "append",
-      records: JSON.stringify(slice)
-    }).then(nextChunk);
-  }
-
-  return nextChunk();
 }
 
 function getAttClassFilter() {
@@ -1401,6 +1375,22 @@ function loadAttendanceForDate(date) {
   });
 }
 
+function attendanceBitsFromRoster() {
+  return state.attendanceRoster.map(function (s) {
+    var rec = state.attendanceMap[rosterAttKey(s)] || { status: "absent" };
+    return rec.status === "present" ? "1" : "0";
+  }).join("");
+}
+
+function saveAttendanceToFirestore(date, records) {
+  return setDoc(doc(db, "attendanceDaily", date), {
+    date: date,
+    records: records,
+    bits: attendanceBitsFromRoster(),
+    updatedAt: serverTimestamp()
+  });
+}
+
 function saveDailyAttendance() {
   var note = el("attendanceNote");
   var saveBtn = el("attSaveBtn");
@@ -1416,54 +1406,86 @@ function saveDailyAttendance() {
     return;
   }
 
-  var records = state.attendanceRoster.map(function (s) {
-    var key = rosterAttKey(s);
-    var rec = state.attendanceMap[key] || { status: "absent", note: "" };
-    return {
-      name: s.name || "",
-      email: rosterSheetEmail(s),
-      batch: s.batch || "",
-      status: rec.status === "absent" ? "absent" : "present",
-      note: rec.note || ""
-    };
-  });
-
   if (saveBtn) saveBtn.disabled = true;
   if (note) setNote(note, "", "");
 
-  sheetAdminRequest("attendance", {
-    subaction: "save",
-    date: date,
-    records: JSON.stringify(records)
-  }).then(function () {
-    if (note) setNote(note, t("admin.attSaved"), "ok");
-    return ensureStudents().then(function () {
-      var portalSync = [];
-      state.attendanceRoster.forEach(function (s) {
-        var portal = portalStudentByEmail(s.email);
-        if (!portal) return;
+  tryAttendanceRosterApi().then(function (serverRoster) {
+    if (serverRoster && serverRoster.length) {
+      var oldMap = state.attendanceMap;
+      state.attendanceRoster = serverRoster;
+      var newMap = {};
+      serverRoster.forEach(function (s) {
         var key = rosterAttKey(s);
-        var rec = state.attendanceMap[key] || { status: "absent", note: "" };
-        portalSync.push(setDoc(doc(db, "students", portal.id, "attendance", date), {
-          date: date,
-          status: rec.status === "absent" ? "absent" : "present",
-          note: rec.note || "",
-          updatedAt: serverTimestamp()
-        }, { merge: true }));
+        newMap[key] = oldMap[key] || { status: "absent", note: "" };
       });
-      return Promise.all(portalSync);
+      state.attendanceMap = newMap;
+    }
+    if (!state.attendanceRoster.length) {
+      if (note) setNote(note, t("admin.attNoAdmissions"), "err");
+      return;
+    }
+
+    var records = state.attendanceRoster.map(function (s) {
+      var key = rosterAttKey(s);
+      var rec = state.attendanceMap[key] || { status: "absent", note: "" };
+      return {
+        name: s.name || "",
+        email: rosterSheetEmail(s),
+        batch: s.batch || "",
+        status: rec.status === "absent" ? "absent" : "present",
+        note: rec.note || ""
+      };
+    });
+    var bits = attendanceBitsFromRoster();
+
+    return sheetAdminRequest("attendance", {
+      subaction: "savebits",
+      date: date,
+      bits: bits
     }).then(function () {
-      if (note) setNote(note, t("admin.attSavedPortal"), "ok");
-    }).catch(function () {
-      if (note) setNote(note, t("admin.attSavedPortalWarn"), "ok");
+      return { sheetOk: true };
+    }).catch(function (sheetErr) {
+      return { sheetOk: false, sheetErr: sheetErr };
+    }).then(function (result) {
+      return saveAttendanceToFirestore(date, records).then(function () {
+        return Object.assign(result, { backupOk: true });
+      }).catch(function (backupErr) {
+        return Object.assign(result, { backupOk: false, backupErr: backupErr });
+      });
+    }).then(function (result) {
+      if (result.sheetOk) {
+        if (note) setNote(note, t("admin.attSaved"), "ok");
+      } else if (result.backupOk) {
+        if (note) setNote(note, t("admin.attSavedSheetWarn"), "ok");
+      } else {
+        var detail = (result.sheetErr && result.sheetErr.message) ||
+          (result.backupErr && result.backupErr.message) || "save-failed";
+        throw new Error(detail);
+      }
+      return ensureStudents().then(function () {
+        var portalSync = [];
+        state.attendanceRoster.forEach(function (s) {
+          var portal = portalStudentByEmail(s.email);
+          if (!portal) return;
+          var key = rosterAttKey(s);
+          var rec = state.attendanceMap[key] || { status: "absent", note: "" };
+          portalSync.push(setDoc(doc(db, "students", portal.id, "attendance", date), {
+            date: date,
+            status: rec.status === "absent" ? "absent" : "present",
+            note: rec.note || "",
+            updatedAt: serverTimestamp()
+          }, { merge: true }));
+        });
+        return Promise.all(portalSync);
+      }).then(function () {
+        if (note) setNote(note, t("admin.attSavedPortal"), "ok");
+      }).catch(function () {
+        if (note) setNote(note, t("admin.attSavedPortalWarn"), "ok");
+      });
     });
   }).catch(function (err) {
-    var detail = err && err.message ? String(err.message) : "";
-    if (detail && detail !== "bad-response" && detail !== "network" && detail !== "timeout") {
-      if (note) setNote(note, t("admin.attErrSaveDetail").replace("{detail}", detail), "err");
-    } else if (note) {
-      setNote(note, t("admin.attErrSave"), "err");
-    }
+    var detail = err && err.message ? String(err.message) : "unknown";
+    if (note) setNote(note, t("admin.attErrSaveDetail").replace("{detail}", detail), "err");
   }).finally(function () {
     if (saveBtn) saveBtn.disabled = false;
   });
