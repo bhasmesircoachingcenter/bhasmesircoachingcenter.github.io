@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=14" />
+  <link rel="stylesheet" href="auth/auth.css?v=15" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -110,27 +110,54 @@
 
       <!-- ===================== ATTENDANCE ===================== -->
       <section class="admin-panel" id="panel-attendance">
-        <div class="admin-card">
-          <h2 data-i18n="admin.attendanceTitle">Mark Daily Attendance</h2>
-          <p class="admin-hint" data-i18n="admin.attendanceHint">Students load from the Admissions sheet. Pick a date, filter by class, tick Present, then save to the Attendance tab.</p>
-          <div class="att-toolbar">
-            <div class="field">
-              <label for="attDate" data-i18n="admin.date">Date</label>
-              <input type="date" id="attDate" name="date" required />
+        <div class="admin-card att-card">
+          <header class="att-header">
+            <div class="att-header-top">
+              <div class="att-header-brand">
+                <span class="att-header-icon" aria-hidden="true">📋</span>
+                <div>
+                  <h2 class="att-header-title" data-i18n="admin.attendanceTitle">Mark Daily Attendance</h2>
+                  <p class="att-header-sub" data-i18n="admin.attHeaderSub">Daily roll call · synced to Google Sheet</p>
+                </div>
+              </div>
+              <p class="att-summary-meta" id="attSummaryMeta" aria-live="polite"></p>
             </div>
-            <div class="field att-class-filter">
-              <label for="attClassFilter" data-i18n="admin.attFilterClass">Class</label>
-              <select id="attClassFilter" name="classFilter" aria-label="Filter by class">
-                <option value="all" data-i18n="admin.attAllClasses">All classes</option>
-              </select>
+            <p class="att-header-hint" data-i18n="admin.attendanceHint">Students load from the Admissions sheet. Pick a date, filter by class, tick Present, then save to the Attendance tab.</p>
+            <div class="att-control-panel">
+              <div class="att-control-group">
+                <label for="attDate" data-i18n="admin.date">Date</label>
+                <input type="date" id="attDate" name="date" required />
+              </div>
+              <div class="att-control-group att-control-class">
+                <label for="attClassFilter" data-i18n="admin.attFilterClass">Class</label>
+                <select id="attClassFilter" name="classFilter" aria-label="Filter by class">
+                  <option value="all" data-i18n="admin.attAllClasses">All classes</option>
+                </select>
+              </div>
+              <div class="att-control-group att-control-quick">
+                <span class="att-control-label" data-i18n="admin.attQuickMark">Quick mark</span>
+                <div class="att-actions-row">
+                  <button type="button" class="btn btn-att-present btn-sm" id="attAllPresent" data-i18n="admin.attAllPresent">All Present</button>
+                  <button type="button" class="btn btn-att-absent btn-sm" id="attAllAbsent" data-i18n="admin.attAllAbsent">All Absent</button>
+                </div>
+              </div>
             </div>
-            <div class="att-actions-row">
-              <button type="button" class="btn btn-outline btn-sm" id="attAllPresent" data-i18n="admin.attAllPresent">All Present</button>
-              <button type="button" class="btn btn-outline btn-sm" id="attAllAbsent" data-i18n="admin.attAllAbsent">All Absent</button>
+            <div class="att-stats" id="attStats" aria-live="polite">
+              <div class="att-stat att-stat-present">
+                <span class="att-stat-num" id="attStatPresent">0</span>
+                <span class="att-stat-label" data-i18n="admin.attStatPresent">Present</span>
+              </div>
+              <div class="att-stat att-stat-absent">
+                <span class="att-stat-num" id="attStatAbsent">0</span>
+                <span class="att-stat-label" data-i18n="admin.attStatAbsent">Absent</span>
+              </div>
+              <div class="att-stat att-stat-total">
+                <span class="att-stat-num" id="attStatTotal">0</span>
+                <span class="att-stat-label" data-i18n="admin.attStatTotal">Students</span>
+              </div>
             </div>
-            <p class="att-summary" id="attSummary" aria-live="polite"></p>
-          </div>
-          <div class="table-scroll" id="attendanceGridWrap">
+          </header>
+          <div class="table-scroll att-grid-wrap" id="attendanceGridWrap">
             <p class="empty-state" data-i18n="admin.attLoading">Loading students…</p>
           </div>
           <div class="actions att-save-row">
@@ -238,9 +265,10 @@
             <div class="field full">
               <label data-i18n="admin.bcAudienceLabel">Send to</label>
               <div class="bc-audience" role="radiogroup" aria-label="Recipients">
-                <label class="bc-radio"><input type="radio" name="audience" value="portal" checked /> <span data-i18n="admin.bcAudPortal">Portal students (with login)</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="admissions" checked /> <span data-i18n="admin.bcAudAdmissions">Admitted students (Admissions sheet)</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="portal" /> <span data-i18n="admin.bcAudPortal">Portal students (with login)</span></label>
                 <label class="bc-radio"><input type="radio" name="audience" value="sheet" /> <span data-i18n="admin.bcAudSheet">Enquiry contacts (Google Sheet)</span></label>
-                <label class="bc-radio"><input type="radio" name="audience" value="both" /> <span data-i18n="admin.bcAudBoth">Portal students + enquiry contacts</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="all" /> <span data-i18n="admin.bcAudAll">Everyone (admissions + portal + enquiry)</span></label>
               </div>
             </div>
             <div class="field full">
@@ -252,6 +280,7 @@
               <textarea id="bcBody" name="body" maxlength="5000" required></textarea>
             </div>
             <div class="actions">
+              <button type="button" class="btn btn-sm" id="bcTemplateBatch" data-i18n="admin.bcTemplateBatch">Use batch-start template (10 July)</button>
               <button type="submit" class="btn btn-primary" data-i18n="admin.bcSend">Send to All Students</button>
               <p class="admin-note" id="broadcastNote" role="status" aria-live="polite"></p>
             </div>
@@ -261,6 +290,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=25"></script>
+  <script type="module" src="auth/admin.js?v=29"></script>
 </body>
 </html>

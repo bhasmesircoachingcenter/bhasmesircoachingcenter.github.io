@@ -92,6 +92,11 @@ var I18N = {
     "admin.status": "Status",
     "admin.note": "Note (optional)",
     "admin.attendanceTitle": "Mark Daily Attendance",
+    "admin.attHeaderSub": "Daily roll call · synced to Google Sheet",
+    "admin.attQuickMark": "Quick mark",
+    "admin.attStatPresent": "Present",
+    "admin.attStatAbsent": "Absent",
+    "admin.attStatTotal": "Students",
     "admin.attendanceHint": "Students load from the Admissions sheet. Pick a date, filter by class, tick Present, then save to the Attendance tab.",
     "admin.attAllPresent": "All Present",
     "admin.attAllAbsent": "All Absent",
@@ -108,6 +113,8 @@ var I18N = {
     "admin.attSavedPortal": "Attendance saved (Sheet + student portal).",
     "admin.attErrLoad": "Could not load attendance. Redeploy Apps Script, then try again.",
     "admin.attErrSave": "Could not save attendance. Redeploy Apps Script, then try again.",
+    "admin.attErrSaveDetail": "Could not save attendance: {detail}",
+    "admin.attSavedPortalWarn": "Attendance saved to Google Sheet. Portal sync had an issue for some students.",
     "admin.attErrRoster": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version. Your Admissions tab has students but the website cannot read them yet.",
     "admin.attErrScript": "Apps Script missing admissions API. Open Extensions → Apps Script, paste full Code.gs, Deploy → New version.",
     "admin.colAttStatus": "Attendance",
@@ -137,22 +144,31 @@ var I18N = {
     "admin.broadcastTitle": "Broadcast Email",
     "admin.bcAudienceLabel": "Send to",
     "admin.bcAudPortal": "Portal students (with login)",
+    "admin.bcAudAdmissions": "Admitted students (Admissions sheet)",
     "admin.bcAudSheet": "Enquiry contacts (Google Sheet)",
+    "admin.bcAudAll": "Everyone (admissions + portal + enquiry)",
     "admin.bcAudBoth": "Portal students + enquiry contacts",
     "admin.bcSubject": "Subject",
     "admin.bcBody": "Message",
     "admin.bcSend": "Send Email",
     "admin.bcCount": "{n} of {total} portal students have an email on file.",
+    "admin.bcCountAdmissions": "Will send to all emails in the Admissions sheet.",
     "admin.bcCountSheet": "Will send to all enquiry contacts in the Google Sheet.",
+    "admin.bcCountAll": "{n} portal student(s) + Admissions sheet + enquiry contacts.",
     "admin.bcCountBoth": "{n} portal student(s) + all enquiry contacts in the Google Sheet.",
     "admin.bcNoRecipients": "No portal students have an email on file yet.",
     "admin.bcConfirm": "Send this email to {n} portal student(s)?",
+    "admin.bcConfirmAdmissions": "Send this email to all admitted students in the Admissions sheet?",
     "admin.bcConfirmSheet": "Send this email to all enquiry contacts in the Google Sheet?",
+    "admin.bcConfirmAll": "Send to admitted students, {n} portal student(s), and enquiry contacts?",
     "admin.bcConfirmBoth": "Send to {n} portal student(s) plus all enquiry contacts in the Google Sheet?",
     "admin.bcSending": "Sending…",
     "admin.bcQueued": "✅ Email queued to {n} portal student(s).",
+    "admin.bcQueuedAdmissions": "✅ Email queued to admitted students (Admissions sheet).",
     "admin.bcQueuedSheet": "✅ Email queued to your enquiry contacts.",
+    "admin.bcQueuedAll": "✅ Email queued to admissions, portal students, and enquiry contacts.",
     "admin.bcQueuedBoth": "✅ Email queued to portal students + enquiry contacts.",
+    "admin.bcTemplateBatch": "Use batch-start template (10 July)",
     "admin.bcErrSend": "Could not send. Please try again.",
     "admin.bcMissing": "Please enter a subject and message.",
     "admin.detailsTitle": "Student Details",
@@ -291,6 +307,11 @@ var I18N = {
     "admin.status": "स्थिती",
     "admin.note": "टीप (पर्यायी)",
     "admin.attendanceTitle": "दैनिक हजेरी नोंदवा",
+    "admin.attHeaderSub": "दैनिक हजेरी · Google Sheet मध्ये जतन",
+    "admin.attQuickMark": "झटपट खूण",
+    "admin.attStatPresent": "हजर",
+    "admin.attStatAbsent": "गैरहजर",
+    "admin.attStatTotal": "विद्यार्थी",
     "admin.attendanceHint": "विद्यार्थी Admissions sheet वरून लोड होतात. दिनांक निवडा, इयत्तेनुसार फिल्टर करा, हजर खूण करा आणि Attendance टॅबमध्ये जतन करा.",
     "admin.attAllPresent": "सर्व हजर",
     "admin.attAllAbsent": "सर्व गैरहजर",
@@ -307,6 +328,8 @@ var I18N = {
     "admin.attSavedPortal": "हजेरी जतन झाली (Sheet + विद्यार्थी पोर्टल).",
     "admin.attErrLoad": "हजेरी लोड करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
     "admin.attErrSave": "हजेरी जतन करता आली नाही. Apps Script पुन्हा डिप्लॉय करा.",
+    "admin.attErrSaveDetail": "हजेरी जतन करता आली नाही: {detail}",
+    "admin.attSavedPortalWarn": "हजेरी Google Sheet मध्ये जतन झाली. काही विद्यार्थ्यांचा पोर्टल सिंक अपूर्ण.",
     "admin.attErrRoster": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → New version. Admissions टॅबमध्ये विद्यार्थी आहेत पण वेबसाइट अद्याप वाचू शकत नाही.",
     "admin.attErrScript": "Apps Script मध्ये admissions API नाही. Extensions → Apps Script, पूर्ण Code.gs paste करा, Deploy → New version.",
     "admin.colAttStatus": "हजेरी",
@@ -336,22 +359,31 @@ var I18N = {
     "admin.broadcastTitle": "ईमेल पाठवा",
     "admin.bcAudienceLabel": "यांना पाठवा",
     "admin.bcAudPortal": "पोर्टल विद्यार्थी (लॉगिन असलेले)",
+    "admin.bcAudAdmissions": "प्रवेश घेतलेले विद्यार्थी (Admissions sheet)",
     "admin.bcAudSheet": "चौकशी संपर्क (Google Sheet)",
+    "admin.bcAudAll": "सर्व (प्रवेश + पोर्टल + चौकशी)",
     "admin.bcAudBoth": "पोर्टल विद्यार्थी + चौकशी संपर्क",
     "admin.bcSubject": "विषय",
     "admin.bcBody": "संदेश",
     "admin.bcSend": "ईमेल पाठवा",
     "admin.bcCount": "{total} पैकी {n} नोंदणीकृत विद्यार्थ्यांचा ईमेल नोंदलेला आहे.",
+    "admin.bcCountAdmissions": "Admissions sheet मधील सर्व ईमेलवर पाठवले जाईल.",
     "admin.bcCountSheet": "Google Sheet मधील सर्व चौकशी संपर्कांना पाठवले जाईल.",
+    "admin.bcCountAll": "{n} पोर्टल विद्यार्थी + Admissions + चौकशी संपर्क.",
     "admin.bcCountBoth": "{n} नोंदणीकृत विद्यार्थी + Google Sheet मधील सर्व चौकशी संपर्क.",
     "admin.bcNoRecipients": "अद्याप कोणत्याही नोंदणीकृत विद्यार्थ्याचा ईमेल नोंदलेला नाही.",
     "admin.bcConfirm": "हा ईमेल {n} नोंदणीकृत विद्यार्थ्यांना पाठवायचा?",
+    "admin.bcConfirmAdmissions": "हा ईमेल Admissions sheet मधील सर्व प्रवेश घेतलेल्या विद्यार्थ्यांना पाठवायचा?",
     "admin.bcConfirmSheet": "हा ईमेल Google Sheet मधील सर्व चौकशी संपर्कांना पाठवायचा?",
+    "admin.bcConfirmAll": "प्रवेश, {n} पोर्टल विद्यार्थी आणि चौकशी संपर्कांना पाठवायचा?",
     "admin.bcConfirmBoth": "{n} नोंदणीकृत विद्यार्थी व Google Sheet मधील सर्व चौकशी संपर्कांना पाठवायचा?",
     "admin.bcSending": "पाठवत आहे…",
     "admin.bcQueued": "✅ ईमेल {n} नोंदणीकृत विद्यार्थ्यांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcQueuedAdmissions": "✅ ईमेल Admissions sheet मधील विद्यार्थ्यांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcQueuedSheet": "✅ ईमेल तुमच्या चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcQueuedAll": "✅ ईमेल प्रवेश, पोर्टल आणि चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcQueuedBoth": "✅ ईमेल नोंदणीकृत विद्यार्थी + चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
+    "admin.bcTemplateBatch": "बैच सुरू टेम्पलेट (१० जुलै)",
     "admin.bcErrSend": "पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
     "admin.bcMissing": "कृपया विषय व संदेश भरा.",
     "admin.detailsTitle": "विद्यार्थी तपशील",
@@ -1083,43 +1115,82 @@ function sheetAdminRequest(action, fields) {
   return new Promise(function (resolve, reject) {
     var user = auth.currentUser;
     if (!user) { reject(new Error("no-user")); return; }
-    user.getIdToken().then(function (idToken) {
-      var cbName = "__bccSh_" + Date.now();
-      var params = new URLSearchParams();
-      params.append("action", action);
-      params.append("idToken", idToken);
-      params.append("callback", cbName);
-      Object.keys(fields || {}).forEach(function (k) {
-        params.append(k, fields[k]);
-      });
 
-      var timer = setTimeout(function () { reject(new Error("timeout")); }, 30000);
-
-      function finish(payload) {
-        clearTimeout(timer);
-        if (payload && payload.result === "success") resolve(payload);
-        else reject(new Error((payload && payload.error) || "bad-response"));
-      }
-
-      function fallbackJsonp() {
-        var script = document.createElement("script");
-        function cleanup() {
-          clearTimeout(timer);
-          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
-          if (script.parentNode) script.parentNode.removeChild(script);
+    var attendanceSave = action === "attendance" && fields && fields.subaction === "save" && fields.records;
+    if (attendanceSave) {
+      try {
+        var allRecords = JSON.parse(fields.records);
+        if (Array.isArray(allRecords) && allRecords.length > 60) {
+          user.getIdToken().then(function (idToken) {
+            saveAttendanceInChunks(idToken, fields.date, allRecords).then(resolve).catch(reject);
+          }).catch(reject);
+          return;
         }
-        window[cbName] = function (payload) { cleanup(); finish(payload); };
-        script.onerror = function () { cleanup(); reject(new Error("network")); };
-        script.src = SHEET_ENDPOINT + "?" + params.toString();
-        document.head.appendChild(script);
-      }
+      } catch (e) { /* fall through to single request */ }
+    }
 
-      fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
-        .then(function (r) { return r.text(); })
-        .then(function (text) { finish(parseJsonpText(text)); })
-        .catch(fallbackJsonp);
+    user.getIdToken().then(function (idToken) {
+      jsonpSheetRequest(idToken, action, fields).then(resolve).catch(reject);
     }).catch(reject);
   });
+}
+
+/** Apps Script web app accepts GET (JSONP); POST returns 404 on this deployment. */
+function jsonpSheetRequest(idToken, action, fields) {
+  return new Promise(function (resolve, reject) {
+    var cbName = "__bccSh_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    var params = new URLSearchParams();
+    params.append("action", action);
+    params.append("idToken", idToken);
+    params.append("callback", cbName);
+    Object.keys(fields || {}).forEach(function (k) {
+      params.append(k, fields[k]);
+    });
+
+    var url = SHEET_ENDPOINT + "?" + params.toString();
+    if (url.length > 7800) {
+      reject(new Error("payload-too-large"));
+      return;
+    }
+
+    var timer = setTimeout(function () { reject(new Error("timeout")); }, 45000);
+    var script = document.createElement("script");
+
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function (payload) {
+      cleanup();
+      if (payload && payload.result === "success") resolve(payload);
+      else reject(new Error((payload && (payload.error || payload.message)) || "bad-response"));
+    };
+    script.onerror = function () { cleanup(); reject(new Error("network")); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
+}
+
+function saveAttendanceInChunks(idToken, date, records) {
+  var CHUNK = 50;
+  var i = 0;
+
+  function nextChunk() {
+    if (i >= records.length) return Promise.resolve({ result: "success", saved: records.length });
+    var slice = records.slice(i, i + CHUNK);
+    var isFirst = i === 0;
+    i += CHUNK;
+    return jsonpSheetRequest(idToken, "attendance", {
+      subaction: "save",
+      date: date,
+      mode: isFirst ? "replace" : "append",
+      records: JSON.stringify(slice)
+    }).then(nextChunk);
+  }
+
+  return nextChunk();
 }
 
 function getAttClassFilter() {
@@ -1171,8 +1242,10 @@ function populateAttClassFilter() {
 }
 
 function updateAttSummary() {
-  var node = el("attSummary");
-  if (!node) return;
+  var presentEl = el("attStatPresent");
+  var absentEl = el("attStatAbsent");
+  var totalEl = el("attStatTotal");
+  var metaEl = el("attSummaryMeta");
   var present = 0;
   var absent = 0;
   var roster = getFilteredAttendanceRoster();
@@ -1181,18 +1254,13 @@ function updateAttSummary() {
     if (rec.status === "absent") absent++;
     else present++;
   });
-  var filter = getAttClassFilter();
-  if (filter && filter !== "all") {
-    node.textContent = t("admin.attSummaryFiltered")
-      .replace("{present}", present)
-      .replace("{absent}", absent)
-      .replace("{total}", roster.length)
-      .replace("{className}", filter);
-  } else {
-    node.textContent = t("admin.attSummary")
-      .replace("{present}", present)
-      .replace("{absent}", absent)
-      .replace("{total}", roster.length);
+  if (presentEl) presentEl.textContent = present;
+  if (absentEl) absentEl.textContent = absent;
+  if (totalEl) totalEl.textContent = roster.length;
+  if (metaEl) {
+    var filter = getAttClassFilter();
+    metaEl.textContent = filter && filter !== "all" ? filter : "";
+    metaEl.classList.toggle("hidden", !filter || filter === "all");
   }
 }
 
@@ -1368,6 +1436,7 @@ function saveDailyAttendance() {
     date: date,
     records: JSON.stringify(records)
   }).then(function () {
+    if (note) setNote(note, t("admin.attSaved"), "ok");
     return ensureStudents().then(function () {
       var portalSync = [];
       state.attendanceRoster.forEach(function (s) {
@@ -1383,11 +1452,18 @@ function saveDailyAttendance() {
         }, { merge: true }));
       });
       return Promise.all(portalSync);
+    }).then(function () {
+      if (note) setNote(note, t("admin.attSavedPortal"), "ok");
+    }).catch(function () {
+      if (note) setNote(note, t("admin.attSavedPortalWarn"), "ok");
     });
-  }).then(function () {
-    if (note) setNote(note, t("admin.attSavedPortal"), "ok");
-  }).catch(function () {
-    if (note) setNote(note, t("admin.attErrSave"), "err");
+  }).catch(function (err) {
+    var detail = err && err.message ? String(err.message) : "";
+    if (detail && detail !== "bad-response" && detail !== "network" && detail !== "timeout") {
+      if (note) setNote(note, t("admin.attErrSaveDetail").replace("{detail}", detail), "err");
+    } else if (note) {
+      setNote(note, t("admin.attErrSave"), "err");
+    }
   }).finally(function () {
     if (saveBtn) saveBtn.disabled = false;
   });
@@ -1685,6 +1761,35 @@ function initAnnounceForm() {
 }
 
 /* ---------------- Broadcast email ---------------- */
+var BATCH_START_EMAIL = {
+  subject: "Batch starts 10 July 2026 | बैच १० जुलै पासून सुरू",
+  body: [
+    "Dear Student / प्रिय विद्यार्थी,",
+    "",
+    "We are pleased to inform you that classes at Bhasme Sir Coaching Center will begin from Thursday, 10th July 2026.",
+    "",
+    "आपल्या माहितीसाठी — भास्मे सर कोचिंग सेंटरचे वर्ग १० जुलै २०२६ (गुरुवार) पासून सुरू होणार आहेत.",
+    "",
+    "Please remember:",
+    "• Join on time as per your allotted batch",
+    "• Bring notebook, pen, and school textbooks",
+    "• Student portal login: your admission email · password: 10-digit mobile (without +91)",
+    "",
+    "कृपया लक्षात ठेवा:",
+    "• नेमून दिलेल्या बैच वेळेनुसार वेळेवर या",
+    "• वही, पेन आणि शालेय पुस्तके सोबत आणा",
+    "• पोर्टल लॉगिन: प्रवेश अर्जातील ईमेल · पासवर्ड: १० अंकी मोबाईल (+91 वगळून)",
+    "",
+    "For questions, WhatsApp us: +91 70585 05983",
+    "",
+    "कोणत्याही प्रश्नासाठी WhatsApp: +91 70585 05983",
+    "",
+    "We look forward to seeing you on 10th July!",
+    "",
+    "१० जुलै रोजी भेटू अशी आशा!"
+  ].join("\n")
+};
+
 // Collect every non-empty, valid-looking, de-duplicated student email.
 function collectRecipients() {
   var seen = {};
@@ -1707,7 +1812,8 @@ function getAudience() {
 }
 
 function broadcastAudienceForServer(audience) {
-  return audience === "portal" ? "registered" : audience;
+  if (audience === "portal") return "registered";
+  return audience;
 }
 
 function updateBroadcastCount() {
@@ -1715,8 +1821,16 @@ function updateBroadcastCount() {
   if (!node) return;
   var audience = getAudience();
   var recipients = collectRecipients();
+  if (audience === "admissions") {
+    setNote(node, t("admin.bcCountAdmissions"), "");
+    return;
+  }
   if (audience === "sheet") {
     setNote(node, t("admin.bcCountSheet"), "");
+    return;
+  }
+  if (audience === "all") {
+    setNote(node, t("admin.bcCountAll").replace("{n}", recipients.length), "");
     return;
   }
   if (audience === "both") {
@@ -1731,10 +1845,25 @@ function updateBroadcastCount() {
   setNote(node, t("admin.bcCount").replace("{n}", recipients.length).replace("{total}", state.students.length), "");
 }
 
+function applyBatchStartEmailTemplate() {
+  var form = el("broadcastForm");
+  if (!form) return;
+  form.elements.subject.value = BATCH_START_EMAIL.subject;
+  form.elements.body.value = BATCH_START_EMAIL.body;
+  var admRadio = form.querySelector('input[name="audience"][value="admissions"]');
+  if (admRadio) admRadio.checked = true;
+  updateBroadcastCount();
+}
+
 function initBroadcastForm() {
   var form = el("broadcastForm");
   var note = el("broadcastNote");
   if (!form) return;
+
+  var templateBtn = el("bcTemplateBatch");
+  if (templateBtn) {
+    templateBtn.addEventListener("click", applyBatchStartEmailTemplate);
+  }
 
   // Recompute the recipient summary whenever the audience changes.
   var radios = form.querySelectorAll('input[name="audience"]');
@@ -1751,15 +1880,17 @@ function initBroadcastForm() {
     var audience = getAudience();
     var recipients = collectRecipients();
 
-    // Only "registered" requires client-collected emails; sheet/both let the
-    // server pull contacts from the enquiry Google Sheet.
+    // Only "portal" requires client-collected emails; sheet/admissions/all let the
+    // server pull contacts from Google Sheets.
     if (audience === "portal" && !recipients.length) {
       setNote(note, t("admin.bcNoRecipients"), "err");
       return;
     }
 
     var confirmMsg;
-    if (audience === "sheet") confirmMsg = t("admin.bcConfirmSheet");
+    if (audience === "admissions") confirmMsg = t("admin.bcConfirmAdmissions");
+    else if (audience === "sheet") confirmMsg = t("admin.bcConfirmSheet");
+    else if (audience === "all") confirmMsg = t("admin.bcConfirmAll").replace("{n}", recipients.length);
     else if (audience === "both") confirmMsg = t("admin.bcConfirmBoth").replace("{n}", recipients.length);
     else confirmMsg = t("admin.bcConfirm").replace("{n}", recipients.length);
     if (!window.confirm(confirmMsg)) return;
@@ -1787,7 +1918,9 @@ function initBroadcastForm() {
       .then(function () {
         // Opaque response — show an optimistic success message per audience.
         var okMsg;
-        if (audience === "sheet") okMsg = t("admin.bcQueuedSheet");
+        if (audience === "admissions") okMsg = t("admin.bcQueuedAdmissions");
+        else if (audience === "sheet") okMsg = t("admin.bcQueuedSheet");
+        else if (audience === "all") okMsg = t("admin.bcQueuedAll");
         else if (audience === "both") okMsg = t("admin.bcQueuedBoth");
         else okMsg = t("admin.bcQueued").replace("{n}", recipients.length);
         setNote(note, okMsg, "ok");

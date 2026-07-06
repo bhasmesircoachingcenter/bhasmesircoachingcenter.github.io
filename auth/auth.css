@@ -324,29 +324,119 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 }
 #broadcastForm textarea { min-height: 140px; }
 .bc-audience { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.att-toolbar {
-  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
-  margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+
+/* ---------- Attendance header ---------- */
+.att-card { overflow: hidden; }
+.att-header {
+  margin: -22px -22px 20px;
+  padding: 20px 20px 18px;
+  background: linear-gradient(135deg, #f0f9f9 0%, #e8f4fc 48%, #f5f8ff 100%);
+  border-bottom: 1px solid rgba(47, 158, 158, .2);
+  border-radius: 14px 14px 0 0;
 }
+.att-header-top {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
+}
+.att-header-brand {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.att-header-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; flex-shrink: 0;
+  font-size: 1.5rem;
+  background: #fff;
+  border: 1px solid rgba(47, 158, 158, .25);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(26, 54, 93, .08);
+}
+.att-header-title {
+  margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--navy); line-height: 1.2;
+  padding-bottom: 0; border-bottom: none; display: block;
+}
+.att-header-sub {
+  margin: 4px 0 0; font-size: .85rem; font-weight: 500; color: var(--teal);
+}
+.att-summary-meta {
+  margin: 0; padding: 6px 12px;
+  font-size: .8rem; font-weight: 700; color: var(--navy);
+  background: rgba(255, 255, 255, .85);
+  border: 1px solid rgba(47, 158, 158, .3);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.att-summary-meta.hidden { display: none; }
+.att-header-hint {
+  margin: 0 0 16px; font-size: .88rem; color: var(--muted); line-height: 1.45;
+}
+.att-control-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.att-control-group {
+  display: flex; flex-direction: column; gap: 6px;
+  background: rgba(255, 255, 255, .75);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(26, 54, 93, .05);
+}
+.att-control-group label,
+.att-control-label {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted);
+}
+.att-control-group input[type="date"],
+.att-control-group select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  font: inherit; font-size: 16px; color: var(--ink); background: #fff;
+  min-height: 44px;
+}
+.att-control-group input[type="date"]:focus,
+.att-control-group select:focus {
+  outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47, 158, 158, .15);
+}
+.att-control-quick .att-actions-row { margin-top: 2px; }
 .att-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.att-summary { margin: 0; font-size: .92rem; font-weight: 600; color: var(--navy); flex: 1; min-width: 140px; }
+.btn-att-present {
+  background: #e8f7ee; border-color: #1f9d55; color: #1a6b38;
+}
+.btn-att-present:hover { background: #d4f0df; border-color: #189948; color: #145c2f; }
+.btn-att-absent {
+  background: #fdecec; border-color: #e8a0a0; color: #9b2c2c;
+}
+.btn-att-absent:hover { background: #fbd9d9; border-color: #d64545; color: #7a2222; }
+.att-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.att-stat {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px 8px; border-radius: 12px; text-align: center;
+  background: #fff; border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(26, 54, 93, .04);
+}
+.att-stat-num {
+  font-size: 1.65rem; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.att-stat-label {
+  margin-top: 4px; font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .03em; color: var(--muted);
+}
+.att-stat-present { border-color: rgba(31, 157, 85, .35); background: linear-gradient(180deg, #f4fcf7 0%, #fff 100%); }
+.att-stat-present .att-stat-num { color: #1a6b38; }
+.att-stat-absent { border-color: rgba(214, 69, 69, .3); background: linear-gradient(180deg, #fff8f8 0%, #fff 100%); }
+.att-stat-absent .att-stat-num { color: #9b2c2c; }
+.att-stat-total { border-color: rgba(26, 54, 93, .2); background: linear-gradient(180deg, #f7f9fc 0%, #fff 100%); }
+.att-stat-total .att-stat-num { color: var(--navy); }
+.att-grid-wrap { margin-top: 4px; }
 .att-save-row {
   margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 12px; align-items: stretch;
 }
 .att-save-row .btn { width: 100%; }
-.att-toolbar .field input[type="date"],
-.att-toolbar .field select {
-  width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
-  font: inherit; font-size: 16px; color: var(--ink); background: #fff;
-  min-height: 44px;
-}
-.att-toolbar .field input[type="date"]:focus,
-.att-toolbar .field select:focus {
-  outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,158,158,.15);
-}
-.att-class-filter { min-width: 160px; flex: 1 1 160px; }
-.att-toolbar .field { margin-bottom: 0; }
 .admin-hint { font-size: .9rem; color: var(--muted); margin: -4px 0 16px; line-height: 1.45; }
 .att-status-btns { display: flex; gap: 6px; flex-wrap: nowrap; }
 .att-pill {
@@ -428,13 +518,19 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   .student-row .admin-tab { width: 100%; min-height: 44px; }
   .student-edit .actions .btn { width: 100%; }
 
-  .att-toolbar {
-    flex-direction: column; align-items: stretch; gap: 12px;
+  .att-header {
+    margin: -16px -16px 16px;
+    padding: 16px 14px 14px;
+    border-radius: 14px 14px 0 0;
   }
-  .att-toolbar .field { width: 100%; margin-bottom: 0; }
+  .att-header-title { font-size: 1.15rem; }
+  .att-header-icon { width: 42px; height: 42px; font-size: 1.25rem; }
+  .att-control-panel { grid-template-columns: 1fr; }
   .att-actions-row { width: 100%; }
   .att-actions-row .btn { flex: 1; min-width: 0; }
-  .att-summary { width: 100%; text-align: center; padding: 8px 0; }
+  .att-summary-meta { width: 100%; text-align: center; }
+  .att-stats { gap: 8px; }
+  .att-stat-num { font-size: 1.4rem; }
 
   /* Attendance: card list instead of cramped table */
   .att-table thead { display: none; }
