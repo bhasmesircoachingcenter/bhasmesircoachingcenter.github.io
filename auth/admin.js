@@ -478,6 +478,7 @@ var state = {
   students: [],
   studentsLoaded: false,
   selectedRes: "",
+  sheetSession: null, // { key, expires }
   attendanceDate: "",
   attendanceMap: {},
   attendanceRoster: [], // students from Admissions sheet (admission form)
@@ -1113,40 +1114,35 @@ function ensureAttendanceRoster(forceRefresh) {
   });
 }
 
-function sheetAdminRequest(action, fields) {
-  return new Promise(function (resolve, reject) {
-    var user = auth.currentUser;
-    if (!user) { reject(new Error("no-user")); return; }
-    user.getIdToken().then(function (idToken) {
-      jsonpSheetRequest(idToken, action, fields).then(resolve).catch(reject);
-    }).catch(reject);
-  });
+function parseSheetResponse(text) {
+  if (!text) throw new Error("empty-response");
+  text = String(text).trim();
+  if (text.charAt(0) === "{") return JSON.parse(text);
+  return parseJsonpText(text);
 }
 
 function buildSheetQueryUrl(idToken, action, fields) {
-  var parts = [
-    "action=" + encodeURIComponent(action),
-    "idToken=" + encodeURIComponent(idToken)
-  ];
+  var parts = ["action=" + encodeURIComponent(action)];
+  if (idToken) parts.push("idToken=" + encodeURIComponent(idToken));
   Object.keys(fields || {}).forEach(function (k) {
     parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(fields[k] == null ? "" : String(fields[k])));
   });
   return SHEET_ENDPOINT + "?" + parts.join("&");
 }
 
-/** Apps Script web app: use GET JSONP (POST body is lost on redirect). */
-function jsonpSheetRequest(idToken, action, fields) {
+function sheetFetchGet(idToken, action, fields) {
+  var url = buildSheetQueryUrl(idToken, action, fields);
+  return fetch(url, { method: "GET", mode: "cors", credentials: "omit", redirect: "follow" })
+    .then(function (r) { return r.text(); })
+    .then(function (text) { return parseSheetResponse(text); });
+}
+
+function sheetJsonpGet(idToken, action, fields) {
   return new Promise(function (resolve, reject) {
     var cbName = "__bccSh_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
     fields = Object.assign({}, fields || {});
     fields.callback = cbName;
-
     var url = buildSheetQueryUrl(idToken, action, fields);
-    if (url.length > 7800) {
-      reject(new Error("payload-too-large"));
-      return;
-    }
-
     var timer = setTimeout(function () { reject(new Error("timeout")); }, 45000);
     var script = document.createElement("script");
 
@@ -1158,12 +1154,50 @@ function jsonpSheetRequest(idToken, action, fields) {
 
     window[cbName] = function (payload) {
       cleanup();
-      if (payload && payload.result === "success") resolve(payload);
-      else reject(new Error((payload && (payload.error || payload.message)) || "bad-response"));
+      resolve(payload);
     };
     script.onerror = function () { cleanup(); reject(new Error("network")); };
     script.src = url;
     document.head.appendChild(script);
+  });
+}
+
+function sheetApiRequest(idToken, action, fields) {
+  return sheetFetchGet(idToken, action, fields).catch(function () {
+    return sheetJsonpGet(idToken, action, fields);
+  }).then(function (payload) {
+    if (payload && payload.result === "success") return payload;
+    throw new Error((payload && (payload.error || payload.message)) || "bad-response");
+  });
+}
+
+function ensureSheetAdminSession(idToken) {
+  if (state.sheetSession && state.sheetSession.expires > Date.now()) {
+    return Promise.resolve(state.sheetSession.key);
+  }
+  return sheetApiRequest(idToken, "attendance", { subaction: "session" }).then(function (payload) {
+    state.sheetSession = { key: payload.session, expires: Date.now() + 240000 };
+    return payload.session;
+  });
+}
+
+function sheetAdminRequest(action, fields) {
+  return new Promise(function (resolve, reject) {
+    var user = auth.currentUser;
+    if (!user) { reject(new Error("no-user")); return; }
+    user.getIdToken().then(function (idToken) {
+      var isAttendanceSave = action === "attendance" && fields && fields.subaction === "savebits";
+      if (isAttendanceSave) {
+        ensureSheetAdminSession(idToken).then(function (sessionKey) {
+          var saveFields = Object.assign({}, fields, { session: sessionKey });
+          delete saveFields.subaction;
+          saveFields.subaction = "savebits";
+          return sheetApiRequest(null, action, saveFields);
+        }).then(resolve).catch(reject);
+        return;
+      }
+      sheetApiRequest(idToken, action, fields).then(resolve).catch(reject);
+    }).catch(reject);
   });
 }
 
