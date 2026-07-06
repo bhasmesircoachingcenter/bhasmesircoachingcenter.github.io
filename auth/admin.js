@@ -123,6 +123,15 @@ var I18N = {
     "admin.annBody": "Message",
     "admin.audience": "Audience (\"all\" or a batch name)",
     "admin.postAnnounce": "Post Announcement",
+    "admin.waShare": "Share on WhatsApp",
+    "admin.waHint": "Opens WhatsApp with this message ready — choose your Broadcast list or Group, then tap Send. (WhatsApp cannot auto-send to everyone from the website; you pick the list once on your phone.)",
+    "admin.waPhonesTitle": "Parent mobiles (for WhatsApp Broadcast list)",
+    "admin.waPhonesHint": "Copy these numbers into a WhatsApp Business Broadcast list on +91 70585 05983. Parents must have saved your coaching number.",
+    "admin.waPhonesCount": "{n} mobile numbers from Admissions + portal students.",
+    "admin.waPhonesCopy": "Copy all numbers",
+    "admin.waPhonesCopied": "Copied {n} numbers.",
+    "admin.waPhonesNone": "No mobile numbers found yet — check the Admissions sheet.",
+    "admin.waNeedMessage": "Enter a title and message first.",
     "admin.existingAnnounce": "Existing Announcements",
     "admin.noAnnounce": "No announcements yet.",
     "admin.broadcastTitle": "Broadcast Email",
@@ -313,6 +322,15 @@ var I18N = {
     "admin.annBody": "संदेश",
     "admin.audience": "प्रेक्षक (\"all\" किंवा बॅचचे नाव)",
     "admin.postAnnounce": "घोषणा प्रकाशित करा",
+    "admin.waShare": "WhatsApp वर शेअर करा",
+    "admin.waHint": "WhatsApp उघडेल — तुमची Broadcast list किंवा Group निवडा, नंतर Send दाबा. (वेबसाइटवरून सर्वांना आपोआप WhatsApp जात नाही.)",
+    "admin.waPhonesTitle": "पालक मोबाइल (WhatsApp Broadcast साठी)",
+    "admin.waPhonesHint": "+91 70585 05983 वर WhatsApp Business Broadcast list मध्ये हे नंबर कॉपी करा. पालकांनी तुमचा नंबर सेव्ह केला असला पाहिजे.",
+    "admin.waPhonesCount": "Admissions + पोर्टल विद्यार्थ्यांकडून {n} मोबाइल नंबर.",
+    "admin.waPhonesCopy": "सर्व नंबर कॉपी करा",
+    "admin.waPhonesCopied": "{n} नंबर कॉपी झाले.",
+    "admin.waPhonesNone": "अद्याप मोबाइल नंबर नाहीत — Admissions sheet तपासा.",
+    "admin.waNeedMessage": "प्रथम शीर्षक आणि संदेश भरा.",
     "admin.existingAnnounce": "विद्यमान घोषणा",
     "admin.noAnnounce": "अद्याप घोषणा नाहीत.",
     "admin.broadcastTitle": "ईमेल पाठवा",
@@ -475,6 +493,7 @@ function applyLang(next) {
   updateBroadcastCount();
   if (state.detailsInit) renderDetails();
   if (state.sheetLinks || state.sheetLinksError) renderSheetLinks();
+  updateWaPhonesPanel();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -1443,6 +1462,59 @@ function renderResultList(uid) {
 }
 
 /* ---------------- Announcements ---------------- */
+function buildWhatsAppAnnounceText(title, body) {
+  var lines = ["*Bhasme Sir Coaching Center*"];
+  if (title) lines.push("", "*" + title + "*");
+  if (body) lines.push("", body);
+  return lines.join("\n").trim();
+}
+
+function whatsAppBroadcastUrl(text) {
+  return "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+}
+
+function openWhatsAppBroadcast(title, body, noteEl) {
+  if (!String(title || "").trim() && !String(body || "").trim()) {
+    if (noteEl) setNote(noteEl, t("admin.waNeedMessage"), "err");
+    return;
+  }
+  var text = buildWhatsAppAnnounceText(title, body);
+  window.open(whatsAppBroadcastUrl(text), "_blank", "noopener,noreferrer");
+}
+
+function collectStudentPhones() {
+  var seen = {};
+  var list = [];
+  function add(raw) {
+    var p = normalizePhone(raw);
+    if (!p || seen[p]) return;
+    seen[p] = true;
+    list.push(p);
+  }
+  buildAdmissionAccountList(state.admissions || []).forEach(function (a) { add(a.phone); });
+  (state.students || []).forEach(function (s) { add(s.phone); });
+  return list.sort();
+}
+
+function formatPhonesForCopy(phones) {
+  return phones.map(function (p) { return "+91" + p; }).join("\n");
+}
+
+function updateWaPhonesPanel() {
+  var countEl = el("waPhonesCount");
+  if (!countEl) return;
+  Promise.all([
+    state.admissions ? Promise.resolve() : ensureAdmissions(true),
+    state.studentsLoaded ? Promise.resolve() : ensureStudents()
+  ]).then(function () {
+    var phones = collectStudentPhones();
+    if (!phones.length) setNote(countEl, t("admin.waPhonesNone"), "");
+    else setNote(countEl, t("admin.waPhonesCount").replace("{n}", phones.length), "");
+  }).catch(function () {
+    setNote(countEl, t("admin.waPhonesNone"), "");
+  });
+}
+
 function renderAnnouncements() {
   var wrap = el("announceList");
   if (!wrap) return;
@@ -1460,11 +1532,22 @@ function renderAnnouncements() {
       var time = document.createElement("time");
       time.textContent = fmtDate(a.date) + (a.audience ? " · " + a.audience : "");
       var body = document.createElement("p"); body.textContent = a.body || "";
+      var actions = document.createElement("div");
+      actions.className = "announce-item-actions";
+      var waBtn = document.createElement("button");
+      waBtn.type = "button";
+      waBtn.className = "btn btn-whatsapp btn-sm";
+      waBtn.textContent = t("admin.waShare");
+      waBtn.addEventListener("click", function () {
+        openWhatsAppBroadcast(a.title || "", a.body || "", null);
+      });
       var del = makeDeleteBtn(function () { return deleteDoc(doc(db, "announcements", a.id)); }, renderAnnouncements);
+      actions.appendChild(waBtn);
+      actions.appendChild(del);
       item.appendChild(h);
       item.appendChild(time);
       item.appendChild(body);
-      item.appendChild(del);
+      item.appendChild(actions);
       wrap.appendChild(item);
     });
   }).catch(function () { /* leave as-is */ });
@@ -1501,6 +1584,9 @@ function initTabs() {
         initAccountsTab();
       } else if (name === "accounts") {
         renderPortalAccounts();
+      }
+      if (name === "announcements") {
+        updateWaPhonesPanel();
       }
     });
   });
@@ -1545,6 +1631,39 @@ function initAnnounceForm() {
   var form = el("announceForm");
   var note = el("announceNote");
   if (!form) return;
+
+  var waBtn = el("annWhatsAppBtn");
+  if (waBtn) {
+    waBtn.addEventListener("click", function () {
+      openWhatsAppBroadcast(form.elements.title.value.trim(), form.elements.body.value.trim(), note);
+    });
+  }
+
+  var copyBtn = el("waPhonesCopyBtn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function () {
+      var notePhones = el("waPhonesNote");
+      var phones = collectStudentPhones();
+      if (!phones.length) {
+        if (notePhones) setNote(notePhones, t("admin.waPhonesNone"), "err");
+        return;
+      }
+      var text = formatPhonesForCopy(phones);
+      function done() {
+        if (notePhones) setNote(notePhones, t("admin.waPhonesCopied").replace("{n}", phones.length), "ok");
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          window.prompt(t("admin.waPhonesCopy"), text);
+          done();
+        });
+      } else {
+        window.prompt(t("admin.waPhonesCopy"), text);
+        done();
+      }
+    });
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var title = form.elements.title.value.trim();
@@ -2215,6 +2334,7 @@ onAuthStateChanged(auth, function (user) {
     initAnnounceForm();
     initBroadcastForm();
     initDetailsTab();
+    updateWaPhonesPanel();
 
     loadStudents().then(function () {
       populateStudentSelects();

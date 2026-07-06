@@ -525,6 +525,19 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   font-size: .9rem; color: var(--muted); margin: 0;
 }
 .sheet-links-table .btn { white-space: nowrap; }
+.announce-item-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px;
+}
+.announce-actions {
+  flex-wrap: wrap; align-items: center;
+}
+.wa-announce-hint { margin-top: 0; margin-bottom: 14px; }
+.btn-whatsapp {
+  background: #25d366; border-color: #1da851; color: #fff;
+}
+.btn-whatsapp:hover { background: #1ebe5d; border-color: #189948; color: #fff; }
+.btn-whatsapp.btn-sm { padding: 6px 12px; font-size: .85rem; }
+
 .accounts-subtitle {
   font-size: 1.05rem; font-weight: 600; color: var(--navy);
   margin: 0 0 12px;

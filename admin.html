@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=13" />
+  <link rel="stylesheet" href="auth/auth.css?v=14" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -204,11 +204,22 @@
               <label for="annAudience" data-i18n="admin.audience">Audience ("all" or a batch name)</label>
               <input type="text" id="annAudience" name="audience" maxlength="80" value="all" required />
             </div>
-            <div class="actions">
+            <p class="accounts-login-banner wa-announce-hint" data-i18n="admin.waHint">Opens WhatsApp with this message ready — choose your Broadcast list or Group, then tap Send.</p>
+            <div class="actions announce-actions">
               <button type="submit" class="btn btn-primary" data-i18n="admin.postAnnounce">Post Announcement</button>
+              <button type="button" class="btn btn-whatsapp" id="annWhatsAppBtn" data-i18n="admin.waShare">Share on WhatsApp</button>
               <p class="admin-note" id="announceNote" role="status" aria-live="polite"></p>
             </div>
           </form>
+        </div>
+        <div class="admin-card">
+          <h3 class="accounts-subtitle" data-i18n="admin.waPhonesTitle">Parent mobiles (for WhatsApp Broadcast list)</h3>
+          <p class="admin-hint" data-i18n="admin.waPhonesHint">Copy numbers into a WhatsApp Business Broadcast list on +91 70585 05983.</p>
+          <p class="admin-note" id="waPhonesCount" role="status" aria-live="polite"></p>
+          <div class="actions">
+            <button type="button" class="btn btn-outline btn-sm" id="waPhonesCopyBtn" data-i18n="admin.waPhonesCopy">Copy all numbers</button>
+            <p class="admin-note" id="waPhonesNote" role="status" aria-live="polite"></p>
+          </div>
         </div>
         <div class="admin-card">
           <h2 data-i18n="admin.existingAnnounce">Existing Announcements</h2>
@@ -250,6 +261,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=24"></script>
+  <script type="module" src="auth/admin.js?v=25"></script>
 </body>
 </html>
