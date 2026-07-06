@@ -3,8 +3,7 @@
 //  - Auth guard: not signed in -> login.html.
 //  - Admin check: doc exists at admins/{uid}. Non-admins see a "Not authorized"
 //    screen and never see the admin tools.
-//  - Manage students (edit batch/schedule/phone), attendance, results,
-//    announcements. All dynamic text rendered via textContent (injection-safe).
+//  - Manage portal accounts, attendance, results, announcements.
 //
 // Note on indexes: we read each collection with a SINGLE-field order("date")
 // or sort client-side, and never combine where()+orderBy() on different fields,
@@ -45,7 +44,6 @@ var I18N = {
     "admin.deniedTitle": "Not authorized",
     "admin.deniedBody": "This area is for administrators only.",
     "admin.backToPortal": "Back to portal",
-    "admin.tabStudents": "Students",
     "admin.tabAccounts": "Portal Accounts",
     "admin.tabDetails": "Student Details",
     "admin.tabAttendance": "Attendance",
@@ -60,7 +58,7 @@ var I18N = {
     "admin.accountsLoginHint": "Tell students: Login = email from admission form · Password = 10-digit mobile (no +91). Firebase may send a verification email — they can ignore it and log in.",
     "admin.accountsLoading": "Loading admissions and portal accounts…",
     "admin.accountsPendingTitle": "From Admissions (no account yet)",
-    "admin.accountsActiveTitle": "Portal accounts (registered)",
+    "admin.accountsActiveTitle": "Active portal accounts",
     "admin.accountsColStatus": "Status",
     "admin.accountsStatusPending": "No account",
     "admin.accountsStatusActive": "Active",
@@ -129,31 +127,29 @@ var I18N = {
     "admin.noAnnounce": "No announcements yet.",
     "admin.broadcastTitle": "Broadcast Email",
     "admin.bcAudienceLabel": "Send to",
-    "admin.bcAudReg": "Registered portal students",
+    "admin.bcAudPortal": "Portal students (with login)",
     "admin.bcAudSheet": "Enquiry contacts (Google Sheet)",
-    "admin.bcAudBoth": "Both (registered + enquiry)",
+    "admin.bcAudBoth": "Portal students + enquiry contacts",
     "admin.bcSubject": "Subject",
     "admin.bcBody": "Message",
     "admin.bcSend": "Send Email",
-    "admin.bcCount": "{n} of {total} registered students have an email on file.",
+    "admin.bcCount": "{n} of {total} portal students have an email on file.",
     "admin.bcCountSheet": "Will send to all enquiry contacts in the Google Sheet.",
-    "admin.bcCountBoth": "{n} registered student(s) + all enquiry contacts in the Google Sheet.",
-    "admin.bcNoRecipients": "No registered students have an email on file yet.",
-    "admin.bcConfirm": "Send this email to {n} registered student(s)?",
+    "admin.bcCountBoth": "{n} portal student(s) + all enquiry contacts in the Google Sheet.",
+    "admin.bcNoRecipients": "No portal students have an email on file yet.",
+    "admin.bcConfirm": "Send this email to {n} portal student(s)?",
     "admin.bcConfirmSheet": "Send this email to all enquiry contacts in the Google Sheet?",
-    "admin.bcConfirmBoth": "Send to {n} registered student(s) plus all enquiry contacts in the Google Sheet?",
+    "admin.bcConfirmBoth": "Send to {n} portal student(s) plus all enquiry contacts in the Google Sheet?",
     "admin.bcSending": "Sending…",
-    "admin.bcQueued": "✅ Email queued to {n} registered student(s).",
+    "admin.bcQueued": "✅ Email queued to {n} portal student(s).",
     "admin.bcQueuedSheet": "✅ Email queued to your enquiry contacts.",
-    "admin.bcQueuedBoth": "✅ Email queued to registered students + enquiry contacts.",
+    "admin.bcQueuedBoth": "✅ Email queued to portal students + enquiry contacts.",
     "admin.bcErrSend": "Could not send. Please try again.",
     "admin.bcMissing": "Please enter a subject and message.",
     "admin.detailsTitle": "Student Details",
     "admin.detailsSource": "Source",
-    "admin.detailsSrcRegistered": "Registered students (portal)",
     "admin.detailsSrcEnquiry": "Enquiry contacts (Google Sheet)",
     "admin.detailsSrcAdmission": "Admission form (Google Form)",
-    "admin.detailsSrcBoth": "Both (merged & de-duplicated by email)",
     "admin.detailsLoading": "Loading…",
     "admin.detailsCount": "Showing {n} records",
     "admin.detailsEmpty": "No records to show.",
@@ -223,7 +219,6 @@ var I18N = {
     "admin.deniedTitle": "प्रवेश नाही",
     "admin.deniedBody": "हा भाग फक्त प्रशासकांसाठी आहे.",
     "admin.backToPortal": "पोर्टलकडे परत",
-    "admin.tabStudents": "विद्यार्थी",
     "admin.tabAccounts": "पोर्टल खाती",
     "admin.tabDetails": "विद्यार्थी तपशील",
     "admin.tabAttendance": "हजेरी",
@@ -238,7 +233,7 @@ var I18N = {
     "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको). Firebase पडताळणी ईमेल पाठवू शकते — लॉगिन करता येईल.",
     "admin.accountsLoading": "प्रवेश व पोर्टल खाती लोड होत आहेत…",
     "admin.accountsPendingTitle": "Admissions मधून (अद्याप खाते नाही)",
-    "admin.accountsActiveTitle": "पोर्टल खाती (नोंदणीकृत)",
+    "admin.accountsActiveTitle": "सक्रिय पोर्टल खाती",
     "admin.accountsColStatus": "स्थिती",
     "admin.accountsStatusPending": "खाते नाही",
     "admin.accountsStatusActive": "सक्रिय",
@@ -307,9 +302,9 @@ var I18N = {
     "admin.noAnnounce": "अद्याप घोषणा नाहीत.",
     "admin.broadcastTitle": "ईमेल पाठवा",
     "admin.bcAudienceLabel": "यांना पाठवा",
-    "admin.bcAudReg": "नोंदणीकृत पोर्टल विद्यार्थी",
+    "admin.bcAudPortal": "पोर्टल विद्यार्थी (लॉगिन असलेले)",
     "admin.bcAudSheet": "चौकशी संपर्क (Google Sheet)",
-    "admin.bcAudBoth": "दोन्ही (नोंदणीकृत + चौकशी)",
+    "admin.bcAudBoth": "पोर्टल विद्यार्थी + चौकशी संपर्क",
     "admin.bcSubject": "विषय",
     "admin.bcBody": "संदेश",
     "admin.bcSend": "ईमेल पाठवा",
@@ -328,10 +323,8 @@ var I18N = {
     "admin.bcMissing": "कृपया विषय व संदेश भरा.",
     "admin.detailsTitle": "विद्यार्थी तपशील",
     "admin.detailsSource": "स्रोत",
-    "admin.detailsSrcRegistered": "नोंदणीकृत विद्यार्थी (पोर्टल)",
     "admin.detailsSrcEnquiry": "चौकशी संपर्क (Google Sheet)",
     "admin.detailsSrcAdmission": "प्रवेश अर्ज (Google Form)",
-    "admin.detailsSrcBoth": "दोन्ही (ईमेलनुसार एकत्रित व डुप्लिकेट काढून)",
     "admin.detailsLoading": "लोड होत आहे…",
     "admin.detailsCount": "{n} नोंदी दर्शवित आहे",
     "admin.detailsEmpty": "दर्शविण्यासाठी नोंदी नाहीत.",
@@ -407,7 +400,7 @@ var state = {
   attendanceMap: {},
   attendanceRoster: [], // students from Admissions sheet (admission form)
   // Student Details tab
-  detailsSource: "registered",
+  detailsSource: "admission",
   detailsInit: false,
   enquiries: null, // cached enquiry rows fetched from the sheet via JSONP
   admissions: null, // cached admission form rows from Admissions tab
@@ -439,7 +432,7 @@ function applyLang(next) {
   }
   try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
   // Re-render data-driven sections that aren't covered by data-i18n.
-  renderStudents();
+  if (state.accountsInit) renderPortalAccounts();
   if (state.attendanceDate) {
     populateAttClassFilter();
     renderAttendanceGrid();
@@ -449,7 +442,6 @@ function applyLang(next) {
   renderAnnouncements();
   updateBroadcastCount();
   if (state.detailsInit) renderDetails();
-  if (state.accountsInit) renderPortalAccounts();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -498,85 +490,87 @@ function loadStudents() {
   });
 }
 
-function renderStudents() {
-  var wrap = el("studentsList");
-  if (!wrap) return;
-  wrap.textContent = "";
-  if (!state.students.length) {
-    var p = document.createElement("p");
-    p.className = "empty-state";
-    p.textContent = t("admin.noStudents");
-    wrap.appendChild(p);
-    return;
-  }
-  state.students.forEach(function (s) {
-    var row = document.createElement("div");
-    row.className = "student-row";
+function appendPortalStudentRow(s, wrap) {
+  var row = document.createElement("div");
+  row.className = "student-row";
 
-    var meta = document.createElement("div");
-    meta.className = "student-meta";
-    var strong = document.createElement("strong");
-    strong.textContent = s.name || t("dash");
-    var small = document.createElement("small");
-    small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
-    meta.appendChild(strong);
-    meta.appendChild(small);
+  var meta = document.createElement("div");
+  meta.className = "student-meta";
+  var strong = document.createElement("strong");
+  strong.textContent = s.name || t("dash");
+  var small = document.createElement("small");
+  small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
+  meta.appendChild(strong);
+  meta.appendChild(small);
 
-    var editBtn = document.createElement("button");
-    editBtn.className = "admin-tab";
-    editBtn.type = "button";
-    editBtn.textContent = t("admin.edit");
+  var btnRow = document.createElement("div");
+  btnRow.className = "accounts-action-cell";
 
-    var editor = document.createElement("div");
-    editor.className = "student-edit";
+  var editBtn = document.createElement("button");
+  editBtn.className = "admin-tab";
+  editBtn.type = "button";
+  editBtn.textContent = t("admin.edit");
 
-    var batchField = makeField(t("admin.batch"), s.batch);
-    var schedField = makeField(t("admin.schedule"), s.schedule);
-    var phoneField = makeField(t("admin.phone"), s.phone);
+  var removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "icon-btn accounts-remove-btn";
+  removeBtn.textContent = t("admin.accountsRemove");
+  removeBtn.addEventListener("click", function () { removePortalAccount(s, removeBtn); });
 
-    var actions = document.createElement("div");
-    actions.className = "actions";
-    var saveBtn = document.createElement("button");
-    saveBtn.className = "btn btn-primary";
-    saveBtn.type = "button";
-    saveBtn.textContent = t("admin.save");
-    var note = document.createElement("p");
-    note.className = "admin-note";
-    actions.appendChild(saveBtn);
-    actions.appendChild(note);
+  btnRow.appendChild(editBtn);
+  btnRow.appendChild(removeBtn);
 
-    editor.appendChild(batchField.wrap);
-    editor.appendChild(schedField.wrap);
-    editor.appendChild(phoneField.wrap);
-    editor.appendChild(actions);
+  var editor = document.createElement("div");
+  editor.className = "student-edit";
 
-    editBtn.addEventListener("click", function () { editor.classList.toggle("open"); });
+  var batchField = makeField(t("admin.batch"), s.batch);
+  var schedField = makeField(t("admin.schedule"), s.schedule);
+  var phoneField = makeField(t("admin.phone"), s.phone);
 
-    saveBtn.addEventListener("click", function () {
-      saveBtn.disabled = true;
-      setNote(note, "", "");
-      setDoc(doc(db, "students", s.id), {
-        batch: batchField.input.value.trim(),
-        schedule: schedField.input.value.trim(),
-        phone: phoneField.input.value.trim()
-      }, { merge: true }).then(function () {
-        s.batch = batchField.input.value.trim();
-        s.schedule = schedField.input.value.trim();
-        s.phone = phoneField.input.value.trim();
-        small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
-        setNote(note, t("admin.saved"), "ok");
-      }).catch(function () {
-        setNote(note, t("admin.errSave"), "err");
-      }).finally(function () {
-        saveBtn.disabled = false;
-      });
+  var actions = document.createElement("div");
+  actions.className = "actions";
+  var saveBtn = document.createElement("button");
+  saveBtn.className = "btn btn-primary";
+  saveBtn.type = "button";
+  saveBtn.textContent = t("admin.save");
+  var note = document.createElement("p");
+  note.className = "admin-note";
+  actions.appendChild(saveBtn);
+  actions.appendChild(note);
+
+  editor.appendChild(batchField.wrap);
+  editor.appendChild(schedField.wrap);
+  editor.appendChild(phoneField.wrap);
+  editor.appendChild(actions);
+
+  editBtn.addEventListener("click", function () { editor.classList.toggle("open"); });
+
+  saveBtn.addEventListener("click", function () {
+    saveBtn.disabled = true;
+    setNote(note, "", "");
+    setDoc(doc(db, "students", s.id), {
+      batch: batchField.input.value.trim(),
+      schedule: schedField.input.value.trim(),
+      phone: phoneField.input.value.trim()
+    }, { merge: true }).then(function () {
+      s.batch = batchField.input.value.trim();
+      s.schedule = schedField.input.value.trim();
+      s.phone = phoneField.input.value.trim();
+      small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
+      setNote(note, t("admin.saved"), "ok");
+      populateStudentSelects();
+      updateBroadcastCount();
+    }).catch(function () {
+      setNote(note, t("admin.errSave"), "err");
+    }).finally(function () {
+      saveBtn.disabled = false;
     });
-
-    row.appendChild(meta);
-    row.appendChild(editBtn);
-    row.appendChild(editor);
-    wrap.appendChild(row);
   });
+
+  row.appendChild(meta);
+  row.appendChild(btnRow);
+  row.appendChild(editor);
+  wrap.appendChild(row);
 }
 
 /* ---------------- Portal accounts (admin-provisioned login) ---------------- */
@@ -793,34 +787,13 @@ function renderPortalAccounts() {
     }));
   }
 
-  var activeHeaders = [t("dcol.name"), t("dcol.email"), t("admin.phone"), t("admin.batch"), t("admin.accountsColStatus")];
   if (!active.length) {
     var aEmpty = document.createElement("p");
     aEmpty.className = "empty-state";
     aEmpty.textContent = t("admin.accountsNoActive");
     activeWrap.appendChild(aEmpty);
   } else {
-    var activeRows = active.map(function (s) {
-      return {
-        data: s,
-        nameCell: true,
-        cells: [
-          s.name || t("dash"),
-          s.email || t("dash"),
-          s.phone || t("dash"),
-          s.batch || t("dash"),
-          t("admin.accountsStatusActive")
-        ]
-      };
-    });
-    activeWrap.appendChild(renderAccountsTable(activeHeaders.concat([""]), activeRows, function (row) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "icon-btn accounts-remove-btn";
-      btn.textContent = t("admin.accountsRemove");
-      btn.addEventListener("click", function () { removePortalAccount(row.data, btn); });
-      return btn;
-    }));
+    active.forEach(function (s) { appendPortalStudentRow(s, activeWrap); });
   }
 }
 
@@ -864,7 +837,6 @@ function createPortalAccount(admissionRow, btn) {
     });
   }).then(function () {
     renderPortalAccounts();
-    renderStudents();
     populateStudentSelects();
     updateBroadcastCount();
   }).catch(function (err) {
@@ -901,7 +873,6 @@ function removePortalAccount(student, btn) {
     return loadStudents();
   }).then(function () {
     renderPortalAccounts();
-    renderStudents();
     populateStudentSelects();
     updateBroadcastCount();
   }).catch(function (err) {
@@ -1576,11 +1547,15 @@ function collectRecipients() {
   return emails;
 }
 
-// Which recipient list is selected: "registered" | "sheet" | "both".
+// Which recipient list is selected: "portal" | "sheet" | "both".
 function getAudience() {
   var form = el("broadcastForm");
-  if (!form || !form.elements || !form.elements.audience) return "registered";
-  return form.elements.audience.value || "registered";
+  if (!form || !form.elements || !form.elements.audience) return "portal";
+  return form.elements.audience.value || "portal";
+}
+
+function broadcastAudienceForServer(audience) {
+  return audience === "portal" ? "registered" : audience;
 }
 
 function updateBroadcastCount() {
@@ -1596,7 +1571,7 @@ function updateBroadcastCount() {
     setNote(node, t("admin.bcCountBoth").replace("{n}", recipients.length), "");
     return;
   }
-  // registered
+  // portal students with login
   if (!recipients.length) {
     setNote(node, t("admin.bcNoRecipients"), "");
     return;
@@ -1626,7 +1601,7 @@ function initBroadcastForm() {
 
     // Only "registered" requires client-collected emails; sheet/both let the
     // server pull contacts from the enquiry Google Sheet.
-    if (audience === "registered" && !recipients.length) {
+    if (audience === "portal" && !recipients.length) {
       setNote(note, t("admin.bcNoRecipients"), "err");
       return;
     }
@@ -1649,7 +1624,7 @@ function initBroadcastForm() {
         params.append("idToken", idToken);
         params.append("subject", subject);
         params.append("body", body);
-        params.append("audience", audience);
+        params.append("audience", broadcastAudienceForServer(audience));
         // Registered/both: send the client-collected Firestore emails. The server
         // ignores this for "sheet" and reads the sheet's Email column itself.
         params.append("recipients", recipients.join(","));
@@ -2014,16 +1989,8 @@ function showDetailsTable(headers, rows) {
 function renderDetails() {
   var wrap = el("detailsTableWrap");
   if (!wrap) return;
-  var src = state.detailsSource || "registered";
+  var src = state.detailsSource || "admission";
   setDetailsLoading();
-
-  if (src === "registered") {
-    ensureStudents().then(function () {
-      if (state.detailsSource !== src) return;
-      showDetailsTable(registeredHeaders(), buildRegisteredRows());
-    });
-    return;
-  }
 
   if (src === "enquiry") {
     ensureEnquiries().then(function (enq) {
@@ -2036,34 +2003,22 @@ function renderDetails() {
     return;
   }
 
-  if (src === "admission") {
-    ensureAdmissions().then(function (adm) {
-      if (state.detailsSource !== src) return;
-      showDetailsTable(admissionHeaders(), buildAdmissionRows(adm));
-    }).catch(function (err) {
-      if (state.detailsSource !== src) return;
-      setDetailsError(err, src);
-    });
-    return;
-  }
-
-  // both
-  Promise.all([ensureStudents(), ensureEnquiries()]).then(function (res) {
-    if (state.detailsSource !== src) return;
-    showDetailsTable(bothHeaders(), buildBothRows(state.students, res[1]));
+  ensureAdmissions().then(function (adm) {
+    if (state.detailsSource !== "admission") return;
+    showDetailsTable(admissionHeaders(), buildAdmissionRows(adm));
   }).catch(function (err) {
-    if (state.detailsSource !== src) return;
-    setDetailsError(err, src);
+    if (state.detailsSource !== "admission") return;
+    setDetailsError(err, "admission");
   });
 }
 
 function initDetailsTab() {
   var sel = el("detailsSource");
   if (!sel) return;
-  state.detailsSource = sel.value || "registered";
+  state.detailsSource = sel.value || "admission";
   state.detailsInit = true;
   sel.addEventListener("change", function () {
-    state.detailsSource = sel.value || "registered";
+    state.detailsSource = sel.value || "admission";
     renderDetails();
   });
   renderDetails();
@@ -2109,12 +2064,11 @@ onAuthStateChanged(auth, function (user) {
     initDetailsTab();
 
     loadStudents().then(function () {
-      renderStudents();
       populateStudentSelects();
       updateBroadcastCount();
       loadAttendanceForDate(state.attendanceDate || todayIso());
-      if (state.detailsInit) renderDetails();
-    }).catch(function () { renderStudents(); });
+      initAccountsTab();
+    }).catch(function () { initAccountsTab(); });
 
     renderAnnouncements();
   }).catch(function () {

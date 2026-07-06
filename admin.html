@@ -49,8 +49,7 @@
       <p class="portal-sub" id="adminEmail">—</p>
 
       <div class="admin-tabs" role="tablist">
-        <button class="admin-tab active" data-tab="students" data-i18n="admin.tabStudents">Students</button>
-        <button class="admin-tab" data-tab="accounts" data-i18n="admin.tabAccounts">Portal Accounts</button>
+        <button class="admin-tab active" data-tab="accounts" data-i18n="admin.tabAccounts">Portal Accounts</button>
         <button class="admin-tab" data-tab="details" data-i18n="admin.tabDetails">Student Details</button>
         <button class="admin-tab" data-tab="attendance" data-i18n="admin.tabAttendance">Attendance</button>
         <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
@@ -58,19 +57,8 @@
         <button class="admin-tab" data-tab="broadcast" data-i18n="admin.tabBroadcast">Email Students</button>
       </div>
 
-      <!-- ===================== STUDENTS ===================== -->
-      <section class="admin-panel active" id="panel-students">
-        <div class="admin-card">
-          <h2 data-i18n="admin.studentsTitle">Students</h2>
-          <p class="admin-note" id="studentsNote" role="status" aria-live="polite"></p>
-          <div id="studentsList">
-            <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
-          </div>
-        </div>
-      </section>
-
       <!-- ===================== PORTAL ACCOUNTS ===================== -->
-      <section class="admin-panel" id="panel-accounts">
+      <section class="admin-panel active" id="panel-accounts">
         <div class="admin-card">
           <h2 data-i18n="admin.accountsTitle">Portal Accounts</h2>
           <p class="admin-hint" data-i18n="admin.accountsHint">Create login accounts from the Admissions sheet. Students sign in with their email; initial password is their 10-digit mobile number.</p>
@@ -84,7 +72,7 @@
           </div>
         </div>
         <div class="admin-card">
-          <h3 class="accounts-subtitle" data-i18n="admin.accountsActiveTitle">Portal accounts (registered)</h3>
+          <h3 class="accounts-subtitle" data-i18n="admin.accountsActiveTitle">Active portal accounts</h3>
           <div class="table-scroll" id="accountsActiveWrap">
             <p class="empty-state" data-i18n="admin.loadingStudents">Loading students…</p>
           </div>
@@ -98,10 +86,8 @@
           <div class="details-controls">
             <label for="detailsSource" data-i18n="admin.detailsSource">Source</label>
             <select id="detailsSource" name="detailsSource">
-              <option value="registered" data-i18n="admin.detailsSrcRegistered">Registered students (portal)</option>
-              <option value="enquiry" data-i18n="admin.detailsSrcEnquiry">Enquiry contacts (Google Sheet)</option>
               <option value="admission" data-i18n="admin.detailsSrcAdmission">Admission form (Google Form)</option>
-              <option value="both" data-i18n="admin.detailsSrcBoth">Both (merged & de-duplicated by email)</option>
+              <option value="enquiry" data-i18n="admin.detailsSrcEnquiry">Enquiry contacts (Google Sheet)</option>
             </select>
           </div>
           <p class="admin-note" id="detailsCount" role="status" aria-live="polite"></p>
@@ -230,9 +216,9 @@
             <div class="field full">
               <label data-i18n="admin.bcAudienceLabel">Send to</label>
               <div class="bc-audience" role="radiogroup" aria-label="Recipients">
-                <label class="bc-radio"><input type="radio" name="audience" value="registered" checked /> <span data-i18n="admin.bcAudReg">Registered portal students</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="portal" checked /> <span data-i18n="admin.bcAudPortal">Portal students (with login)</span></label>
                 <label class="bc-radio"><input type="radio" name="audience" value="sheet" /> <span data-i18n="admin.bcAudSheet">Enquiry contacts (Google Sheet)</span></label>
-                <label class="bc-radio"><input type="radio" name="audience" value="both" /> <span data-i18n="admin.bcAudBoth">Both (registered + enquiry)</span></label>
+                <label class="bc-radio"><input type="radio" name="audience" value="both" /> <span data-i18n="admin.bcAudBoth">Portal students + enquiry contacts</span></label>
               </div>
             </div>
             <div class="field full">
@@ -253,6 +239,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=22"></script>
+  <script type="module" src="auth/admin.js?v=23"></script>
 </body>
 </html>
