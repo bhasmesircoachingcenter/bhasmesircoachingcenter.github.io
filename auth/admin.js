@@ -1189,10 +1189,14 @@ function sheetAdminRequest(action, fields) {
       var isAttendanceSave = action === "attendance" && fields && fields.subaction === "savebits";
       if (isAttendanceSave) {
         ensureSheetAdminSession(idToken).then(function (sessionKey) {
-          var saveFields = Object.assign({}, fields, { session: sessionKey });
-          delete saveFields.subaction;
-          saveFields.subaction = "savebits";
-          return sheetApiRequest(null, action, saveFields);
+          return sheetApiRequest(null, action, {
+            subaction: "savebits",
+            date: fields.date,
+            bits: fields.bits,
+            session: sessionKey
+          });
+        }).catch(function () {
+          return sheetApiRequest(idToken, action, fields);
         }).then(resolve).catch(reject);
         return;
       }
