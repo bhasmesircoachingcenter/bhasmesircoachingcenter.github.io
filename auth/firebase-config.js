@@ -13,8 +13,12 @@
 // client file — those are real secrets.
 // =============================================================================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth,
+  initializeAuth,
+  inMemoryPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Real Firebase config for the "bhasme-sir-coaching-center" project.
@@ -33,6 +37,14 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Secondary Auth app — create/delete student logins without signing out the admin.
-export const provisionApp = initializeApp(firebaseConfig, "bccProvision");
-export const provisionAuth = getAuth(provisionApp);
+// Secondary Auth — in-memory only so student provisioning never touches admin session.
+var provisionApp = getApps().some(function (a) { return a.name === "bccProvision"; })
+  ? getApp("bccProvision")
+  : initializeApp(firebaseConfig, "bccProvision");
+var provisionAuth;
+try {
+  provisionAuth = initializeAuth(provisionApp, { persistence: inMemoryPersistence });
+} catch (e) {
+  provisionAuth = getAuth(provisionApp);
+}
+export { provisionApp, provisionAuth };

@@ -35,7 +35,8 @@ var I18N = {
     "brand.sub": "Coaching Center",
     "auth.loginTitle": "Student Login",
     "auth.loginIntro": "Sign in to view your batch, attendance, test results and announcements.",
-    "auth.loginHint": "Login with your email address. Password is your 10-digit mobile number (from admission).",
+    "auth.loginHint": "Students: login with email from admission · password = 10-digit mobile (no +91).",
+    "auth.adminHint": "Admins: use Continue with Google or your full email password.",
     "auth.email": "Email",
     "auth.password": "Password",
     "auth.passwordMobile": "Password (10-digit mobile)",
@@ -78,7 +79,8 @@ var I18N = {
     "brand.sub": "कोचिंग सेंटर",
     "auth.loginTitle": "विद्यार्थी लॉगिन",
     "auth.loginIntro": "तुमची बॅच, हजेरी, चाचणी निकाल व घोषणा पाहण्यासाठी साइन इन करा.",
-    "auth.loginHint": "तुमच्या ईमेलने लॉगिन करा. पासवर्ड म्हणजे प्रवेश अर्जातील १० अंकी मोबाइल नंबर.",
+    "auth.loginHint": "विद्यार्थी: प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको).",
+    "auth.adminHint": "प्रशासक: Google ने सुरू ठेवा किंवा पूर्ण ईमेल पासवर्ड वापरा.",
     "auth.email": "ईमेल",
     "auth.password": "पासवर्ड",
     "auth.passwordMobile": "पासवर्ड (१० अंकी मोबाइल)",
@@ -185,7 +187,17 @@ function loginErrorKey(code) {
   }
 }
 
+function redirectAfterLogin(user) {
+  return getDoc(doc(db, "admins", user.uid)).then(function (snap) {
+    window.location.href = snap.exists() ? "admin.html" : "portal.html";
+  }).catch(function () {
+    window.location.href = "portal.html";
+  });
+}
+
 function redirectToPortal() {
+  var user = auth.currentUser;
+  if (user) return redirectAfterLogin(user);
   window.location.href = "portal.html";
 }
 
@@ -223,7 +235,7 @@ if (backToLogin) backToLogin.addEventListener("click", function () { showView("l
 
 // If a session already exists, skip the login page entirely.
 onAuthStateChanged(auth, function (user) {
-  if (user) redirectToPortal();
+  if (user) redirectAfterLogin(user);
 });
 
 /* ---------------- Login ---------------- */

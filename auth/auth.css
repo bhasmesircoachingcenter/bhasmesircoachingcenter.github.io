@@ -501,7 +501,11 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 .auth-login-hint {
   font-size: .92rem; font-weight: 600; color: var(--navy);
   background: #eef8f8; border: 1px solid rgba(47,158,158,.35);
-  border-radius: 10px; padding: 12px 14px; margin: 0 0 18px; line-height: 1.45;
+  border-radius: 10px; padding: 12px 14px; margin: 0 0 10px; line-height: 1.45;
+}
+.auth-admin-hint {
+  font-size: .88rem; color: var(--muted);
+  margin: 0 0 18px; line-height: 1.45;
 }
 .auth-provision-note {
   font-size: .88rem; color: var(--muted); margin-top: 20px; line-height: 1.45; text-align: center;
