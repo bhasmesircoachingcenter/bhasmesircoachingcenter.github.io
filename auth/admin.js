@@ -155,6 +155,21 @@ var I18N = {
     "admin.detailsEmpty": "No records to show.",
     "admin.detailsErr": "Could not load enquiry contacts. Redeploy Apps Script (new version), then refresh.",
     "admin.detailsErrAdmission": "Could not load admission form responses. Redeploy Apps Script (new version), then refresh.",
+    "admin.sheetsTitle": "Google Sheet — student data",
+    "admin.sheetsHint": "Open the coaching spreadsheet in Google Sheets or download as Excel. Same data as the tables above.",
+    "admin.sheetsLoading": "Loading spreadsheet links…",
+    "admin.sheetsErr": "Could not load sheet links. Paste latest admission/Code.gs, then Deploy → New version.",
+    "admin.sheetsColTab": "Tab",
+    "admin.sheetsColAbout": "Contains",
+    "admin.sheetsColOpen": "Open",
+    "admin.sheetsColDownload": "Download",
+    "admin.sheetsOpenFull": "Open full spreadsheet",
+    "admin.sheetsDownloadXlsx": "Download Excel (.xlsx)",
+    "admin.sheetsOpenTab": "Open tab",
+    "admin.sheetsDownloadCsv": "CSV",
+    "admin.sheetsDescAdmissions": "Admission form responses",
+    "admin.sheetsDescAttendance": "Daily attendance records",
+    "admin.sheetsDescEnquiry": "Website enquiry contacts",
     "admin.detailsUnauthorized": "Not signed in as admin. On this phone, log in with bhasmesircoachingcenter@gmail.com in the admin panel.",
     "admin.detailsTimeout": "Loading timed out on slow network. Pull down to refresh or try again on Wi‑Fi.",
     "dcol.name": "Name",
@@ -330,6 +345,21 @@ var I18N = {
     "admin.detailsEmpty": "दर्शविण्यासाठी नोंदी नाहीत.",
     "admin.detailsErr": "चौकशी संपर्क लोड करता आले नाहीत. Apps Script पुन्हा डिप्लॉय करा, नंतर रिफ्रेश करा.",
     "admin.detailsErrAdmission": "प्रवेश अर्ज प्रतिसाद लोड करता आले नाहीत. Apps Script पुन्हा डिप्लॉय करा, नंतर रिफ्रेश करा.",
+    "admin.sheetsTitle": "Google Sheet — विद्यार्थी डेटा",
+    "admin.sheetsHint": "कोचिंग spreadsheet Google Sheets मध्ये उघडा किंवा Excel म्हणून डाउनलोड करा.",
+    "admin.sheetsLoading": "Spreadsheet दुवे लोड होत आहेत…",
+    "admin.sheetsErr": "Sheet दुवे लोड करता आले नाहीत. admission/Code.gs paste करा, Deploy → New version.",
+    "admin.sheetsColTab": "टॅब",
+    "admin.sheetsColAbout": "माहिती",
+    "admin.sheetsColOpen": "उघडा",
+    "admin.sheetsColDownload": "डाउनलोड",
+    "admin.sheetsOpenFull": "संपूर्ण spreadsheet उघडा",
+    "admin.sheetsDownloadXlsx": "Excel (.xlsx) डाउनलोड",
+    "admin.sheetsOpenTab": "टॅब उघडा",
+    "admin.sheetsDownloadCsv": "CSV",
+    "admin.sheetsDescAdmissions": "प्रवेश अर्ज उत्तरे",
+    "admin.sheetsDescAttendance": "दैनिक हजेरी",
+    "admin.sheetsDescEnquiry": "वेबसाइट चौकशी संपर्क",
     "admin.detailsUnauthorized": "अॅडमिन म्हणून साइन इन नाही. या फोनवर bhasmesircoachingcenter@gmail.com ने लॉगिन करा.",
     "admin.detailsTimeout": "नेटवर्क मंद असल्याने वेळ संपली. पुन्हा प्रयत्न करा किंवा Wi‑Fi वापरा.",
     "dcol.name": "नाव",
@@ -402,6 +432,8 @@ var state = {
   // Student Details tab
   detailsSource: "admission",
   detailsInit: false,
+  sheetLinks: null,
+  sheetLinksError: null,
   enquiries: null, // cached enquiry rows fetched from the sheet via JSONP
   admissions: null, // cached admission form rows from Admissions tab
   accountsInit: false
@@ -442,6 +474,7 @@ function applyLang(next) {
   renderAnnouncements();
   updateBroadcastCount();
   if (state.detailsInit) renderDetails();
+  if (state.sheetLinks || state.sheetLinksError) renderSheetLinks();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -2012,6 +2045,121 @@ function renderDetails() {
   });
 }
 
+function sheetTabDescription(role) {
+  if (role === "admissions") return t("admin.sheetsDescAdmissions");
+  if (role === "attendance") return t("admin.sheetsDescAttendance");
+  if (role === "enquiry") return t("admin.sheetsDescEnquiry");
+  return t("dash");
+}
+
+function sheetLinkButton(href, label, className) {
+  var a = document.createElement("a");
+  a.className = className || "btn btn-outline btn-sm";
+  a.href = href;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = label;
+  return a;
+}
+
+function ensureSheetLinks(force) {
+  if (!force && state.sheetLinks) return Promise.resolve(state.sheetLinks);
+  if (!force && state.sheetLinksError) return Promise.reject(new Error(state.sheetLinksError));
+  return sheetAdminRequest("sheets", {}).then(function (payload) {
+    state.sheetLinks = payload;
+    state.sheetLinksError = null;
+    return payload;
+  }).catch(function (err) {
+    state.sheetLinksError = err && err.message ? err.message : "fetch-failed";
+    throw err;
+  });
+}
+
+function renderSheetLinks() {
+  var toolbar = el("sheetLinksToolbar");
+  var wrap = el("sheetLinksWrap");
+  var note = el("sheetLinksNote");
+  if (!toolbar || !wrap) return;
+
+  if (state.sheetLinksError) {
+    toolbar.textContent = "";
+    wrap.textContent = "";
+    var err = document.createElement("p");
+    err.className = "empty-state";
+    err.textContent = t("admin.sheetsErr");
+    wrap.appendChild(err);
+    if (note) setNote(note, "", "");
+    return;
+  }
+
+  var data = state.sheetLinks;
+  if (!data || !data.tabs) {
+    toolbar.innerHTML = "<p class=\"empty-state\">" + t("admin.sheetsLoading") + "</p>";
+    wrap.innerHTML = "<p class=\"empty-state\">" + t("admin.sheetsLoading") + "</p>";
+    return;
+  }
+
+  toolbar.textContent = "";
+  var actions = document.createElement("div");
+  actions.className = "sheet-links-actions";
+  if (data.spreadsheetUrl) {
+    actions.appendChild(sheetLinkButton(data.spreadsheetUrl, t("admin.sheetsOpenFull"), "btn btn-primary btn-sm"));
+  }
+  if (data.xlsxUrl) {
+    actions.appendChild(sheetLinkButton(data.xlsxUrl, t("admin.sheetsDownloadXlsx"), "btn btn-outline btn-sm"));
+  }
+  toolbar.appendChild(actions);
+  if (data.spreadsheetName) {
+    var title = document.createElement("p");
+    title.className = "sheet-links-name";
+    title.textContent = data.spreadsheetName;
+    toolbar.appendChild(title);
+  }
+
+  var headers = [
+    t("admin.sheetsColTab"),
+    t("admin.sheetsColAbout"),
+    t("admin.sheetsColOpen"),
+    t("admin.sheetsColDownload")
+  ];
+  var table = document.createElement("table");
+  table.className = "data-table sheet-links-table";
+  var thead = document.createElement("thead");
+  var htr = document.createElement("tr");
+  headers.forEach(function (h) { htr.appendChild(cell("th", h)); });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  var tbody = document.createElement("tbody");
+  data.tabs.forEach(function (tab) {
+    var tr = document.createElement("tr");
+    var tdName = cell("td", tab.name || t("dash"));
+    tdName.setAttribute("data-label", t("admin.sheetsColTab"));
+    tr.appendChild(tdName);
+
+    var tdDesc = cell("td", sheetTabDescription(tab.role));
+    tdDesc.setAttribute("data-label", t("admin.sheetsColAbout"));
+    tr.appendChild(tdDesc);
+
+    var tdOpen = document.createElement("td");
+    tdOpen.setAttribute("data-label", t("admin.sheetsColOpen"));
+    if (tab.openUrl) tdOpen.appendChild(sheetLinkButton(tab.openUrl, t("admin.sheetsOpenTab"), "btn btn-outline btn-sm"));
+    tr.appendChild(tdOpen);
+
+    var tdDl = document.createElement("td");
+    tdDl.setAttribute("data-label", t("admin.sheetsColDownload"));
+    if (tab.csvUrl) tdDl.appendChild(sheetLinkButton(tab.csvUrl, t("admin.sheetsDownloadCsv"), "btn btn-outline btn-sm"));
+    tr.appendChild(tdDl);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  wrap.textContent = "";
+  wrap.appendChild(table);
+  if (note) setNote(note, "", "");
+}
+
 function initDetailsTab() {
   var sel = el("detailsSource");
   if (!sel) return;
@@ -2022,6 +2170,11 @@ function initDetailsTab() {
     renderDetails();
   });
   renderDetails();
+  ensureSheetLinks(false).then(function () {
+    renderSheetLinks();
+  }).catch(function () {
+    renderSheetLinks();
+  });
 }
 
 /* ---------------- Boot ---------------- */

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=12" />
+  <link rel="stylesheet" href="auth/auth.css?v=13" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -94,6 +94,17 @@
           <div class="table-scroll" id="detailsTableWrap">
             <p class="empty-state" data-i18n="admin.detailsEmpty">No records to show.</p>
           </div>
+        </div>
+        <div class="admin-card">
+          <h3 class="accounts-subtitle" data-i18n="admin.sheetsTitle">Google Sheet — student data</h3>
+          <p class="admin-hint" data-i18n="admin.sheetsHint">Open the coaching spreadsheet in Google Sheets or download as Excel. Same data as the tables above.</p>
+          <div class="sheet-links-toolbar" id="sheetLinksToolbar">
+            <p class="empty-state" data-i18n="admin.sheetsLoading">Loading spreadsheet links…</p>
+          </div>
+          <div class="table-scroll" id="sheetLinksWrap">
+            <p class="empty-state" data-i18n="admin.sheetsLoading">Loading spreadsheet links…</p>
+          </div>
+          <p class="admin-note" id="sheetLinksNote" role="status" aria-live="polite"></p>
         </div>
       </section>
 
@@ -239,6 +250,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=23"></script>
+  <script type="module" src="auth/admin.js?v=24"></script>
 </body>
 </html>

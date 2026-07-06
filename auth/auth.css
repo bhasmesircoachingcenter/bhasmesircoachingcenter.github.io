@@ -517,6 +517,14 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   background: #e8f6f6; border-left: 4px solid var(--teal);
   padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0 0 12px; line-height: 1.45;
 }
+.sheet-links-toolbar { margin-bottom: 12px; }
+.sheet-links-actions {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;
+}
+.sheet-links-name {
+  font-size: .9rem; color: var(--muted); margin: 0;
+}
+.sheet-links-table .btn { white-space: nowrap; }
 .accounts-subtitle {
   font-size: 1.05rem; font-weight: 600; color: var(--navy);
   margin: 0 0 12px;
