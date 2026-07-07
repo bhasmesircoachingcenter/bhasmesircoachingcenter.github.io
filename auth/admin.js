@@ -2271,11 +2271,37 @@ function bindStudentFeesFilters() {
   if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
 }
 
+function receiptTokensFromRecord(record) {
+  var tokens = [];
+  if (!record) return tokens;
+  effectivePayments(record).forEach(function (payment) {
+    if (payment.receiptToken) tokens.push(payment.receiptToken);
+  });
+  if (record.publicReceiptToken) tokens.push(record.publicReceiptToken);
+  return tokens.filter(function (token, index, list) {
+    return token && list.indexOf(token) === index;
+  });
+}
+
+function deleteFeeReceiptLinks(tokens) {
+  tokens = tokens || [];
+  if (!tokens.length) return Promise.resolve();
+  return Promise.all(tokens.map(function (token) {
+    return deleteDoc(doc(db, "feeReceiptLinks", token)).catch(function () {});
+  }));
+}
+
 function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
   var msg = t("admin.feesConfirmDelete").replace("{name}", studentName || t("dash"));
   if (!window.confirm(msg)) return Promise.resolve(false);
 
-  return deleteDoc(doc(db, "studentFees", docId))
+  var record = state.studentFeesMap[docId];
+  var tokens = receiptTokensFromRecord(record);
+
+  return deleteFeeReceiptLinks(tokens)
+    .then(function () {
+      return deleteDoc(doc(db, "studentFees", docId));
+    })
     .then(function () {
       delete state.studentFeesMap[docId];
       if (noteEl) setNote(noteEl, t("admin.feesDeleted"), "ok");
@@ -2533,13 +2559,19 @@ function saveStudentFeeRecord(student, payload, noteEl, successKey) {
 }
 
 function deleteFeePayment(student, record, paymentId, noteEl, onDone) {
-  var payments = ensureStoredPayments(record, student).filter(function (p) {
+  var allPayments = ensureStoredPayments(record, student);
+  var removed = allPayments.filter(function (p) { return p.id === paymentId; })[0];
+  var tokens = removed && removed.receiptToken ? [removed.receiptToken] : [];
+  var payments = allPayments.filter(function (p) {
     return p.id !== paymentId;
   });
   var payload = normalizeStudentFeesRecord(Object.assign({}, record, { payments: payments }), student);
-  return saveStudentFeeRecord(student, payload, noteEl, "admin.feesPaymentDeleted")
+  return deleteFeeReceiptLinks(tokens)
     .then(function () {
-      if (onDone) onDone();
+      return saveStudentFeeRecord(student, payload, noteEl, "admin.feesPaymentDeleted");
+    })
+    .then(function (saved) {
+      if (onDone) onDone(saved);
     })
     .catch(function () {
       if (noteEl) setNote(noteEl, t("admin.feesErrDeletePayment"), "err");
