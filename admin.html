@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=15" />
+  <link rel="stylesheet" href="auth/auth.css?v=16" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -55,6 +55,7 @@
         <button class="admin-tab" data-tab="results" data-i18n="admin.tabResults">Results</button>
         <button class="admin-tab" data-tab="announcements" data-i18n="admin.tabAnnouncements">Announcements</button>
         <button class="admin-tab" data-tab="broadcast" data-i18n="admin.tabBroadcast">Email Students</button>
+        <button class="admin-tab" data-tab="fees" data-i18n="admin.tabFees">Student Fees</button>
       </div>
 
       <!-- ===================== PORTAL ACCOUNTS ===================== -->
@@ -287,9 +288,22 @@
           </form>
         </div>
       </section>
+
+      <!-- ===================== STUDENT FEES (admin only) ===================== -->
+      <section class="admin-panel" id="panel-fees">
+        <div class="admin-card">
+          <h2 data-i18n="admin.feesTitle">Student Fees</h2>
+          <p class="admin-hint" data-i18n="admin.feesHint">Capture and maintain fees for each admitted student (from Admissions sheet). Not shown to students on the website or admission form.</p>
+          <div id="feesRefWrap" class="fees-ref-wrap"></div>
+          <p class="admin-note" id="studentFeesNote" role="status" aria-live="polite"></p>
+          <div class="table-scroll" id="studentFeesWrap">
+            <p class="empty-state" data-i18n="admin.feesLoading">Loading students…</p>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=32"></script>
+  <script type="module" src="auth/admin.js?v=35"></script>
 </body>
 </html>

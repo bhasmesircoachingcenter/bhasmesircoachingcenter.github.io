@@ -76,6 +76,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ---- per-student fees (admin only; not visible to students) ----
+    match /studentFees/{studentKey} {
+      allow read, write: if isAdmin();
+    }
+
     // ---- default deny everything else ----
     match /{document=**} {
       allow read, write: if false;

@@ -30,6 +30,16 @@ import {
   writeBatch,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  DEFAULT_REGISTRATION_FEE,
+  PAYMENT_PLANS,
+  suggestCourseFee,
+  detectClassKey,
+  formatRupee,
+  computeBalance,
+  normalizeStudentFeesRecord,
+  defaultRatesReferenceHtml
+} from "./fees-structure.js";
 
 /* ---------------- Bilingual strings ---------------- */
 var I18N = {
@@ -50,6 +60,33 @@ var I18N = {
     "admin.tabResults": "Results",
     "admin.tabAnnouncements": "Announcements",
     "admin.tabBroadcast": "Email Students",
+    "admin.tabFees": "Student Fees",
+    "admin.feesTitle": "Student Fees",
+    "admin.feesHint": "Capture fees per admitted student (Admissions sheet). Admin only — not shown on website or admission form.",
+    "admin.feesLoading": "Loading students…",
+    "admin.feesNoStudents": "No students on Admissions sheet yet.",
+    "admin.feesColName": "Student",
+    "admin.feesColClass": "Class",
+    "admin.feesColPlan": "Plan",
+    "admin.feesColCourse": "Course fee",
+    "admin.feesColPaid": "Paid",
+    "admin.feesColBalance": "Balance",
+    "admin.feesColStatus": "Status",
+    "admin.feesColAction": "Action",
+    "admin.feesEdit": "Edit",
+    "admin.feesSave": "Save",
+    "admin.feesSaved": "Fees saved.",
+    "admin.feesErr": "Could not save fees. Try again.",
+    "admin.feesErrLoad": "Could not load fees. Check Firestore rules.",
+    "admin.feesStatusSet": "Recorded",
+    "admin.feesStatusPending": "Not set",
+    "admin.feesReg": "Registration fee (₹)",
+    "admin.feesAmountPaid": "Amount paid (₹)",
+    "admin.feesPaymentDate": "Last payment date",
+    "admin.feesReceipt": "Receipt no.",
+    "admin.feesNoteField": "Note",
+    "admin.feesApplySuggest": "Use suggested fee",
+    "admin.feesRefTitle": "Default fee reference (8 months)",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -266,6 +303,33 @@ var I18N = {
     "admin.tabResults": "निकाल",
     "admin.tabAnnouncements": "घोषणा",
     "admin.tabBroadcast": "विद्यार्थ्यांना ईमेल",
+    "admin.tabFees": "विद्यार्थी फी",
+    "admin.feesTitle": "विद्यार्थी फी",
+    "admin.feesHint": "प्रवेशित विद्यार्थ्यांची फी नोंदवा (Admissions sheet). फक्त अॅडमिन — वेबसाइट/अर्जावर दिसत नाही.",
+    "admin.feesLoading": "विद्यार्थी लोड होत आहेत…",
+    "admin.feesNoStudents": "Admissions sheet वर अद्याप विद्यार्थी नाहीत.",
+    "admin.feesColName": "विद्यार्थी",
+    "admin.feesColClass": "इयत्ता",
+    "admin.feesColPlan": "योजना",
+    "admin.feesColCourse": "अभ्यासक्रम शुल्क",
+    "admin.feesColPaid": "भरले",
+    "admin.feesColBalance": "बाकी",
+    "admin.feesColStatus": "स्थिती",
+    "admin.feesColAction": "कृती",
+    "admin.feesEdit": "संपादन",
+    "admin.feesSave": "जतन करा",
+    "admin.feesSaved": "फी जतन झाली.",
+    "admin.feesErr": "फी जतन करता आली नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesErrLoad": "फी लोड करता आली नाही. Firestore rules तपासा.",
+    "admin.feesStatusSet": "नोंदवले",
+    "admin.feesStatusPending": "नोंद नाही",
+    "admin.feesReg": "नोंदणी शुल्क (₹)",
+    "admin.feesAmountPaid": "भरलेली रक्कम (₹)",
+    "admin.feesPaymentDate": "शेवटची पेमेंट तारीख",
+    "admin.feesReceipt": "पावती क्र.",
+    "admin.feesNoteField": "टीप",
+    "admin.feesApplySuggest": "सुचवलेली फी वापरा",
+    "admin.feesRefTitle": "मूळ फी संदर्भ (८ महिने)",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -482,6 +546,9 @@ var state = {
   attendanceDate: "",
   attendanceMap: {},
   attendanceRoster: [], // students from Admissions sheet (admission form)
+  studentFeesMap: {},
+  studentFeesInit: false,
+  studentFeesEditing: null,
   // Student Details tab
   detailsSource: "admission",
   detailsInit: false,
@@ -529,6 +596,7 @@ function applyLang(next) {
   if (state.detailsInit) renderDetails();
   if (state.sheetLinks || state.sheetLinksError) renderSheetLinks();
   updateWaPhonesPanel();
+  if (state.studentFeesInit) renderStudentFeesTable();
 }
 
 /* ---------------- Helpers ---------------- */
@@ -1724,8 +1792,299 @@ function initTabs() {
       if (name === "announcements") {
         updateWaPhonesPanel();
       }
+      if (name === "fees") {
+        if (!state.studentFeesInit) initStudentFeesTab();
+        else renderStudentFeesTable();
+      }
     });
   });
+}
+
+/* ---------------- Student fees (admin only) ---------------- */
+function studentFeesDocId(studentKey) {
+  return String(studentKey || "").replace(/\//g, "_").slice(0, 200);
+}
+
+function planLabel(plan) {
+  var p = PAYMENT_PLANS.filter(function (x) { return x.value === plan; })[0];
+  if (!p) return plan;
+  return lang === "mr" ? p.labelMr : p.labelEn;
+}
+
+function loadAllStudentFees() {
+  return getDocs(collection(db, "studentFees")).then(function (qs) {
+    var map = {};
+    qs.forEach(function (d) {
+      map[d.id] = normalizeStudentFeesRecord(d.data(), null);
+    });
+    state.studentFeesMap = map;
+    return map;
+  });
+}
+
+function renderFeesReference() {
+  var wrap = el("feesRefWrap");
+  if (!wrap) return;
+  wrap.innerHTML = "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" + defaultRatesReferenceHtml(lang);
+}
+
+function buildStudentFeesEditor(student, record, onSaved) {
+  var editor = document.createElement("div");
+  editor.className = "student-fees-editor";
+
+  var classKey = record.classKey || detectClassKey(student.batch) || "10th";
+  var plan = record.paymentPlan || "onetime";
+
+  function field(label, input) {
+    var wrap = document.createElement("div");
+    wrap.className = "field";
+    var lab = document.createElement("label");
+    lab.textContent = label;
+    wrap.appendChild(lab);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  var classSel = document.createElement("select");
+  ["8th", "9th", "10th"].forEach(function (k) {
+    var opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = k;
+    if (k === classKey) opt.selected = true;
+    classSel.appendChild(opt);
+  });
+
+  var planSel = document.createElement("select");
+  PAYMENT_PLANS.forEach(function (p) {
+    var opt = document.createElement("option");
+    opt.value = p.value;
+    opt.textContent = lang === "mr" ? p.labelMr : p.labelEn;
+    if (p.value === plan) opt.selected = true;
+    planSel.appendChild(opt);
+  });
+
+  var courseIn = document.createElement("input");
+  courseIn.type = "number";
+  courseIn.min = "0";
+  courseIn.step = "100";
+  courseIn.value = String(record.courseFee || suggestCourseFee(classKey, plan));
+
+  var regIn = document.createElement("input");
+  regIn.type = "number";
+  regIn.min = "0";
+  regIn.step = "50";
+  regIn.value = String(record.registrationFee || DEFAULT_REGISTRATION_FEE);
+
+  var paidIn = document.createElement("input");
+  paidIn.type = "number";
+  paidIn.min = "0";
+  paidIn.step = "100";
+  paidIn.value = String(record.amountPaid || 0);
+
+  var balanceOut = document.createElement("input");
+  balanceOut.type = "text";
+  balanceOut.readOnly = true;
+  balanceOut.className = "fees-balance-readonly";
+
+  function refreshBalance() {
+    balanceOut.value = formatRupee(computeBalance(courseIn.value, paidIn.value));
+  }
+
+  function applySuggest() {
+    courseIn.value = String(suggestCourseFee(classSel.value, planSel.value));
+    refreshBalance();
+  }
+
+  classSel.addEventListener("change", applySuggest);
+  planSel.addEventListener("change", applySuggest);
+  courseIn.addEventListener("input", refreshBalance);
+  paidIn.addEventListener("input", refreshBalance);
+  refreshBalance();
+
+  var dateIn = document.createElement("input");
+  dateIn.type = "date";
+  dateIn.value = record.paymentDate || "";
+
+  var receiptIn = document.createElement("input");
+  receiptIn.type = "text";
+  receiptIn.value = record.receiptNo || "";
+
+  var noteIn = document.createElement("textarea");
+  noteIn.rows = 2;
+  noteIn.value = record.note || "";
+
+  var suggestBtn = document.createElement("button");
+  suggestBtn.type = "button";
+  suggestBtn.className = "btn btn-outline btn-sm";
+  suggestBtn.textContent = t("admin.feesApplySuggest");
+  suggestBtn.addEventListener("click", applySuggest);
+
+  var grid = document.createElement("div");
+  grid.className = "student-fees-form-grid";
+  grid.appendChild(field(t("admin.feesColClass"), classSel));
+  grid.appendChild(field(t("admin.feesColPlan"), planSel));
+  grid.appendChild(field(t("admin.feesColCourse"), courseIn));
+  grid.appendChild(field(t("admin.feesReg"), regIn));
+  grid.appendChild(field(t("admin.feesAmountPaid"), paidIn));
+  grid.appendChild(field(t("admin.feesColBalance"), balanceOut));
+  grid.appendChild(field(t("admin.feesPaymentDate"), dateIn));
+  grid.appendChild(field(t("admin.feesReceipt"), receiptIn));
+  var noteField = field(t("admin.feesNoteField"), noteIn);
+  noteField.classList.add("full");
+  grid.appendChild(noteField);
+
+  var actions = document.createElement("div");
+  actions.className = "actions";
+  actions.appendChild(suggestBtn);
+  var saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary btn-sm";
+  saveBtn.textContent = t("admin.feesSave");
+  var note = document.createElement("p");
+  note.className = "admin-note";
+  actions.appendChild(saveBtn);
+
+  saveBtn.addEventListener("click", function () {
+    var key = rosterAttKey(student);
+    var payload = normalizeStudentFeesRecord({
+      studentKey: key,
+      name: student.name,
+      email: student.email,
+      mobile: student.mobile,
+      classKey: classSel.value,
+      paymentPlan: planSel.value,
+      courseFee: courseIn.value,
+      registrationFee: regIn.value,
+      amountPaid: paidIn.value,
+      paymentDate: dateIn.value,
+      receiptNo: receiptIn.value,
+      note: noteIn.value
+    }, student);
+
+    saveBtn.disabled = true;
+    setDoc(doc(db, "studentFees", studentFeesDocId(key)), Object.assign({}, payload, { updatedAt: serverTimestamp() }))
+      .then(function () {
+        state.studentFeesMap[studentFeesDocId(key)] = payload;
+        setNote(note, t("admin.feesSaved"), "ok");
+        if (onSaved) onSaved();
+      })
+      .catch(function () {
+        setNote(note, t("admin.feesErr"), "err");
+      })
+      .finally(function () {
+        saveBtn.disabled = false;
+      });
+  });
+
+  editor.appendChild(grid);
+  editor.appendChild(actions);
+  editor.appendChild(note);
+  return editor;
+}
+
+function renderStudentFeesTable() {
+  var wrap = el("studentFeesWrap");
+  if (!wrap) return;
+
+  renderFeesReference();
+
+  ensureAttendanceRoster(true).then(function (roster) {
+    if (!roster.length) {
+      wrap.innerHTML = "<p class=\"empty-state\">" + t("admin.feesNoStudents") + "</p>";
+      return;
+    }
+
+    var table = document.createElement("table");
+    table.className = "data-table student-fees-table";
+    var thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>" + t("admin.feesColName") + "</th>" +
+      "<th>" + t("admin.feesColClass") + "</th>" +
+      "<th>" + t("admin.feesColPlan") + "</th>" +
+      "<th>" + t("admin.feesColCourse") + "</th>" +
+      "<th>" + t("admin.feesColPaid") + "</th>" +
+      "<th>" + t("admin.feesColBalance") + "</th>" +
+      "<th>" + t("admin.feesColStatus") + "</th>" +
+      "<th>" + t("admin.feesColAction") + "</th></tr>";
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+    roster.forEach(function (student) {
+      var key = rosterAttKey(student);
+      var docId = studentFeesDocId(key);
+      var saved = state.studentFeesMap[docId];
+      var record = saved || normalizeStudentFeesRecord({}, student);
+      var hasSaved = !!saved;
+
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td class=\"att-name\">" + (student.name || "—") + "</td>" +
+        "<td>" + (record.classKey || detectClassKey(student.batch) || "—") + "</td>" +
+        "<td>" + (hasSaved ? planLabel(record.paymentPlan) : "—") + "</td>" +
+        "<td>" + (hasSaved ? formatRupee(record.courseFee) : "—") + "</td>" +
+        "<td>" + (hasSaved ? formatRupee(record.amountPaid) : "—") + "</td>" +
+        "<td>" + (hasSaved ? formatRupee(record.balance) : "—") + "</td>" +
+        "<td><span class=\"fees-status " + (hasSaved ? "set" : "pending") + "\">" +
+        t(hasSaved ? "admin.feesStatusSet" : "admin.feesStatusPending") + "</span></td>";
+
+      var tdAct = document.createElement("td");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-outline btn-sm";
+      btn.textContent = t("admin.feesEdit");
+      tdAct.appendChild(btn);
+      tr.appendChild(tdAct);
+
+      var editorRow = document.createElement("tr");
+      editorRow.className = "student-fees-editor-row hidden";
+      var editorCell = document.createElement("td");
+      editorCell.colSpan = 8;
+      editorRow.appendChild(editorCell);
+
+      btn.addEventListener("click", function () {
+        var open = !editorRow.classList.contains("hidden");
+        tbody.querySelectorAll(".student-fees-editor-row").forEach(function (r) {
+          r.classList.add("hidden");
+        });
+        if (open) {
+          editorRow.classList.add("hidden");
+          state.studentFeesEditing = null;
+          return;
+        }
+        editorCell.innerHTML = "";
+        editorCell.appendChild(buildStudentFeesEditor(student, record, function () {
+          editorRow.classList.add("hidden");
+          renderStudentFeesTable();
+        }));
+        editorRow.classList.remove("hidden");
+        state.studentFeesEditing = key;
+      });
+
+      tbody.appendChild(tr);
+      tbody.appendChild(editorRow);
+    });
+
+    table.appendChild(tbody);
+    wrap.innerHTML = "";
+    wrap.appendChild(table);
+  }).catch(function () {
+    wrap.innerHTML = "<p class=\"empty-state\">" + t("admin.feesErrLoad") + "</p>";
+  });
+}
+
+function initStudentFeesTab() {
+  if (state.studentFeesInit) return;
+  state.studentFeesInit = true;
+
+  var note = el("studentFeesNote");
+  if (note) setNote(note, "", "");
+
+  Promise.all([loadAllStudentFees(), ensureAttendanceRoster(false)])
+    .then(function () { renderStudentFeesTable(); })
+    .catch(function () {
+      if (note) setNote(note, t("admin.feesErrLoad"), "err");
+      renderStudentFeesTable();
+    });
 }
 
 function initResultForm() {
@@ -2527,6 +2886,7 @@ onAuthStateChanged(auth, function (user) {
     initAnnounceForm();
     initBroadcastForm();
     initDetailsTab();
+    initStudentFeesTab();
     updateWaPhonesPanel();
 
     loadStudents().then(function () {

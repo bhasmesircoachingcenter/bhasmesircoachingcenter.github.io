@@ -660,3 +660,68 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
     font-weight: 600; color: var(--navy); font-size: .8rem;
   }
 }
+
+/* ---- Student fees (admin only) ---- */
+.fees-ref-wrap {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafbfd;
+}
+.fees-ref-wrap .accounts-subtitle { margin: 0 0 10px; font-size: 1rem; }
+.fees-ref-table { width: 100%; max-width: 480px; font-size: .9rem; }
+.fees-ref-table th,
+.fees-ref-table td { padding: 8px 10px; }
+
+.student-fees-table .att-name { font-weight: 600; }
+.student-fees-table td { vertical-align: middle; }
+.fees-status {
+  display: inline-block;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.fees-status.set { background: #e8f5e9; color: #2e7d32; }
+.fees-status.pending { background: #fff3e0; color: #e65100; }
+
+.student-fees-editor-row td {
+  padding: 12px 14px 16px;
+  background: #f8f9fc;
+  border-bottom: 2px solid var(--line);
+}
+.student-fees-editor .student-fees-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+.student-fees-editor .field.full { grid-column: 1 / -1; }
+.student-fees-editor input[type="number"],
+.student-fees-editor input[type="date"],
+.student-fees-editor input[type="text"],
+.student-fees-editor select,
+.student-fees-editor textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.fees-balance-readonly {
+  background: #eef1f6;
+  font-weight: 600;
+  color: var(--navy);
+}
+.student-fees-editor .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 720px) {
+  .student-fees-editor .student-fees-form-grid { grid-template-columns: 1fr; }
+}
