@@ -1122,11 +1122,17 @@ function createPortalAccount(admissionRow, btn) {
         email: email,
         phone: phone,
         batch: admissionRow.batch || ""
-      }).then(function () { return "email-ok"; }).catch(function () { return "email-failed"; });
+      }).then(function () { return { ok: true }; }).catch(function (err) { return { ok: false, err: err }; });
     });
-  }).then(function (emailStatus) {
+  }).then(function (emailResult) {
     if (note) {
-      setNote(note, t(emailStatus === "email-failed" ? "admin.accountsCreatedNoEmail" : "admin.accountsCreated"), "ok");
+      if (emailResult === "email-skipped") {
+        setNote(note, t("admin.accountsCreatedNoEmail"), "ok");
+      } else if (emailResult && emailResult.ok === false) {
+        setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail"), "ok");
+      } else {
+        setNote(note, t("admin.accountsCreated"), "ok");
+      }
     }
     return loadStudents().then(function () {
       state.admissions = null;
@@ -1382,28 +1388,44 @@ function sheetApiRequest(idToken, action, fields) {
 }
 
 function sheetAdminPost(idToken, action, fields) {
+  var JSONP_FALLBACK_ACTIONS = { portalwelcome: true, feereceipt: true };
   var params = new URLSearchParams();
   params.append("action", action);
   params.append("idToken", idToken);
   Object.keys(fields || {}).forEach(function (k) {
     params.append(k, fields[k] == null ? "" : String(fields[k]));
   });
+  function parseSuccess(text) {
+    var payload = parseSheetResponse(text);
+    if (payload && payload.result === "success") return payload;
+    throw new Error((payload && (payload.error || payload.message)) || "bad-response");
+  }
   return fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
     .then(function (r) { return r.text(); })
-    .then(function (text) {
-      var payload = parseSheetResponse(text);
-      if (payload && payload.result === "success") return payload;
-      throw new Error((payload && (payload.error || payload.message)) || "bad-response");
+    .then(parseSuccess)
+    .catch(function (err) {
+      if (!JSONP_FALLBACK_ACTIONS[action]) throw err;
+      return sheetJsonpGet(idToken, action, fields).then(function (payload) {
+        if (payload && payload.result === "success") return payload;
+        throw new Error((payload && (payload.error || payload.message)) || "bad-response");
+      });
     });
 }
 
 function sheetAdminErrorMessage(err, fallbackKey) {
   var msg = err && err.message ? String(err.message) : "";
-  if (/deploy|unknown action/i.test(msg)) return t("admin.feesNeedDeploy");
+  var feesContext = /fees/i.test(fallbackKey || "");
+  if (/deploy|unknown action/i.test(msg)) {
+    return t(feesContext ? "admin.feesNeedDeploy" : "admin.accountsErrFunctions");
+  }
   if (/unauthorized/i.test(msg)) return t("admin.detailsUnauthorized");
   if (/no rows|invalid rows/i.test(msg)) return t("admin.feesReportEmpty");
   if (/mail-failed|excel-failed/i.test(msg)) return t("admin.feesReportMailErr");
-  if (/bad-response|empty-response|network|timeout/i.test(msg)) return t("admin.feesNeedDeploy");
+  if (/invalid-phone/i.test(msg)) return t("admin.accountsNoPhone");
+  if (/no.recipient|no-recipient/i.test(msg)) return t("admin.accountsNoEmail");
+  if (/bad-response|empty-response|network|timeout/i.test(msg)) {
+    return t(feesContext ? "admin.feesNeedDeploy" : "admin.accountsErrFunctions");
+  }
   return t(fallbackKey);
 }
 

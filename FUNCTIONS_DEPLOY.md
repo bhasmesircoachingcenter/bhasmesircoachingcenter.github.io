@@ -37,7 +37,7 @@ Self-registration on the login page is disabled; accounts are created by admin o
 - `unauthorized` — sign in as `bhasmesircoachingcenter@gmail.com` in the admin panel
 - `already-exists` — student already has an account with that email
 - `invalid-phone` — mobile must be a valid 10-digit Indian number (password)
-- Welcome email not sent — redeploy Apps Script (`portalwelcome` action); account still works for login
+- Welcome email not sent — paste latest `admission/Code.gs`, deploy **New version** (`portalwelcome` action), then hard-refresh admin (`admin.js?v=59+`). Account still works for login. If the note mentions Gmail/mail failure, check Apps Script **MailApp** daily quota.
 
 ---
 
