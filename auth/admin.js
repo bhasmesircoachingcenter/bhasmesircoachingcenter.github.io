@@ -1984,7 +1984,12 @@ function loadAllStudentFees() {
 function renderFeesReference() {
   var wrap = el("feesRefWrap");
   if (!wrap) return;
-  wrap.innerHTML = "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" + defaultRatesReferenceHtml(lang);
+  wrap.innerHTML =
+    "<p class=\"fees-flyer-link\"><a href=\"fee-structure.html\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+    (lang === "mr" ? "पालकांसाठी फी फ्लायर पहा / प्रिंट करा" : "View / print fee flyer for parents") +
+    "</a></p>" +
+    "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" +
+    defaultRatesReferenceHtml(lang);
 }
 
 function getFeesSearchQuery() {
@@ -2281,16 +2286,6 @@ function bindStudentFeesFilters() {
   if (classFilter) classFilter.addEventListener("change", onFilterChange);
   if (statusFilter) statusFilter.addEventListener("change", onFilterChange);
   if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
-
-  var revokeBtn = el("feesRevokeBtn");
-  var revokeInput = el("feesRevokeInput");
-  if (revokeBtn && revokeInput) {
-    revokeBtn.addEventListener("click", function () {
-      revokeReceiptLinkFromInput(revokeInput.value, el("studentFeesNote")).then(function (ok) {
-        if (ok) revokeInput.value = "";
-      });
-    });
-  }
 }
 
 function receiptTokensFromRecord(record) {
@@ -2303,17 +2298,6 @@ function receiptTokensFromRecord(record) {
   return tokens.filter(function (token, index, list) {
     return token && list.indexOf(token) === index;
   });
-}
-
-function parseReceiptTokenFromInput(input) {
-  var s = String(input || "").trim();
-  if (!s) return "";
-  try {
-    var url = new URL(s);
-    var fromQuery = url.searchParams.get("r");
-    if (fromQuery) return String(fromQuery).trim();
-  } catch (err) {}
-  return s.replace(/[^a-f0-9]/gi, "").slice(0, 64) || s;
 }
 
 function findReceiptTokensForStudent(docId) {
@@ -2342,23 +2326,6 @@ function deleteFeeReceiptLinks(tokens) {
   return Promise.all(tokens.map(function (token) {
     return revokeFeeReceiptLink(token);
   }));
-}
-
-function revokeReceiptLinkFromInput(input, noteEl) {
-  var token = parseReceiptTokenFromInput(input);
-  if (!token || token.length < 8) {
-    if (noteEl) setNote(noteEl, t("admin.feesRevokeInvalid"), "err");
-    return Promise.resolve(false);
-  }
-  return revokeFeeReceiptLink(token)
-    .then(function () {
-      if (noteEl) setNote(noteEl, t("admin.feesRevoked"), "ok");
-      return true;
-    })
-    .catch(function () {
-      if (noteEl) setNote(noteEl, t("admin.feesRevokeErr"), "err");
-      return false;
-    });
 }
 
 function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
