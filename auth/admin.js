@@ -2007,11 +2007,10 @@ function buildFeesReportBody(roster) {
   }
 
   lines.push(
-    "Name | Class | Plan | Course | Registration | Paid | Balance | Discount | Status | Payment date | Receipt | Email | Mobile"
+    "Name | Class | Plan | Course | Paid | Balance | Discount | Status | Payment date | Receipt | Email | Mobile"
   );
 
   var totalCourse = 0;
-  var totalReg = 0;
   var totalPaid = 0;
   var totalBalance = 0;
 
@@ -2021,14 +2020,12 @@ function buildFeesReportBody(roster) {
     var classLabel = r.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
     var plan = info.hasSaved ? planLabel(r.paymentPlan) : "—";
     var course = info.hasSaved ? r.courseFee : 0;
-    var reg = info.hasSaved ? r.registrationFee : 0;
     var paid = info.hasSaved ? r.amountPaid : 0;
     var balance = info.hasSaved ? r.balance : 0;
     var status = info.hasSaved ? t("admin.feesStatusSet") : t("admin.feesStatusPending");
 
     if (info.hasSaved) {
       totalCourse += course;
-      totalReg += reg;
       totalPaid += paid;
       totalBalance += balance;
     }
@@ -2038,7 +2035,6 @@ function buildFeesReportBody(roster) {
       classLabel,
       plan,
       info.hasSaved ? formatRupee(course) : "—",
-      info.hasSaved ? formatRupee(reg) : "—",
       info.hasSaved ? formatRupee(paid) : "—",
       info.hasSaved ? formatRupee(balance) : "—",
       info.hasSaved && r.discounted ? "Yes" : (info.hasSaved ? "No" : "—"),
@@ -2053,7 +2049,6 @@ function buildFeesReportBody(roster) {
   lines.push("");
   lines.push("Totals (recorded fees only):");
   lines.push("  Course fee: " + formatRupee(totalCourse));
-  lines.push("  Registration: " + formatRupee(totalReg));
   lines.push("  Amount paid: " + formatRupee(totalPaid));
   lines.push("  Balance due: " + formatRupee(totalBalance));
   lines.push("");
@@ -2388,7 +2383,6 @@ function renderStudentFeesTable() {
       "<th>" + t("admin.feesColClass") + "</th>" +
       "<th>" + t("admin.feesColPlan") + "</th>" +
       "<th>" + t("admin.feesColCourse") + "</th>" +
-      "<th>" + t("admin.feesColReg") + "</th>" +
       "<th>" + t("admin.feesColPaid") + "</th>" +
       "<th>" + t("admin.feesColBalance") + "</th>" +
       "<th>" + t("admin.feesColStatus") + "</th>" +
@@ -2409,7 +2403,6 @@ function renderStudentFeesTable() {
         "<td>" + (record.classKey || detectClassKey(student.batch) || "—") + "</td>" +
         "<td>" + (hasSaved ? planLabel(record.paymentPlan) : "—") + "</td>" +
         "<td>" + (hasSaved ? formatRupee(record.courseFee) : "—") + "</td>" +
-        "<td>" + (hasSaved ? formatRupee(record.registrationFee) : "—") + "</td>" +
         "<td>" + (hasSaved ? formatRupee(record.amountPaid) : "—") + "</td>" +
         "<td>" + (hasSaved ? formatRupee(record.balance) + (record.discounted ? " <span class=\"fees-discount-tag\">" + t("admin.feesDiscountShort") + "</span>" : "") : "—") + "</td>" +
         "<td><span class=\"fees-status " + (hasSaved ? "set" : "pending") + "\">" +
@@ -2445,7 +2438,7 @@ function renderStudentFeesTable() {
       var editorRow = document.createElement("tr");
       editorRow.className = "student-fees-editor-row hidden";
       var editorCell = document.createElement("td");
-      editorCell.colSpan = 9;
+      editorCell.colSpan = 8;
       editorRow.appendChild(editorCell);
 
       btn.addEventListener("click", function () {
