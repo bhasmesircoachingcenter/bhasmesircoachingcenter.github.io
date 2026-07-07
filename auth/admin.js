@@ -113,7 +113,7 @@ var I18N = {
     "admin.feesReceiptSubject": "Fee Receipt – {name} ({receipt})",
     "admin.feesReceiptConfirm": "Send fee receipt to {name} at {email}?",
     "admin.feesReceiptSending": "Sending receipt…",
-    "admin.feesReceiptSent": "Receipt emailed to student (copy to admin).",
+    "admin.feesReceiptSent": "PDF receipt emailed to student (copy to admin).",
     "admin.feesReceiptErr": "Could not send receipt. Try again.",
     "admin.feesReceiptNoEmail": "No valid student email — add email in Admissions sheet.",
     "admin.studentsTitle": "Students",
@@ -385,7 +385,7 @@ var I18N = {
     "admin.feesReceiptSubject": "फी पावती – {name} ({receipt})",
     "admin.feesReceiptConfirm": "{name} ला {email} वर फी पावती पाठवायची?",
     "admin.feesReceiptSending": "पावती पाठवत आहे…",
-    "admin.feesReceiptSent": "पावती विद्यार्थ्याला ईमेल झाली (अॅडमिनला प्रत).",
+    "admin.feesReceiptSent": "PDF पावती विद्यार्थ्याला ईमेल झाली (अॅडमिनला प्रत).",
     "admin.feesReceiptErr": "पावती पाठवता आली नाही. पुन्हा प्रयत्न करा.",
     "admin.feesReceiptNoEmail": "वैध ईमेल नाही — Admissions sheet मध्ये ईमेल भरा.",
     "admin.studentsTitle": "विद्यार्थी",
@@ -2210,42 +2210,22 @@ function feeReceiptNumber(student, record) {
   return "BCC-" + datePart + "-" + initials;
 }
 
-function buildFeeReceiptBody(student, record) {
-  var receiptNo = feeReceiptNumber(student, record);
-  var classLabel = record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
-  var lines = [
-    "BHASME SIR COACHING CENTER",
-    "FEE RECEIPT / फी पावती",
-    "",
-    "Receipt No / पावती क्र.: " + receiptNo,
-    "Date / तारीख: " + (record.paymentDate || todayIso()),
-    "",
-    "Student / विद्यार्थी: " + (student.name || record.name || "—"),
-    "Class / इयत्ता: " + classLabel,
-    "Email: " + (student.email || record.email || "—"),
-    "Mobile / मोबाइल: " + (student.mobile || record.mobile || "—"),
-    "",
-    "Payment plan / योजना: " + planLabel(record.paymentPlan),
-    "Course fee / अभ्यासक्रम शुल्क: " + formatRupee(record.courseFee),
-    "Registration fee / नोंदणी शुल्क: " + formatRupee(record.registrationFee),
-    "Amount paid / भरलेली रक्कम: " + formatRupee(record.amountPaid),
-    "Balance due / बाकी: " + formatRupee(record.balance)
-  ];
-  if (record.discounted) {
-    lines.push("Discount applied / सवलत लागू: Yes / होय");
-  }
-  if (record.note) {
-    lines.push("", "Note / टीप: " + record.note);
-  }
-  lines.push(
-    "",
-    "Thank you for your payment.",
-    "आपल्या पेमेंटबद्दल धन्यवाद.",
-    "",
-    "Bhasme Sir Coaching Center",
-    "+91 70585 05983"
-  );
-  return lines.join("\n");
+function buildFeeReceiptPayload(student, record) {
+  return {
+    receiptNo: feeReceiptNumber(student, record),
+    paymentDate: record.paymentDate || todayIso(),
+    studentName: student.name || record.name || "",
+    classLabel: record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "",
+    email: student.email || record.email || "",
+    mobile: student.mobile || record.mobile || "",
+    paymentPlan: planLabel(record.paymentPlan),
+    courseFee: record.courseFee,
+    registrationFee: record.registrationFee,
+    amountPaid: record.amountPaid,
+    balance: record.balance,
+    discounted: !!record.discounted,
+    note: record.note || ""
+  };
 }
 
 function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
@@ -2268,7 +2248,7 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
   var subject = t("admin.feesReceiptSubject")
     .replace("{name}", student.name || record.name || "")
     .replace("{receipt}", receiptNo);
-  var body = buildFeeReceiptBody(student, record);
+  var receiptPayload = buildFeeReceiptPayload(student, record);
   var user = auth.currentUser;
 
   return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
@@ -2278,7 +2258,7 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
       params.append("idToken", idToken);
       params.append("to", email);
       params.append("subject", subject);
-      params.append("body", body);
+      params.append("receiptJson", JSON.stringify(receiptPayload));
       params.append("lang", lang);
       return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
     })
