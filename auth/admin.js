@@ -108,6 +108,14 @@ var I18N = {
     "admin.feesConfirmDelete": "Delete fee record for {name}? This cannot be undone.",
     "admin.feesDeleted": "Fee record deleted.",
     "admin.feesErrDelete": "Could not delete fee record. Try again.",
+    "admin.feesSendReceipt": "Send receipt",
+    "admin.feesSendReceiptOnSave": "Email receipt to student after save",
+    "admin.feesReceiptSubject": "Fee Receipt – {name} ({receipt})",
+    "admin.feesReceiptConfirm": "Send fee receipt to {name} at {email}?",
+    "admin.feesReceiptSending": "Sending receipt…",
+    "admin.feesReceiptSent": "Receipt emailed to student (copy to admin).",
+    "admin.feesReceiptErr": "Could not send receipt. Try again.",
+    "admin.feesReceiptNoEmail": "No valid student email — add email in Admissions sheet.",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -372,6 +380,14 @@ var I18N = {
     "admin.feesConfirmDelete": "{name} ची फी नोंद हटवायची? हे परत मिळवता येणार नाही.",
     "admin.feesDeleted": "फी नोंद हटवली.",
     "admin.feesErrDelete": "फी नोंद हटवता आली नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesSendReceipt": "पावती पाठवा",
+    "admin.feesSendReceiptOnSave": "जतन केल्यावर विद्यार्थ्याला पावती ईमेल करा",
+    "admin.feesReceiptSubject": "फी पावती – {name} ({receipt})",
+    "admin.feesReceiptConfirm": "{name} ला {email} वर फी पावती पाठवायची?",
+    "admin.feesReceiptSending": "पावती पाठवत आहे…",
+    "admin.feesReceiptSent": "पावती विद्यार्थ्याला ईमेल झाली (अॅडमिनला प्रत).",
+    "admin.feesReceiptErr": "पावती पाठवता आली नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesReceiptNoEmail": "वैध ईमेल नाही — Admissions sheet मध्ये ईमेल भरा.",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -2153,6 +2169,95 @@ function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
     });
 }
 
+function feeReceiptNumber(student, record) {
+  if (record.receiptNo) return record.receiptNo;
+  var datePart = (record.paymentDate || todayIso()).replace(/-/g, "");
+  var initials = String(student.name || "STU").replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase() || "STU";
+  return "BCC-" + datePart + "-" + initials;
+}
+
+function buildFeeReceiptBody(student, record) {
+  var receiptNo = feeReceiptNumber(student, record);
+  var classLabel = record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
+  var lines = [
+    "BHASME SIR COACHING CENTER",
+    "FEE RECEIPT / फी पावती",
+    "",
+    "Receipt No / पावती क्र.: " + receiptNo,
+    "Date / तारीख: " + (record.paymentDate || todayIso()),
+    "",
+    "Student / विद्यार्थी: " + (student.name || record.name || "—"),
+    "Class / इयत्ता: " + classLabel,
+    "Email: " + (student.email || record.email || "—"),
+    "Mobile / मोबाइल: " + (student.mobile || record.mobile || "—"),
+    "",
+    "Payment plan / योजना: " + planLabel(record.paymentPlan),
+    "Course fee / अभ्यासक्रम शुल्क: " + formatRupee(record.courseFee),
+    "Registration fee / नोंदणी शुल्क: " + formatRupee(record.registrationFee),
+    "Amount paid / भरलेली रक्कम: " + formatRupee(record.amountPaid),
+    "Balance due / बाकी: " + formatRupee(record.balance)
+  ];
+  if (record.discounted) {
+    lines.push("Discount applied / सवलत लागू: Yes / होय");
+  }
+  if (record.note) {
+    lines.push("", "Note / टीप: " + record.note);
+  }
+  lines.push(
+    "",
+    "Thank you for your payment.",
+    "आपल्या पेमेंटबद्दल धन्यवाद.",
+    "",
+    "Bhasme Sir Coaching Center",
+    "+91 70585 05983"
+  );
+  return lines.join("\n");
+}
+
+function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
+  var email = String(student.email || record.email || "").trim().toLowerCase();
+  if (!email || !EMAIL_RE.test(email)) {
+    if (noteEl) setNote(noteEl, t("admin.feesReceiptNoEmail"), "err");
+    return Promise.resolve(false);
+  }
+
+  if (!skipConfirm) {
+    var confirmMsg = t("admin.feesReceiptConfirm")
+      .replace("{name}", student.name || record.name || "")
+      .replace("{email}", email);
+    if (!window.confirm(confirmMsg)) return Promise.resolve(false);
+  }
+
+  if (noteEl) setNote(noteEl, t("admin.feesReceiptSending"), "");
+
+  var receiptNo = feeReceiptNumber(student, record);
+  var subject = t("admin.feesReceiptSubject")
+    .replace("{name}", student.name || record.name || "")
+    .replace("{receipt}", receiptNo);
+  var body = buildFeeReceiptBody(student, record);
+  var user = auth.currentUser;
+
+  return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+    .then(function (idToken) {
+      var params = new URLSearchParams();
+      params.append("action", "feereceipt");
+      params.append("idToken", idToken);
+      params.append("to", email);
+      params.append("subject", subject);
+      params.append("body", body);
+      params.append("lang", lang);
+      return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+    })
+    .then(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesReceiptSent"), "ok");
+      return true;
+    })
+    .catch(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesReceiptErr"), "err");
+      return false;
+    });
+}
+
 function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   var editor = document.createElement("div");
   editor.className = "student-fees-editor";
@@ -2294,6 +2399,15 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   noteField.classList.add("full");
   grid.appendChild(noteField);
 
+  var sendReceiptOnSave = document.createElement("input");
+  sendReceiptOnSave.type = "checkbox";
+  sendReceiptOnSave.id = "feesSendReceiptOnSave";
+  var sendReceiptOnSaveLabel = document.createElement("label");
+  sendReceiptOnSaveLabel.className = "fees-discount-toggle fees-send-receipt-toggle";
+  sendReceiptOnSaveLabel.htmlFor = "feesSendReceiptOnSave";
+  sendReceiptOnSaveLabel.appendChild(sendReceiptOnSave);
+  sendReceiptOnSaveLabel.appendChild(document.createTextNode(" " + t("admin.feesSendReceiptOnSave")));
+
   var actions = document.createElement("div");
   actions.className = "actions";
   actions.appendChild(suggestBtn);
@@ -2304,8 +2418,21 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   var note = document.createElement("p");
   note.className = "admin-note";
   actions.appendChild(saveBtn);
+  actions.appendChild(sendReceiptOnSaveLabel);
 
   if (hasSaved) {
+    var receiptBtn = document.createElement("button");
+    receiptBtn.type = "button";
+    receiptBtn.className = "btn btn-outline btn-sm";
+    receiptBtn.textContent = t("admin.feesSendReceipt");
+    receiptBtn.addEventListener("click", function () {
+      receiptBtn.disabled = true;
+      sendStudentFeeReceipt(student, record, note, false).finally(function () {
+        receiptBtn.disabled = false;
+      });
+    });
+    actions.appendChild(receiptBtn);
+
     var delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "icon-btn";
@@ -2350,6 +2477,11 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
       .then(function () {
         state.studentFeesMap[studentFeesDocId(key)] = payload;
         setNote(note, t("admin.feesSaved"), "ok");
+        if (sendReceiptOnSave.checked) {
+          return sendStudentFeeReceipt(student, payload, note, true).then(function () {
+            if (onSaved) onSaved();
+          });
+        }
         if (onSaved) onSaved();
       })
       .catch(function () {
@@ -2432,6 +2564,18 @@ function renderStudentFeesTable() {
       btn.textContent = t("admin.feesEdit");
       btnRow.appendChild(btn);
       if (hasSaved) {
+        var receiptBtn = document.createElement("button");
+        receiptBtn.type = "button";
+        receiptBtn.className = "btn btn-outline btn-sm";
+        receiptBtn.textContent = t("admin.feesSendReceipt");
+        receiptBtn.addEventListener("click", function () {
+          receiptBtn.disabled = true;
+          sendStudentFeeReceipt(student, record, el("studentFeesNote"), false).finally(function () {
+            receiptBtn.disabled = false;
+          });
+        });
+        btnRow.appendChild(receiptBtn);
+
         var delBtn = document.createElement("button");
         delBtn.type = "button";
         delBtn.className = "icon-btn";

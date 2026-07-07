@@ -764,6 +764,9 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   gap: 8px;
   align-items: center;
 }
+.fees-send-receipt-toggle { margin: 0; }
+.fees-row-actions .btn,
+.fees-row-actions .icon-btn { flex-shrink: 0; }
 .student-fees-editor .actions {
   display: flex;
   flex-wrap: wrap;
