@@ -101,6 +101,7 @@ var I18N = {
     "admin.feesReportSending": "Sending fee report with Excel…",
     "admin.feesReportSent": "Fee report emailed with Excel attachment.",
     "admin.feesReportErr": "Could not send fee report. Try again.",
+    "admin.feesReportMailErr": "Fee report file was built but email failed (quota or Gmail limit). Try again later.",
     "admin.feesNeedDeploy": "Deploy latest Apps Script (Code.gs) — feereport/feereceipt — then try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
     "admin.feesDiscount": "Discounted price (edit balance manually)",
@@ -379,6 +380,7 @@ var I18N = {
     "admin.feesReportSending": "Excel सह फी अहवाल पाठवत आहे…",
     "admin.feesReportSent": "Excel जोडलेला फी अहवाल ईमेल झाला.",
     "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesReportMailErr": "फी अहवाल तयार झाला पण ईमेल अयशस्वी (मर्यादा). थोड्या वेळाने पुन्हा प्रयत्न करा.",
     "admin.feesNeedDeploy": "नवीनतम Apps Script (Code.gs) deploy करा — feereport/feereceipt — मग पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
     "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
@@ -1335,6 +1337,10 @@ function sheetAdminPost(idToken, action, fields) {
 function sheetAdminErrorMessage(err, fallbackKey) {
   var msg = err && err.message ? String(err.message) : "";
   if (/deploy|unknown action/i.test(msg)) return t("admin.feesNeedDeploy");
+  if (/unauthorized/i.test(msg)) return t("admin.detailsUnauthorized");
+  if (/no rows|invalid rows/i.test(msg)) return t("admin.feesReportEmpty");
+  if (/mail-failed|excel-failed/i.test(msg)) return t("admin.feesReportMailErr");
+  if (/bad-response|empty-response|network|timeout/i.test(msg)) return t("admin.feesNeedDeploy");
   return t(fallbackKey);
 }
 
@@ -2059,6 +2065,10 @@ function updateFeesFilterMeta(shown, total) {
   setNote(meta, t("admin.feesFilterMeta").replace("{n}", shown).replace("{total}", total), "");
 }
 
+function feeReportCell(value) {
+  return value == null ? "" : value;
+}
+
 function buildFeesReportExcelRows(roster) {
   var headers = [
     "Student",
@@ -2087,21 +2097,21 @@ function buildFeesReportExcelRows(roster) {
     var status = info.hasSaved ? t("admin.feesStatusSet") : t("admin.feesStatusPending");
 
     rows.push([
-      student.name || "",
-      classLabel,
-      batch,
-      info.hasSaved ? planLabel(r.paymentPlan) : "",
-      info.hasSaved ? r.courseFee : "",
-      info.hasSaved ? r.registrationFee : "",
-      info.hasSaved ? r.amountPaid : "",
-      info.hasSaved ? r.balance : "",
+      feeReportCell(student.name),
+      feeReportCell(classLabel),
+      feeReportCell(batch),
+      info.hasSaved ? feeReportCell(planLabel(r.paymentPlan)) : "",
+      info.hasSaved ? feeReportCell(r.courseFee) : "",
+      info.hasSaved ? feeReportCell(r.registrationFee) : "",
+      info.hasSaved ? feeReportCell(r.amountPaid) : "",
+      info.hasSaved ? feeReportCell(r.balance) : "",
       info.hasSaved ? (r.discounted ? "Yes" : "No") : "",
-      status,
-      info.hasSaved ? (r.paymentDate || "") : "",
-      info.hasSaved ? (r.receiptNo || "") : "",
-      student.email || "",
-      student.mobile || "",
-      info.hasSaved ? (r.note || "") : ""
+      feeReportCell(status),
+      info.hasSaved ? feeReportCell(r.paymentDate) : "",
+      info.hasSaved ? feeReportCell(r.receiptNo) : "",
+      feeReportCell(student.email),
+      feeReportCell(student.mobile),
+      info.hasSaved ? feeReportCell(r.note) : ""
     ]);
   });
 
