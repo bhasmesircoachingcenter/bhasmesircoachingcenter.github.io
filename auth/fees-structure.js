@@ -82,6 +82,16 @@ export function normalizeStudentFeesRecord(raw, student) {
   var amountPaid = Number(raw && raw.amountPaid);
   if (!isFinite(amountPaid) || amountPaid < 0) amountPaid = 0;
 
+  var discounted = !!(raw && raw.discounted);
+  var balance;
+  if (discounted && raw && raw.balance !== undefined && raw.balance !== null && raw.balance !== "") {
+    balance = Number(raw.balance);
+    if (!isFinite(balance) || balance < 0) balance = 0;
+    balance = Math.round(balance);
+  } else {
+    balance = computeBalance(courseFee, amountPaid);
+  }
+
   return {
     studentKey: (raw && raw.studentKey) || "",
     name: String((raw && raw.name) || (student && student.name) || "").trim(),
@@ -92,7 +102,8 @@ export function normalizeStudentFeesRecord(raw, student) {
     courseFee: Math.round(courseFee),
     registrationFee: Math.round(registrationFee),
     amountPaid: Math.round(amountPaid),
-    balance: computeBalance(courseFee, amountPaid),
+    discounted: discounted,
+    balance: balance,
     paymentDate: String((raw && raw.paymentDate) || "").trim(),
     receiptNo: String((raw && raw.receiptNo) || "").trim(),
     note: String((raw && raw.note) || "").trim()

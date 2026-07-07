@@ -101,6 +101,8 @@ var I18N = {
     "admin.feesReportSent": "Fee report emailed to admin.",
     "admin.feesReportErr": "Could not send fee report. Try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
+    "admin.feesDiscount": "Discounted price (edit balance manually)",
+    "admin.feesDiscountShort": "Discount",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -358,6 +360,8 @@ var I18N = {
     "admin.feesReportSent": "फी अहवाल अॅडमिनला ईमेल झाला.",
     "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
+    "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
+    "admin.feesDiscountShort": "सवलत",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -1993,7 +1997,7 @@ function buildFeesReportBody(roster) {
   }
 
   lines.push(
-    "Name | Class | Plan | Course | Paid | Balance | Status | Payment date | Receipt | Email | Mobile"
+    "Name | Class | Plan | Course | Paid | Balance | Discount | Status | Payment date | Receipt | Email | Mobile"
   );
 
   var totalCourse = 0;
@@ -2023,6 +2027,7 @@ function buildFeesReportBody(roster) {
       info.hasSaved ? formatRupee(course) : "—",
       info.hasSaved ? formatRupee(paid) : "—",
       info.hasSaved ? formatRupee(balance) : "—",
+      info.hasSaved && r.discounted ? "Yes" : (info.hasSaved ? "No" : "—"),
       status,
       r.paymentDate || "—",
       r.receiptNo || "—",
@@ -2160,13 +2165,29 @@ function buildStudentFeesEditor(student, record, onSaved) {
   paidIn.step = "100";
   paidIn.value = String(record.amountPaid || 0);
 
+  var discountChk = document.createElement("input");
+  discountChk.type = "checkbox";
+  discountChk.checked = !!record.discounted;
+
   var balanceOut = document.createElement("input");
-  balanceOut.type = "text";
-  balanceOut.readOnly = true;
-  balanceOut.className = "fees-balance-readonly";
+  balanceOut.type = "number";
+  balanceOut.min = "0";
+  balanceOut.step = "100";
+  balanceOut.value = String(
+    record.balance !== undefined && record.balance !== null
+      ? record.balance
+      : computeBalance(courseIn.value, paidIn.value)
+  );
+
+  function setBalanceEditable(editable) {
+    balanceOut.readOnly = !editable;
+    balanceOut.classList.toggle("fees-balance-readonly", !editable);
+    if (!editable) refreshBalance();
+  }
 
   function refreshBalance() {
-    balanceOut.value = formatRupee(computeBalance(courseIn.value, paidIn.value));
+    if (discountChk.checked) return;
+    balanceOut.value = String(computeBalance(courseIn.value, paidIn.value));
   }
 
   function applySuggest() {
@@ -2174,11 +2195,20 @@ function buildStudentFeesEditor(student, record, onSaved) {
     refreshBalance();
   }
 
+  discountChk.addEventListener("change", function () {
+    if (discountChk.checked) {
+      balanceOut.value = String(computeBalance(courseIn.value, paidIn.value));
+      setBalanceEditable(true);
+    } else {
+      setBalanceEditable(false);
+    }
+  });
+
   classSel.addEventListener("change", applySuggest);
   planSel.addEventListener("change", applySuggest);
   courseIn.addEventListener("input", refreshBalance);
   paidIn.addEventListener("input", refreshBalance);
-  refreshBalance();
+  setBalanceEditable(discountChk.checked);
 
   var dateIn = document.createElement("input");
   dateIn.type = "date";
@@ -2205,7 +2235,18 @@ function buildStudentFeesEditor(student, record, onSaved) {
   grid.appendChild(field(t("admin.feesColCourse"), courseIn));
   grid.appendChild(field(t("admin.feesReg"), regIn));
   grid.appendChild(field(t("admin.feesAmountPaid"), paidIn));
-  grid.appendChild(field(t("admin.feesColBalance"), balanceOut));
+  var balanceField = document.createElement("div");
+  balanceField.className = "field fees-balance-field";
+  var balanceLab = document.createElement("label");
+  balanceLab.textContent = t("admin.feesColBalance");
+  balanceField.appendChild(balanceLab);
+  var discountLabel = document.createElement("label");
+  discountLabel.className = "fees-discount-toggle";
+  discountLabel.appendChild(discountChk);
+  discountLabel.appendChild(document.createTextNode(" " + t("admin.feesDiscount")));
+  balanceField.appendChild(discountLabel);
+  balanceField.appendChild(balanceOut);
+  grid.appendChild(balanceField);
   grid.appendChild(field(t("admin.feesPaymentDate"), dateIn));
   grid.appendChild(field(t("admin.feesReceipt"), receiptIn));
   var noteField = field(t("admin.feesNoteField"), noteIn);
@@ -2235,6 +2276,8 @@ function buildStudentFeesEditor(student, record, onSaved) {
       courseFee: courseIn.value,
       registrationFee: regIn.value,
       amountPaid: paidIn.value,
+      discounted: discountChk.checked,
+      balance: discountChk.checked ? balanceOut.value : undefined,
       paymentDate: dateIn.value,
       receiptNo: receiptIn.value,
       note: noteIn.value
@@ -2313,7 +2356,7 @@ function renderStudentFeesTable() {
         "<td>" + (hasSaved ? planLabel(record.paymentPlan) : "—") + "</td>" +
         "<td>" + (hasSaved ? formatRupee(record.courseFee) : "—") + "</td>" +
         "<td>" + (hasSaved ? formatRupee(record.amountPaid) : "—") + "</td>" +
-        "<td>" + (hasSaved ? formatRupee(record.balance) : "—") + "</td>" +
+        "<td>" + (hasSaved ? formatRupee(record.balance) + (record.discounted ? " <span class=\"fees-discount-tag\">" + t("admin.feesDiscountShort") + "</span>" : "") : "—") + "</td>" +
         "<td><span class=\"fees-status " + (hasSaved ? "set" : "pending") + "\">" +
         t(hasSaved ? "admin.feesStatusSet" : "admin.feesStatusPending") + "</span></td>";
 
