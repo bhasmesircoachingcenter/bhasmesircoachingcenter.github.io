@@ -143,14 +143,7 @@ export function normalizeStudentFeesRecord(raw, student) {
   }
 
   var discounted = !!(raw && raw.discounted);
-  var balance;
-  if (discounted && raw && raw.balance !== undefined && raw.balance !== null && raw.balance !== "") {
-    balance = Number(raw.balance);
-    if (!isFinite(balance) || balance < 0) balance = 0;
-    balance = Math.round(balance);
-  } else {
-    balance = computeBalance(courseFee, amountPaid);
-  }
+  var balance = computeBalance(courseFee, amountPaid);
 
   var latest = payments.length ? payments[payments.length - 1] : null;
 

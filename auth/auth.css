@@ -806,6 +806,9 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 .fees-add-payment-actions {
   margin-top: 10px;
 }
+.fees-course-field .fees-discount-toggle {
+  margin: 6px 0 8px;
+}
 .student-fees-editor .actions {
   display: flex;
   flex-wrap: wrap;

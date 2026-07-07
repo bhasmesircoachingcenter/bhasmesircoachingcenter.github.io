@@ -108,7 +108,7 @@ var I18N = {
     "admin.feesReportMailErr": "Fee report file was built but email failed (quota or Gmail limit). Try again later.",
     "admin.feesNeedDeploy": "Deploy latest Apps Script (Code.gs) — feereport/feereceipt — then try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
-    "admin.feesDiscount": "Discounted price (edit balance manually)",
+    "admin.feesDiscount": "Discounted price (edit course fee)",
     "admin.feesDiscountShort": "Discount",
     "admin.feesDelete": "Delete",
     "admin.feesConfirmDelete": "Delete fee record for {name}? This cannot be undone.",
@@ -403,7 +403,7 @@ var I18N = {
     "admin.feesReportMailErr": "फी अहवाल तयार झाला पण ईमेल अयशस्वी (मर्यादा). थोड्या वेळाने पुन्हा प्रयत्न करा.",
     "admin.feesNeedDeploy": "नवीनतम Apps Script (Code.gs) deploy करा — feereport/feereceipt — मग पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
-    "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
+    "admin.feesDiscount": "सवलतीची फी (अभ्यासक्रम शुल्क बदला)",
     "admin.feesDiscountShort": "सवलत",
     "admin.feesDelete": "हटवा",
     "admin.feesConfirmDelete": "{name} ची फी नोंद हटवायची? हे परत मिळवता येणार नाही.",
@@ -2624,7 +2624,6 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
       courseFee: courseIn.value,
       registrationFee: regIn.value,
       discounted: discountChk.checked,
-      balance: discountChk.checked ? balanceOut.value : undefined,
       payments: paymentsOverride != null ? paymentsOverride : ensureStoredPayments(liveRecord, student),
       note: liveRecord.note || ""
     }, student);
@@ -2633,9 +2632,7 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   function refreshSummary() {
     var payload = buildPlanPayload();
     paidSummary.value = formatRupee(payload.amountPaid);
-    if (!discountChk.checked) {
-      balanceOut.value = String(payload.balance);
-    }
+    balanceOut.value = formatRupee(payload.balance);
     liveRecord = payload;
     return payload;
   }
@@ -2681,61 +2678,64 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   discountChk.checked = !!record.discounted;
 
   var balanceOut = document.createElement("input");
-  balanceOut.type = "number";
-  balanceOut.min = "0";
-  balanceOut.step = "100";
+  balanceOut.type = "text";
+  balanceOut.readOnly = true;
+  balanceOut.className = "fees-balance-readonly";
   balanceOut.value = String(record.balance !== undefined && record.balance !== null ? record.balance : computeBalance(courseIn.value, record.amountPaid || 0));
 
-  function setBalanceEditable(editable) {
-    balanceOut.readOnly = !editable;
-    balanceOut.classList.toggle("fees-balance-readonly", !editable);
-    if (!editable) refreshSummary();
+  function setCourseFeeEditable(editable) {
+    courseIn.readOnly = !editable;
+    courseIn.classList.toggle("fees-balance-readonly", !editable);
   }
 
-  function applySuggest() {
+  function applySuggestedCourseFee() {
     courseIn.value = String(suggestCourseFee(classSel.value, planSel.value));
     refreshSummary();
   }
 
   discountChk.addEventListener("change", function () {
-    if (discountChk.checked) {
-      balanceOut.value = String(buildPlanPayload().balance);
-      setBalanceEditable(true);
-    } else {
-      setBalanceEditable(false);
+    setCourseFeeEditable(discountChk.checked);
+    if (!discountChk.checked) {
+      applySuggestedCourseFee();
     }
   });
 
-  classSel.addEventListener("change", applySuggest);
-  planSel.addEventListener("change", applySuggest);
+  classSel.addEventListener("change", function () {
+    if (!discountChk.checked) applySuggestedCourseFee();
+    else refreshSummary();
+  });
+  planSel.addEventListener("change", function () {
+    if (!discountChk.checked) applySuggestedCourseFee();
+    else refreshSummary();
+  });
   courseIn.addEventListener("input", refreshSummary);
-  setBalanceEditable(discountChk.checked);
+  setCourseFeeEditable(discountChk.checked);
 
   var suggestBtn = document.createElement("button");
   suggestBtn.type = "button";
   suggestBtn.className = "btn btn-outline btn-sm";
   suggestBtn.textContent = t("admin.feesApplySuggest");
-  suggestBtn.addEventListener("click", applySuggest);
+  suggestBtn.addEventListener("click", applySuggestedCourseFee);
 
   var grid = document.createElement("div");
   grid.className = "student-fees-form-grid";
   grid.appendChild(field(t("admin.feesColClass"), classSel));
   grid.appendChild(field(t("admin.feesColPlan"), planSel));
-  grid.appendChild(field(t("admin.feesColCourse"), courseIn));
-  grid.appendChild(field(t("admin.feesReg"), regIn));
-  grid.appendChild(field(t("admin.feesTotalPaid"), paidSummary));
-  var balanceField = document.createElement("div");
-  balanceField.className = "field fees-balance-field";
-  var balanceLab = document.createElement("label");
-  balanceLab.textContent = t("admin.feesColBalance");
-  balanceField.appendChild(balanceLab);
+  var courseField = document.createElement("div");
+  courseField.className = "field fees-course-field";
+  var courseLab = document.createElement("label");
+  courseLab.textContent = t("admin.feesColCourse");
+  courseField.appendChild(courseLab);
   var discountLabel = document.createElement("label");
   discountLabel.className = "fees-discount-toggle";
   discountLabel.appendChild(discountChk);
   discountLabel.appendChild(document.createTextNode(" " + t("admin.feesDiscount")));
-  balanceField.appendChild(discountLabel);
-  balanceField.appendChild(balanceOut);
-  grid.appendChild(balanceField);
+  courseField.appendChild(discountLabel);
+  courseField.appendChild(courseIn);
+  grid.appendChild(courseField);
+  grid.appendChild(field(t("admin.feesReg"), regIn));
+  grid.appendChild(field(t("admin.feesTotalPaid"), paidSummary));
+  grid.appendChild(field(t("admin.feesColBalance"), balanceOut));
 
   var historyWrap = document.createElement("div");
   historyWrap.className = "fees-payment-history";
