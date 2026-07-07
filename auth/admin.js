@@ -2540,11 +2540,28 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
 
   var dateIn = document.createElement("input");
   dateIn.type = "date";
-  dateIn.value = record.paymentDate || "";
+  dateIn.value = record.paymentDate || todayIso();
+
+  function suggestedReceiptNo() {
+    return feeReceiptNumber(student, {
+      paymentDate: dateIn.value || todayIso(),
+      receiptNo: ""
+    });
+  }
 
   var receiptIn = document.createElement("input");
   receiptIn.type = "text";
-  receiptIn.value = record.receiptNo || "";
+  receiptIn.value = record.receiptNo || suggestedReceiptNo();
+  if (record.receiptNo) receiptIn.dataset.manual = "1";
+
+  receiptIn.addEventListener("input", function () {
+    receiptIn.dataset.manual = receiptIn.value.trim() ? "1" : "0";
+  });
+  dateIn.addEventListener("change", function () {
+    if (receiptIn.dataset.manual !== "1") {
+      receiptIn.value = suggestedReceiptNo();
+    }
+  });
 
   var noteIn = document.createElement("textarea");
   noteIn.rows = 2;
@@ -2671,6 +2688,12 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
       receiptNo: receiptIn.value,
       note: noteIn.value
     }, student);
+    if (!payload.receiptNo) {
+      payload.receiptNo = feeReceiptNumber(student, payload);
+    }
+    if (!payload.paymentDate) {
+      payload.paymentDate = todayIso();
+    }
 
     saveBtn.disabled = true;
     setDoc(doc(db, "studentFees", studentFeesDocId(key)), Object.assign({}, payload, { updatedAt: serverTimestamp() }))

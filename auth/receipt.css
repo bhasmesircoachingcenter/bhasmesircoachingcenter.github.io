@@ -137,9 +137,84 @@ tr.total td { font-weight: 700; background: #fff8ef; color: #c05600; }
   font-size: .92rem;
   cursor: pointer;
 }
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
 @media print {
-  body { background: #fff; padding: 0; }
-  .page { box-shadow: none; border: none; border-radius: 0; }
+  html, body {
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .head {
+    padding: 14px 18px 12px;
+  }
+  .head h1 {
+    font-size: 1.1rem;
+  }
+  .head p {
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .badge {
+    margin-top: 8px;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+  .body {
+    padding: 12px 18px 14px;
+  }
+  .meta {
+    margin-bottom: 10px;
+    gap: 6px 14px;
+    font-size: 0.82rem;
+  }
+  .student-box {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .student-box h2 {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .student-grid {
+    gap: 4px 12px;
+    font-size: 0.8rem;
+  }
+  table {
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+  }
+  th, td {
+    padding: 6px 8px;
+  }
+  th {
+    font-size: 0.68rem;
+  }
+  .note {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+  .footer {
+    padding-top: 8px;
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
   .print-row { display: none; }
 }
 @media (max-width: 600px) {
