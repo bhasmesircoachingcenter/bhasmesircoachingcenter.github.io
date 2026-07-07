@@ -101,6 +101,7 @@ var I18N = {
     "admin.feesReportSending": "Sending fee report with Excel…",
     "admin.feesReportSent": "Fee report emailed with Excel attachment.",
     "admin.feesReportErr": "Could not send fee report. Try again.",
+    "admin.feesNeedDeploy": "Deploy latest Apps Script (Code.gs) — feereport/feereceipt — then try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
     "admin.feesDiscount": "Discounted price (edit balance manually)",
     "admin.feesDiscountShort": "Discount",
@@ -373,6 +374,7 @@ var I18N = {
     "admin.feesReportSending": "Excel सह फी अहवाल पाठवत आहे…",
     "admin.feesReportSent": "Excel जोडलेला फी अहवाल ईमेल झाला.",
     "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesNeedDeploy": "नवीनतम Apps Script (Code.gs) deploy करा — feereport/feereceipt — मग पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
     "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
     "admin.feesDiscountShort": "सवलत",
@@ -1303,6 +1305,28 @@ function sheetApiRequest(idToken, action, fields) {
   });
 }
 
+function sheetAdminPost(idToken, action, fields) {
+  var params = new URLSearchParams();
+  params.append("action", action);
+  params.append("idToken", idToken);
+  Object.keys(fields || {}).forEach(function (k) {
+    params.append(k, fields[k] == null ? "" : String(fields[k]));
+  });
+  return fetch(SHEET_ENDPOINT, { method: "POST", body: params, redirect: "follow" })
+    .then(function (r) { return r.text(); })
+    .then(function (text) {
+      var payload = parseSheetResponse(text);
+      if (payload && payload.result === "success") return payload;
+      throw new Error((payload && (payload.error || payload.message)) || "bad-response");
+    });
+}
+
+function sheetAdminErrorMessage(err, fallbackKey) {
+  var msg = err && err.message ? String(err.message) : "";
+  if (/deploy|unknown action/i.test(msg)) return t("admin.feesNeedDeploy");
+  return t(fallbackKey);
+}
+
 function ensureSheetAdminSession(idToken) {
   if (state.sheetSession && state.sheetSession.expires > Date.now()) {
     return Promise.resolve(state.sheetSession.key);
@@ -2139,20 +2163,18 @@ function sendFeesReportEmail() {
 
     return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
       .then(function (idToken) {
-        var params = new URLSearchParams();
-        params.append("action", "feereport");
-        params.append("idToken", idToken);
-        params.append("subject", subject);
-        params.append("body", body);
-        params.append("rowsJson", JSON.stringify(excelRows));
-        params.append("lang", lang);
-        return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+        return sheetAdminPost(idToken, "feereport", {
+          subject: subject,
+          body: body,
+          rowsJson: JSON.stringify(excelRows),
+          lang: lang
+        });
       })
       .then(function () {
         if (note) setNote(note, t("admin.feesReportSent"), "ok");
       })
-      .catch(function () {
-        if (note) setNote(note, t("admin.feesReportErr"), "err");
+      .catch(function (err) {
+        if (note) setNote(note, sheetAdminErrorMessage(err, "admin.feesReportErr"), "err");
       })
       .finally(function () {
         if (btn) btn.disabled = false;
@@ -2253,21 +2275,19 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
 
   return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
     .then(function (idToken) {
-      var params = new URLSearchParams();
-      params.append("action", "feereceipt");
-      params.append("idToken", idToken);
-      params.append("to", email);
-      params.append("subject", subject);
-      params.append("receiptJson", JSON.stringify(receiptPayload));
-      params.append("lang", lang);
-      return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+      return sheetAdminPost(idToken, "feereceipt", {
+        to: email,
+        subject: subject,
+        receiptJson: JSON.stringify(receiptPayload),
+        lang: lang
+      });
     })
     .then(function () {
       if (noteEl) setNote(noteEl, t("admin.feesReceiptSent"), "ok");
       return true;
     })
-    .catch(function () {
-      if (noteEl) setNote(noteEl, t("admin.feesReceiptErr"), "err");
+    .catch(function (err) {
+      if (noteEl) setNote(noteEl, sheetAdminErrorMessage(err, "admin.feesReceiptErr"), "err");
       return false;
     });
 }
