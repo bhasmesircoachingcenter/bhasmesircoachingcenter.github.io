@@ -109,8 +109,11 @@ var I18N = {
     "admin.feesConfirmDelete": "Delete fee record for {name}? This cannot be undone.",
     "admin.feesDeleted": "Fee record deleted.",
     "admin.feesErrDelete": "Could not delete fee record. Try again.",
-    "admin.feesSendReceipt": "Send receipt",
+    "admin.feesSendReceipt": "Email receipt",
     "admin.feesSendReceiptOnSave": "Email receipt to student after save",
+    "admin.feesSendWhatsApp": "WhatsApp receipt",
+    "admin.feesWhatsAppNoPhone": "No valid 10-digit mobile in Admissions — cannot open WhatsApp.",
+    "admin.feesWhatsAppOpened": "WhatsApp opened with receipt message — tap Send.",
     "admin.feesReceiptSubject": "Fee Receipt – {name} ({receipt})",
     "admin.feesReceiptConfirm": "Send fee receipt to {name} at {email}?",
     "admin.feesReceiptSending": "Sending receipt…",
@@ -382,8 +385,11 @@ var I18N = {
     "admin.feesConfirmDelete": "{name} ची फी नोंद हटवायची? हे परत मिळवता येणार नाही.",
     "admin.feesDeleted": "फी नोंद हटवली.",
     "admin.feesErrDelete": "फी नोंद हटवता आली नाही. पुन्हा प्रयत्न करा.",
-    "admin.feesSendReceipt": "पावती पाठवा",
+    "admin.feesSendReceipt": "ईमेल पावती",
     "admin.feesSendReceiptOnSave": "जतन केल्यावर विद्यार्थ्याला पावती ईमेल करा",
+    "admin.feesSendWhatsApp": "WhatsApp पावती",
+    "admin.feesWhatsAppNoPhone": "Admissions मध्ये वैध १० अंकी मोबाइल नाही — WhatsApp उघडता येत नाही.",
+    "admin.feesWhatsAppOpened": "WhatsApp पावतीसह उघडले — Send दाबा.",
     "admin.feesReceiptSubject": "फी पावती – {name} ({receipt})",
     "admin.feesReceiptConfirm": "{name} ला {email} वर फी पावती पाठवायची?",
     "admin.feesReceiptSending": "पावती पाठवत आहे…",
@@ -1765,6 +1771,12 @@ function whatsAppBroadcastUrl(text) {
   return "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
 }
 
+function whatsAppDirectUrl(phone10, text) {
+  var p = normalizePhone(phone10);
+  if (!p) return "";
+  return "https://api.whatsapp.com/send?phone=91" + p + "&text=" + encodeURIComponent(text);
+}
+
 function openWhatsAppBroadcast(title, body, noteEl) {
   if (!String(title || "").trim() && !String(body || "").trim()) {
     if (noteEl) setNote(noteEl, t("admin.waNeedMessage"), "err");
@@ -2250,6 +2262,43 @@ function buildFeeReceiptPayload(student, record) {
   };
 }
 
+function buildFeeReceiptWhatsAppText(student, record) {
+  var receiptNo = feeReceiptNumber(student, record);
+  var classLabel = record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
+  var lines = [
+    "*Bhasme Sir Coaching Center*",
+    "*Fee Receipt / फी पावती*",
+    "",
+    "Receipt / पावती: " + receiptNo,
+    "Date / तारीख: " + (record.paymentDate || todayIso()),
+    "",
+    "Student / विद्यार्थी: " + (student.name || record.name || "—"),
+    "Class / इयत्ता: " + classLabel,
+    "",
+    "Plan / योजना: " + planLabel(record.paymentPlan),
+    "Course fee / अभ्यासक्रम: " + formatRupee(record.courseFee),
+    "Registration / नोंदणी: " + formatRupee(record.registrationFee),
+    "Paid / भरले: " + formatRupee(record.amountPaid),
+    "*Balance / बाकी: " + formatRupee(record.balance) + "*"
+  ];
+  if (record.discounted) lines.push("Discount applied / सवलत लागू");
+  if (record.note) lines.push("Note / टीप: " + record.note);
+  lines.push("", "Thank you / धन्यवाद", "+91 70585 05983");
+  return lines.join("\n");
+}
+
+function openStudentFeeReceiptWhatsApp(student, record, noteEl) {
+  var phone = student.mobile || record.mobile;
+  var url = whatsAppDirectUrl(phone, buildFeeReceiptWhatsAppText(student, record));
+  if (!url) {
+    if (noteEl) setNote(noteEl, t("admin.feesWhatsAppNoPhone"), "err");
+    return false;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+  if (noteEl) setNote(noteEl, t("admin.feesWhatsAppOpened"), "ok");
+  return true;
+}
+
 function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
   var email = String(student.email || record.email || "").trim().toLowerCase();
   if (!email || !EMAIL_RE.test(email)) {
@@ -2467,6 +2516,15 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
     });
     actions.appendChild(receiptBtn);
 
+    var waBtn = document.createElement("button");
+    waBtn.type = "button";
+    waBtn.className = "btn btn-whatsapp btn-sm";
+    waBtn.textContent = t("admin.feesSendWhatsApp");
+    waBtn.addEventListener("click", function () {
+      openStudentFeeReceiptWhatsApp(student, record, note);
+    });
+    actions.appendChild(waBtn);
+
     var delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "icon-btn";
@@ -2609,6 +2667,15 @@ function renderStudentFeesTable() {
           });
         });
         btnRow.appendChild(receiptBtn);
+
+        var waBtn = document.createElement("button");
+        waBtn.type = "button";
+        waBtn.className = "btn btn-whatsapp btn-sm";
+        waBtn.textContent = t("admin.feesSendWhatsApp");
+        waBtn.addEventListener("click", function () {
+          openStudentFeeReceiptWhatsApp(student, record, el("studentFeesNote"));
+        });
+        btnRow.appendChild(waBtn);
 
         var delBtn = document.createElement("button");
         delBtn.type = "button";
