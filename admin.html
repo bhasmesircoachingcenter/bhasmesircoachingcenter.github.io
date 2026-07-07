@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=16" />
+  <link rel="stylesheet" href="auth/auth.css?v=17" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -294,6 +294,32 @@
         <div class="admin-card">
           <h2 data-i18n="admin.feesTitle">Student Fees</h2>
           <p class="admin-hint" data-i18n="admin.feesHint">Capture and maintain fees for each admitted student (from Admissions sheet). Not shown to students on the website or admission form.</p>
+          <div class="fees-toolbar att-control-panel" id="feesToolbar">
+            <div class="att-control-group fees-search-group">
+              <label for="feesSearch" data-i18n="admin.feesSearch">Search student</label>
+              <input type="search" id="feesSearch" name="feesSearch" autocomplete="off" data-i18n-placeholder="admin.feesSearchPh" placeholder="Name, email or mobile" />
+            </div>
+            <div class="att-control-group">
+              <label for="feesClassFilter" data-i18n="admin.attFilterClass">Class</label>
+              <select id="feesClassFilter" aria-label="Filter by class">
+                <option value="all" data-i18n="admin.attAllClasses">All classes</option>
+              </select>
+            </div>
+            <div class="att-control-group">
+              <label for="feesStatusFilter" data-i18n="admin.feesFilterStatus">Status</label>
+              <select id="feesStatusFilter" aria-label="Filter by fee status">
+                <option value="all" data-i18n="admin.feesFilterAll">All</option>
+                <option value="recorded" data-i18n="admin.feesStatusSet">Recorded</option>
+                <option value="pending" data-i18n="admin.feesStatusPending">Not set</option>
+                <option value="balance" data-i18n="admin.feesFilterBalance">Has balance</option>
+              </select>
+            </div>
+            <div class="att-control-group fees-report-group">
+              <span class="att-control-label" aria-hidden="true">&nbsp;</span>
+              <button type="button" class="btn btn-primary btn-sm" id="feesEmailReportBtn" data-i18n="admin.feesEmailReport">Email fee report</button>
+            </div>
+          </div>
+          <p class="admin-note fees-filter-meta" id="feesFilterMeta" role="status" aria-live="polite"></p>
           <div id="feesRefWrap" class="fees-ref-wrap"></div>
           <p class="admin-note" id="studentFeesNote" role="status" aria-live="polite"></p>
           <div class="table-scroll" id="studentFeesWrap">
@@ -304,6 +330,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=35"></script>
+  <script type="module" src="auth/admin.js?v=36"></script>
 </body>
 </html>

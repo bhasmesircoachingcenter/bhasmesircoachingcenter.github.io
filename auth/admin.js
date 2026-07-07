@@ -87,6 +87,20 @@ var I18N = {
     "admin.feesNoteField": "Note",
     "admin.feesApplySuggest": "Use suggested fee",
     "admin.feesRefTitle": "Default fee reference (8 months)",
+    "admin.feesSearch": "Search student",
+    "admin.feesSearchPh": "Name, email or mobile",
+    "admin.feesFilterStatus": "Status",
+    "admin.feesFilterAll": "All",
+    "admin.feesFilterBalance": "Has balance",
+    "admin.feesFilterMeta": "Showing {n} of {total} students",
+    "admin.feesFilterNone": "No students match your filters.",
+    "admin.feesEmailReport": "Email fee report",
+    "admin.feesReportSubject": "Student fees report ({n} students)",
+    "admin.feesReportConfirm": "Email fee report for {n} student(s) to bhasmesircoachingcenter@gmail.com?",
+    "admin.feesReportSending": "Sending fee report…",
+    "admin.feesReportSent": "Fee report emailed to admin.",
+    "admin.feesReportErr": "Could not send fee report. Try again.",
+    "admin.feesReportEmpty": "No students to include in the report.",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -330,6 +344,20 @@ var I18N = {
     "admin.feesNoteField": "टीप",
     "admin.feesApplySuggest": "सुचवलेली फी वापरा",
     "admin.feesRefTitle": "मूळ फी संदर्भ (८ महिने)",
+    "admin.feesSearch": "विद्यार्थी शोधा",
+    "admin.feesSearchPh": "नाव, ईमेल किंवा मोबाइल",
+    "admin.feesFilterStatus": "स्थिती",
+    "admin.feesFilterAll": "सर्व",
+    "admin.feesFilterBalance": "बाकी आहे",
+    "admin.feesFilterMeta": "{total} पैकी {n} विद्यार्थी",
+    "admin.feesFilterNone": "फिल्टरशी जुळणारे विद्यार्थी नाहीत.",
+    "admin.feesEmailReport": "फी अहवाल ईमेल करा",
+    "admin.feesReportSubject": "विद्यार्थी फी अहवाल ({n} विद्यार्थी)",
+    "admin.feesReportConfirm": "{n} विद्यार्थ्यांचा फी अहवाल bhasmesircoachingcenter@gmail.com वर पाठवायचा?",
+    "admin.feesReportSending": "फी अहवाल पाठवत आहे…",
+    "admin.feesReportSent": "फी अहवाल अॅडमिनला ईमेल झाला.",
+    "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -549,6 +577,7 @@ var state = {
   studentFeesMap: {},
   studentFeesInit: false,
   studentFeesEditing: null,
+  studentFeesFiltersBound: false,
   // Student Details tab
   detailsSource: "admission",
   detailsInit: false,
@@ -566,6 +595,7 @@ var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Authorization for broadcasts is done by passing the admin's Firebase ID token,
 // which the server verifies — no static secret/token is embedded here.
 var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
+var ADMIN_REPORT_EMAIL = "bhasmesircoachingcenter@gmail.com";
 
 function applyLang(next) {
   if (!I18N[next]) next = "en";
@@ -576,6 +606,10 @@ function applyLang(next) {
   document.querySelectorAll("[data-i18n]").forEach(function (node) {
     var key = node.getAttribute("data-i18n");
     if (Object.prototype.hasOwnProperty.call(I18N[lang], key)) node.textContent = I18N[lang][key];
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(function (node) {
+    var key = node.getAttribute("data-i18n-placeholder");
+    if (Object.prototype.hasOwnProperty.call(I18N[lang], key)) node.setAttribute("placeholder", I18N[lang][key]);
   });
   var toggle = document.getElementById("langToggle");
   if (toggle) {
@@ -1828,6 +1862,251 @@ function renderFeesReference() {
   wrap.innerHTML = "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" + defaultRatesReferenceHtml(lang);
 }
 
+function getFeesSearchQuery() {
+  var input = el("feesSearch");
+  return input ? String(input.value || "").trim().toLowerCase() : "";
+}
+
+function getFeesClassFilter() {
+  var sel = el("feesClassFilter");
+  return sel && sel.value ? sel.value : "all";
+}
+
+function getFeesStatusFilter() {
+  var sel = el("feesStatusFilter");
+  return sel && sel.value ? sel.value : "all";
+}
+
+function studentFeesRecordFor(student) {
+  var key = rosterAttKey(student);
+  var docId = studentFeesDocId(key);
+  var saved = state.studentFeesMap[docId];
+  return {
+    key: key,
+    docId: docId,
+    saved: saved,
+    record: saved || normalizeStudentFeesRecord({}, student),
+    hasSaved: !!saved
+  };
+}
+
+function studentMatchesFeesSearch(student, query) {
+  if (!query) return true;
+  var hay = [
+    student.name,
+    student.email,
+    student.mobile,
+    student.batch
+  ].join(" ").toLowerCase();
+  return hay.indexOf(query) >= 0;
+}
+
+function studentMatchesFeesClassFilter(student, filter) {
+  if (!filter || filter === "all") return true;
+  var info = studentFeesRecordFor(student);
+  var batch = normalizeAttClass(student.batch);
+  var classKey = info.record.classKey || detectClassKey(student.batch);
+  return batch === filter || classKey === filter;
+}
+
+function studentMatchesFeesStatusFilter(student, filter) {
+  if (!filter || filter === "all") return true;
+  var info = studentFeesRecordFor(student);
+  if (filter === "recorded") return info.hasSaved;
+  if (filter === "pending") return !info.hasSaved;
+  if (filter === "balance") return info.hasSaved && info.record.balance > 0;
+  return true;
+}
+
+function getFilteredFeesRoster(roster) {
+  roster = roster || state.attendanceRoster || [];
+  var query = getFeesSearchQuery();
+  var classFilter = getFeesClassFilter();
+  var statusFilter = getFeesStatusFilter();
+  return roster.filter(function (student) {
+    return studentMatchesFeesSearch(student, query) &&
+      studentMatchesFeesClassFilter(student, classFilter) &&
+      studentMatchesFeesStatusFilter(student, statusFilter);
+  });
+}
+
+function populateFeesClassFilter() {
+  var sel = el("feesClassFilter");
+  if (!sel) return;
+
+  var prev = getFeesClassFilter();
+  var classes = {};
+  state.attendanceRoster.forEach(function (s) {
+    var batch = normalizeAttClass(s.batch);
+    if (batch) classes[batch] = true;
+    var ck = detectClassKey(s.batch);
+    if (ck) classes[ck] = true;
+  });
+  var list = Object.keys(classes).sort(function (a, b) { return a.localeCompare(b); });
+
+  sel.textContent = "";
+  var allOpt = document.createElement("option");
+  allOpt.value = "all";
+  allOpt.textContent = t("admin.attAllClasses");
+  sel.appendChild(allOpt);
+  list.forEach(function (c) {
+    var opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    sel.appendChild(opt);
+  });
+
+  if (prev !== "all" && classes[prev]) sel.value = prev;
+  else sel.value = "all";
+}
+
+function updateFeesFilterMeta(shown, total) {
+  var meta = el("feesFilterMeta");
+  if (!meta) return;
+  if (!total) {
+    setNote(meta, "", "");
+    return;
+  }
+  if (shown === total && !getFeesSearchQuery() && getFeesClassFilter() === "all" && getFeesStatusFilter() === "all") {
+    setNote(meta, "", "");
+    return;
+  }
+  setNote(meta, t("admin.feesFilterMeta").replace("{n}", shown).replace("{total}", total), "");
+}
+
+function buildFeesReportBody(roster) {
+  var lines = [
+    "Bhasme Sir Coaching Center — Student Fees Report",
+    "Generated: " + new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
+    ""
+  ];
+
+  var query = getFeesSearchQuery();
+  var classFilter = getFeesClassFilter();
+  var statusFilter = getFeesStatusFilter();
+  if (query || classFilter !== "all" || statusFilter !== "all") {
+    lines.push("Filters:");
+    if (query) lines.push("  Search: " + query);
+    if (classFilter !== "all") lines.push("  Class: " + classFilter);
+    if (statusFilter !== "all") lines.push("  Status: " + statusFilter);
+    lines.push("");
+  }
+
+  lines.push(
+    "Name | Class | Plan | Course | Paid | Balance | Status | Payment date | Receipt | Email | Mobile"
+  );
+
+  var totalCourse = 0;
+  var totalPaid = 0;
+  var totalBalance = 0;
+
+  roster.forEach(function (student) {
+    var info = studentFeesRecordFor(student);
+    var r = info.record;
+    var classLabel = r.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
+    var plan = info.hasSaved ? planLabel(r.paymentPlan) : "—";
+    var course = info.hasSaved ? r.courseFee : 0;
+    var paid = info.hasSaved ? r.amountPaid : 0;
+    var balance = info.hasSaved ? r.balance : 0;
+    var status = info.hasSaved ? t("admin.feesStatusSet") : t("admin.feesStatusPending");
+
+    if (info.hasSaved) {
+      totalCourse += course;
+      totalPaid += paid;
+      totalBalance += balance;
+    }
+
+    lines.push([
+      student.name || "—",
+      classLabel,
+      plan,
+      info.hasSaved ? formatRupee(course) : "—",
+      info.hasSaved ? formatRupee(paid) : "—",
+      info.hasSaved ? formatRupee(balance) : "—",
+      status,
+      r.paymentDate || "—",
+      r.receiptNo || "—",
+      student.email || "—",
+      student.mobile || "—"
+    ].join(" | "));
+  });
+
+  lines.push("");
+  lines.push("Totals (recorded fees only):");
+  lines.push("  Course fee: " + formatRupee(totalCourse));
+  lines.push("  Amount paid: " + formatRupee(totalPaid));
+  lines.push("  Balance due: " + formatRupee(totalBalance));
+  lines.push("");
+  lines.push("—");
+  lines.push("Bhasme Sir Coaching Center");
+  return lines.join("\n");
+}
+
+function sendFeesReportEmail() {
+  var note = el("studentFeesNote");
+  var roster = getFilteredFeesRoster();
+  if (!roster.length) {
+    if (note) setNote(note, t("admin.feesReportEmpty"), "err");
+    return;
+  }
+
+  var confirmMsg = t("admin.feesReportConfirm").replace("{n}", roster.length);
+  if (!window.confirm(confirmMsg)) return;
+
+  var btn = el("feesEmailReportBtn");
+  if (btn) btn.disabled = true;
+  if (note) setNote(note, t("admin.feesReportSending"), "");
+
+  var subject = t("admin.feesReportSubject").replace("{n}", roster.length);
+  var body = buildFeesReportBody(roster);
+  var user = auth.currentUser;
+
+  Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+    .then(function (idToken) {
+      var params = new URLSearchParams();
+      params.append("action", "broadcast");
+      params.append("idToken", idToken);
+      params.append("subject", subject);
+      params.append("body", body);
+      params.append("audience", "registered");
+      params.append("recipients", ADMIN_REPORT_EMAIL);
+      params.append("lang", lang);
+      return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+    })
+    .then(function () {
+      if (note) setNote(note, t("admin.feesReportSent"), "ok");
+    })
+    .catch(function () {
+      if (note) setNote(note, t("admin.feesReportErr"), "err");
+    })
+    .finally(function () {
+      if (btn) btn.disabled = false;
+    });
+}
+
+function bindStudentFeesFilters() {
+  if (state.studentFeesFiltersBound) return;
+  state.studentFeesFiltersBound = true;
+
+  var search = el("feesSearch");
+  var classFilter = el("feesClassFilter");
+  var statusFilter = el("feesStatusFilter");
+  var reportBtn = el("feesEmailReportBtn");
+
+  function onFilterChange() {
+    if (state.studentFeesEditing) state.studentFeesEditing = null;
+    renderStudentFeesTable();
+  }
+
+  if (search) {
+    search.addEventListener("input", onFilterChange);
+    search.addEventListener("search", onFilterChange);
+  }
+  if (classFilter) classFilter.addEventListener("change", onFilterChange);
+  if (statusFilter) statusFilter.addEventListener("change", onFilterChange);
+  if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
+}
+
 function buildStudentFeesEditor(student, record, onSaved) {
   var editor = document.createElement("div");
   editor.className = "student-fees-editor";
@@ -1987,10 +2266,21 @@ function renderStudentFeesTable() {
   if (!wrap) return;
 
   renderFeesReference();
+  populateFeesClassFilter();
+  bindStudentFeesFilters();
 
   ensureAttendanceRoster(true).then(function (roster) {
     if (!roster.length) {
       wrap.innerHTML = "<p class=\"empty-state\">" + t("admin.feesNoStudents") + "</p>";
+      updateFeesFilterMeta(0, 0);
+      return;
+    }
+
+    var filtered = getFilteredFeesRoster(roster);
+    updateFeesFilterMeta(filtered.length, roster.length);
+
+    if (!filtered.length) {
+      wrap.innerHTML = "<p class=\"empty-state\">" + t("admin.feesFilterNone") + "</p>";
       return;
     }
 
@@ -2009,7 +2299,7 @@ function renderStudentFeesTable() {
     table.appendChild(thead);
 
     var tbody = document.createElement("tbody");
-    roster.forEach(function (student) {
+    filtered.forEach(function (student) {
       var key = rosterAttKey(student);
       var docId = studentFeesDocId(key);
       var saved = state.studentFeesMap[docId];
