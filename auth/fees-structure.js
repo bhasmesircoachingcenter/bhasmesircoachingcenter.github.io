@@ -64,6 +64,61 @@ export function computeBalance(courseFee, amountPaid) {
   return Math.max(0, fee - paid);
 }
 
+export function normalizeFeePayment(raw) {
+  return {
+    id: String((raw && raw.id) || "").trim(),
+    paymentDate: String((raw && raw.paymentDate) || "").trim(),
+    amount: Math.round(Math.max(0, Number(raw && raw.amount) || 0)),
+    receiptNo: String((raw && raw.receiptNo) || "").trim(),
+    note: String((raw && raw.note) || "").trim(),
+    receiptToken: String((raw && raw.receiptToken) || "").trim(),
+    createdAt: String((raw && raw.createdAt) || "").trim()
+  };
+}
+
+export function normalizePaymentsList(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  return rawList
+    .map(function (p) { return normalizeFeePayment(p); })
+    .filter(function (p) { return p.amount > 0 || p.receiptNo || p.paymentDate; })
+    .sort(function (a, b) {
+      var dc = (a.paymentDate || "").localeCompare(b.paymentDate || "");
+      if (dc !== 0) return dc;
+      return (a.createdAt || "").localeCompare(b.createdAt || "");
+    });
+}
+
+export function totalPaidFromPayments(payments) {
+  return (payments || []).reduce(function (sum, p) {
+    return sum + (Number(p.amount) || 0);
+  }, 0);
+}
+
+export function latestFeePayment(record) {
+  var list = normalizePaymentsList(record && record.payments);
+  return list.length ? list[list.length - 1] : null;
+}
+
+export function legacyPaymentsFromRecord(record) {
+  if (!record || !record.amountPaid) return [];
+  return [{
+    id: "legacy",
+    paymentDate: record.paymentDate || "",
+    amount: Math.round(Number(record.amountPaid) || 0),
+    receiptNo: record.receiptNo || "",
+    note: record.note || "",
+    receiptToken: record.publicReceiptToken || "",
+    createdAt: "",
+    legacy: true
+  }];
+}
+
+export function effectivePayments(record) {
+  var list = normalizePaymentsList(record && record.payments);
+  if (list.length) return list;
+  return legacyPaymentsFromRecord(record);
+}
+
 export function normalizeStudentFeesRecord(raw, student) {
   var classKey = detectClassKey((raw && raw.classKey) || (student && student.batch) || "");
   var plan = String((raw && raw.paymentPlan) || "onetime");
@@ -79,8 +134,13 @@ export function normalizeStudentFeesRecord(raw, student) {
     registrationFee = DEFAULT_REGISTRATION_FEE;
   }
 
+  var payments = normalizePaymentsList(raw && raw.payments);
   var amountPaid = Number(raw && raw.amountPaid);
-  if (!isFinite(amountPaid) || amountPaid < 0) amountPaid = 0;
+  if (payments.length) {
+    amountPaid = totalPaidFromPayments(payments);
+  } else if (!isFinite(amountPaid) || amountPaid < 0) {
+    amountPaid = 0;
+  }
 
   var discounted = !!(raw && raw.discounted);
   var balance;
@@ -91,6 +151,8 @@ export function normalizeStudentFeesRecord(raw, student) {
   } else {
     balance = computeBalance(courseFee, amountPaid);
   }
+
+  var latest = payments.length ? payments[payments.length - 1] : null;
 
   return {
     studentKey: (raw && raw.studentKey) || "",
@@ -104,8 +166,10 @@ export function normalizeStudentFeesRecord(raw, student) {
     amountPaid: Math.round(amountPaid),
     discounted: discounted,
     balance: balance,
-    paymentDate: String((raw && raw.paymentDate) || "").trim(),
-    receiptNo: String((raw && raw.receiptNo) || "").trim(),
-    note: String((raw && raw.note) || "").trim()
+    payments: payments,
+    paymentDate: String((latest && latest.paymentDate) || (raw && raw.paymentDate) || "").trim(),
+    receiptNo: String((latest && latest.receiptNo) || (raw && raw.receiptNo) || "").trim(),
+    note: String((raw && raw.note) || "").trim(),
+    publicReceiptToken: String((raw && raw.publicReceiptToken) || "").trim()
   };
 }

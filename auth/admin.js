@@ -38,6 +38,10 @@ import {
   formatRupee,
   computeBalance,
   normalizeStudentFeesRecord,
+  normalizePaymentsList,
+  totalPaidFromPayments,
+  effectivePayments,
+  latestFeePayment,
   defaultRatesReferenceHtml
 } from "./fees-structure.js";
 
@@ -123,6 +127,22 @@ var I18N = {
     "admin.feesCopyLink": "Copy receipt link",
     "admin.feesLinkCopied": "Receipt link copied.",
     "admin.feesReceiptNoEmail": "No valid student email — add email in Admissions sheet.",
+    "admin.feesPaymentHistory": "Payment history",
+    "admin.feesNoPayments": "No payments recorded yet.",
+    "admin.feesAddPayment": "Record new payment",
+    "admin.feesPaymentAmount": "This payment (₹)",
+    "admin.feesRecordPayment": "Record payment",
+    "admin.feesPaymentRecorded": "Payment recorded.",
+    "admin.feesPaymentErr": "Could not record payment. Try again.",
+    "admin.feesPaymentInvalid": "Enter a payment amount greater than zero.",
+    "admin.feesSavePlan": "Save fee plan",
+    "admin.feesColPayments": "Payments",
+    "admin.feesSendReceiptOnPay": "Email receipt after recording",
+    "admin.feesConfirmDeletePayment": "Delete payment {receipt} ({amount})?",
+    "admin.feesPaymentDeleted": "Payment removed.",
+    "admin.feesErrDeletePayment": "Could not delete payment.",
+    "admin.feesTotalPaid": "Total paid (₹)",
+    "admin.feesThisPayment": "This payment",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -402,6 +422,22 @@ var I18N = {
     "admin.feesCopyLink": "पावती लिंक कॉपी करा",
     "admin.feesLinkCopied": "पावती लिंक कॉपी झाली.",
     "admin.feesReceiptNoEmail": "वैध ईमेल नाही — Admissions sheet मध्ये ईमेल भरा.",
+    "admin.feesPaymentHistory": "पेमेंट इतिहास",
+    "admin.feesNoPayments": "अद्याप कोणतेही पेमेंट नाही.",
+    "admin.feesAddPayment": "नवीन पेमेंट नोंदवा",
+    "admin.feesPaymentAmount": "हे पेमेंट (₹)",
+    "admin.feesRecordPayment": "पेमेंट नोंदवा",
+    "admin.feesPaymentRecorded": "पेमेंट नोंदवले.",
+    "admin.feesPaymentErr": "पेमेंट नोंदवता आले नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesPaymentInvalid": "शून्यापेक्षा जास्त रक्कम भरा.",
+    "admin.feesSavePlan": "फी योजना जतन करा",
+    "admin.feesColPayments": "पेमेंट",
+    "admin.feesSendReceiptOnPay": "नोंदवल्यानंतर पावती ईमेल करा",
+    "admin.feesConfirmDeletePayment": "पेमेंट {receipt} ({amount}) काढायचे?",
+    "admin.feesPaymentDeleted": "पेमेंट काढले.",
+    "admin.feesErrDeletePayment": "पेमेंट काढता आले नाही.",
+    "admin.feesTotalPaid": "एकूण भरले (₹)",
+    "admin.feesThisPayment": "हे पेमेंट",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -2252,11 +2288,15 @@ function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
     });
 }
 
-function feeReceiptNumber(student, record) {
-  if (record.receiptNo) return record.receiptNo;
+function feeReceiptNumber(student, record, installmentIndex) {
+  if (record.receiptNo && !installmentIndex) return record.receiptNo;
   var datePart = (record.paymentDate || todayIso()).replace(/-/g, "");
   var initials = String(student.name || "STU").replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase() || "STU";
-  return "BCC-" + datePart + "-" + initials;
+  var base = "BCC-" + datePart + "-" + initials;
+  if (installmentIndex && installmentIndex > 0) {
+    return base + "-" + String(installmentIndex).padStart(2, "0");
+  }
+  return base;
 }
 
 function randomReceiptToken() {
@@ -2269,56 +2309,114 @@ function feeReceiptPublicUrl(token) {
   return RECEIPT_PUBLIC_ORIGIN + "/receipt.html?r=" + encodeURIComponent(token);
 }
 
-function publishFeeReceiptLink(student, record) {
-  var key = rosterAttKey(student);
-  var docId = studentFeesDocId(key);
-  var saved = state.studentFeesMap[docId] || record;
-  var token = saved.publicReceiptToken || record.publicReceiptToken || randomReceiptToken();
-  var payload = buildFeeReceiptPayload(student, record);
+function ensureStoredPayments(record, student) {
+  var payments = normalizePaymentsList(record && record.payments);
+  if (payments.length) return payments;
+  if (!record || (!record.amountPaid && !record.receiptNo)) return [];
+  return [{
+    id: randomReceiptToken().slice(0, 12),
+    paymentDate: record.paymentDate || todayIso(),
+    amount: Math.round(Number(record.amountPaid) || 0),
+    receiptNo: record.receiptNo || feeReceiptNumber(student, { paymentDate: record.paymentDate || todayIso(), receiptNo: "" }, 1),
+    note: record.note || "",
+    receiptToken: record.publicReceiptToken || randomReceiptToken(),
+    createdAt: new Date().toISOString()
+  }];
+}
 
-  return setDoc(doc(db, "feeReceiptLinks", token), {
-    receiptNo: payload.receiptNo,
-    paymentDate: payload.paymentDate,
-    studentName: payload.studentName,
-    classLabel: payload.classLabel,
-    email: payload.email,
-    mobile: payload.mobile,
-    paymentPlan: payload.paymentPlan,
-    courseFee: payload.courseFee,
-    registrationFee: payload.registrationFee,
-    amountPaid: payload.amountPaid,
-    balance: payload.balance,
-    discounted: payload.discounted,
-    note: payload.note,
+function cumulativePaidThrough(payments, paymentIndex) {
+  var total = 0;
+  for (var i = 0; i <= paymentIndex; i++) {
+    total += Number(payments[i] && payments[i].amount) || 0;
+  }
+  return total;
+}
+
+function buildPaymentReceiptPayload(student, record, payment, paymentIndex, payments) {
+  payments = payments || normalizePaymentsList(record.payments);
+  var cumulative = cumulativePaidThrough(payments, paymentIndex);
+  var balance = computeBalance(record.courseFee, cumulative);
+  return {
+    receiptNo: payment.receiptNo,
+    paymentDate: payment.paymentDate || todayIso(),
+    studentName: student.name || record.name || "",
+    classLabel: record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "",
+    email: student.email || record.email || "",
+    mobile: student.mobile || record.mobile || "",
+    paymentPlan: planLabel(record.paymentPlan),
+    courseFee: record.courseFee,
+    registrationFee: record.registrationFee,
+    paymentAmount: payment.amount,
+    amountPaid: cumulative,
+    balance: balance,
+    discounted: !!record.discounted,
+    note: payment.note || "",
+    installmentNo: paymentIndex + 1,
+    installmentTotal: payments.length
+  };
+}
+
+function publishPaymentReceiptLink(student, record, payment, paymentIndex, payments) {
+  var token = payment.receiptToken || randomReceiptToken();
+  payment.receiptToken = token;
+  var payload = buildPaymentReceiptPayload(student, record, payment, paymentIndex, payments);
+  return setDoc(doc(db, "feeReceiptLinks", token), Object.assign({}, payload, {
     publishedAt: new Date().toISOString()
-  }).then(function () {
-    return setDoc(doc(db, "studentFees", docId), { publicReceiptToken: token }, { merge: true }).then(function () {
-      if (state.studentFeesMap[docId]) state.studentFeesMap[docId].publicReceiptToken = token;
-      return feeReceiptPublicUrl(token);
-    });
+  })).then(function () {
+    return feeReceiptPublicUrl(token);
   });
 }
 
-function buildFeeReceiptEmailBody(student, record, url) {
-  return [
+function publishFeeReceiptLink(student, record, payment) {
+  var payments = effectivePayments(record);
+  if (payment) {
+    var idx = payments.findIndex(function (p) { return p.id === payment.id; });
+    if (idx < 0) idx = payments.length - 1;
+    return publishPaymentReceiptLink(student, record, payment, idx, payments);
+  }
+  var latest = payments.length ? payments[payments.length - 1] : null;
+  if (latest) {
+    return publishPaymentReceiptLink(student, record, latest, payments.length - 1, payments);
+  }
+  var draft = {
+    receiptNo: feeReceiptNumber(student, record),
+    paymentDate: record.paymentDate || todayIso(),
+    amount: record.amountPaid || 0,
+    note: record.note || "",
+    receiptToken: record.publicReceiptToken || randomReceiptToken()
+  };
+  return publishPaymentReceiptLink(student, record, draft, 0, [draft]);
+}
+
+function buildFeeReceiptEmailBody(student, record, url, payment) {
+  var receiptNo = payment ? payment.receiptNo : feeReceiptNumber(student, record);
+  var lines = [
     "Dear " + (student.name || record.name || "Student") + ",",
     "",
     "Your fee receipt is ready. Open this link:",
     url,
     "",
-    "Receipt No / पावती क्र.: " + feeReceiptNumber(student, record),
-    "Amount paid / भरलेली रक्कम: " + formatRupee(record.amountPaid),
+    "Receipt No / पावती क्र.: " + receiptNo
+  ];
+  if (payment) {
+    lines.push("This payment / हे पेमेंट: " + formatRupee(payment.amount));
+    lines.push("Total paid / एकूण भरले: " + formatRupee(record.amountPaid));
+  } else {
+    lines.push("Amount paid / भरलेली रक्कम: " + formatRupee(record.amountPaid));
+  }
+  lines.push(
     "Balance due / बाकी: " + formatRupee(record.balance),
     "",
     "You can print or save as PDF from the receipt page.",
     "",
     "Thank you,",
     "Bhasme Sir Coaching Center"
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
-function copyFeeReceiptLink(student, record, noteEl) {
-  return publishFeeReceiptLink(student, record).then(function (url) {
+function copyFeeReceiptLink(student, record, noteEl, payment) {
+  return publishFeeReceiptLink(student, record, payment).then(function (url) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(url).then(function () {
         if (noteEl) setNote(noteEl, t("admin.feesLinkCopied"), "ok");
@@ -2332,56 +2430,40 @@ function copyFeeReceiptLink(student, record, noteEl) {
   });
 }
 
-function buildFeeReceiptPayload(student, record) {
-  return {
-    receiptNo: feeReceiptNumber(student, record),
-    paymentDate: record.paymentDate || todayIso(),
-    studentName: student.name || record.name || "",
-    classLabel: record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "",
-    email: student.email || record.email || "",
-    mobile: student.mobile || record.mobile || "",
-    paymentPlan: planLabel(record.paymentPlan),
-    courseFee: record.courseFee,
-    registrationFee: record.registrationFee,
-    amountPaid: record.amountPaid,
-    balance: record.balance,
-    discounted: !!record.discounted,
-    note: record.note || ""
-  };
-}
-
-function buildFeeReceiptWhatsAppText(student, record, url) {
-  var receiptNo = feeReceiptNumber(student, record);
+function buildFeeReceiptWhatsAppText(student, record, url, payment) {
+  var receiptNo = payment ? payment.receiptNo : feeReceiptNumber(student, record);
   var classLabel = record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
   var lines = [
     "*Bhasme Sir Coaching Center*",
     "*Fee Receipt / फी पावती*",
     "",
     "Receipt / पावती: " + receiptNo,
-    "Date / तारीख: " + (record.paymentDate || todayIso()),
+    "Date / तारीख: " + ((payment && payment.paymentDate) || record.paymentDate || todayIso()),
     "",
     "Student / विद्यार्थी: " + (student.name || record.name || "—"),
     "Class / इयत्ता: " + classLabel,
     "",
     "Plan / योजना: " + planLabel(record.paymentPlan),
-    "Course fee / अभ्यासक्रम: " + formatRupee(record.courseFee),
-    "Registration / नोंदणी: " + formatRupee(record.registrationFee),
-    "Paid / भरले: " + formatRupee(record.amountPaid),
-    "*Balance / बाकी: " + formatRupee(record.balance) + "*"
+    "Course fee / अभ्यासक्रम: " + formatRupee(record.courseFee)
   ];
-  if (record.discounted) lines.push("Discount applied / सवलत लागू");
-  if (record.note) lines.push("Note / टीप: " + record.note);
-  if (url) {
-    lines.push("", "View receipt / पावती पहा:", url);
+  if (payment) {
+    lines.push("*This payment / हे पेमेंट: " + formatRupee(payment.amount) + "*");
+    lines.push("Total paid / एकूण भरले: " + formatRupee(record.amountPaid));
+  } else {
+    lines.push("Paid / भरले: " + formatRupee(record.amountPaid));
   }
+  lines.push("*Balance / बाकी: " + formatRupee(record.balance) + "*");
+  if (record.discounted) lines.push("Discount applied / सवलत लागू");
+  if (payment && payment.note) lines.push("Note / टीप: " + payment.note);
+  if (url) lines.push("", "View receipt / पावती पहा:", url);
   lines.push("", "Thank you / धन्यवाद", "+91 70585 05983");
   return lines.join("\n");
 }
 
-function openStudentFeeReceiptWhatsApp(student, record, noteEl) {
+function openStudentFeeReceiptWhatsApp(student, record, noteEl, payment) {
   var phone = student.mobile || record.mobile;
-  publishFeeReceiptLink(student, record).then(function (url) {
-    var text = buildFeeReceiptWhatsAppText(student, record, url);
+  publishFeeReceiptLink(student, record, payment).then(function (url) {
+    var text = buildFeeReceiptWhatsAppText(student, record, url, payment);
     var waUrl = whatsAppDirectUrl(phone, text);
     if (!waUrl) {
       if (noteEl) setNote(noteEl, t("admin.feesWhatsAppNoPhone"), "err");
@@ -2394,7 +2476,7 @@ function openStudentFeeReceiptWhatsApp(student, record, noteEl) {
   });
 }
 
-function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
+function sendStudentFeeReceipt(student, record, noteEl, skipConfirm, payment) {
   var email = String(student.email || record.email || "").trim().toLowerCase();
   if (!email || !EMAIL_RE.test(email)) {
     if (noteEl) setNote(noteEl, t("admin.feesReceiptNoEmail"), "err");
@@ -2410,21 +2492,20 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
 
   if (noteEl) setNote(noteEl, t("admin.feesReceiptSending"), "");
 
-  var receiptNo = feeReceiptNumber(student, record);
+  var receiptNo = payment ? payment.receiptNo : feeReceiptNumber(student, record);
   var subject = t("admin.feesReceiptSubject")
     .replace("{name}", student.name || record.name || "")
     .replace("{receipt}", receiptNo);
-  var receiptPayload = buildFeeReceiptPayload(student, record);
   var user = auth.currentUser;
 
-  return publishFeeReceiptLink(student, record)
+  return publishFeeReceiptLink(student, record, payment)
     .then(function (url) {
       return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
         .then(function (idToken) {
           return sheetAdminPost(idToken, "feereceipt", {
             to: email,
             subject: subject,
-            body: buildFeeReceiptEmailBody(student, record, url),
+            body: buildFeeReceiptEmailBody(student, record, url, payment),
             link: url,
             lang: lang
           });
@@ -2440,9 +2521,84 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
     });
 }
 
+function saveStudentFeeRecord(student, payload, noteEl, successKey) {
+  var key = rosterAttKey(student);
+  var docId = studentFeesDocId(key);
+  return setDoc(doc(db, "studentFees", docId), Object.assign({}, payload, { updatedAt: serverTimestamp() }))
+    .then(function () {
+      state.studentFeesMap[docId] = payload;
+      if (noteEl) setNote(noteEl, t(successKey || "admin.feesSaved"), "ok");
+      return payload;
+    });
+}
+
+function deleteFeePayment(student, record, paymentId, noteEl, onDone) {
+  var payments = ensureStoredPayments(record, student).filter(function (p) {
+    return p.id !== paymentId;
+  });
+  var payload = normalizeStudentFeesRecord(Object.assign({}, record, { payments: payments }), student);
+  return saveStudentFeeRecord(student, payload, noteEl, "admin.feesPaymentDeleted")
+    .then(function () {
+      if (onDone) onDone();
+    })
+    .catch(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesErrDeletePayment"), "err");
+    });
+}
+
+function recordStudentFeePayment(student, record, draft, noteEl, sendEmail, onDone) {
+  var amount = Math.round(Number(draft.amount) || 0);
+  if (amount <= 0) {
+    if (noteEl) setNote(noteEl, t("admin.feesPaymentInvalid"), "err");
+    return Promise.resolve(false);
+  }
+
+  var payments = ensureStoredPayments(record, student).slice();
+  var paymentDate = draft.paymentDate || todayIso();
+  var installmentIndex = payments.length + 1;
+  var payment = {
+    id: randomReceiptToken().slice(0, 12),
+    paymentDate: paymentDate,
+    amount: amount,
+    receiptNo: String(draft.receiptNo || "").trim() || feeReceiptNumber(student, { paymentDate: paymentDate, receiptNo: "" }, installmentIndex),
+    note: String(draft.note || "").trim(),
+    receiptToken: randomReceiptToken(),
+    createdAt: new Date().toISOString()
+  };
+  payments.push(payment);
+
+  var payload = normalizeStudentFeesRecord(Object.assign({}, record, {
+    studentKey: rosterAttKey(student),
+    name: student.name,
+    email: student.email,
+    mobile: student.mobile,
+    payments: payments
+  }), student);
+
+  return saveStudentFeeRecord(student, payload, noteEl, "admin.feesPaymentRecorded")
+    .then(function (saved) {
+      return publishPaymentReceiptLink(student, saved, payment, payments.length - 1, payments)
+        .then(function (url) {
+          if (sendEmail) {
+            return sendStudentFeeReceipt(student, saved, noteEl, true, payment).then(function () {
+              if (onDone) onDone(saved);
+              return true;
+            });
+          }
+          if (onDone) onDone(saved);
+          return true;
+        });
+    })
+    .catch(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesPaymentErr"), "err");
+      return false;
+    });
+}
+
 function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   var editor = document.createElement("div");
   editor.className = "student-fees-editor";
+  var liveRecord = Object.assign({}, record);
 
   var classKey = record.classKey || detectClassKey(student.batch) || "10th";
   var plan = record.paymentPlan || "onetime";
@@ -2455,6 +2611,33 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
     wrap.appendChild(lab);
     wrap.appendChild(input);
     return wrap;
+  }
+
+  function buildPlanPayload(paymentsOverride) {
+    return normalizeStudentFeesRecord({
+      studentKey: rosterAttKey(student),
+      name: student.name,
+      email: student.email,
+      mobile: student.mobile,
+      classKey: classSel.value,
+      paymentPlan: planSel.value,
+      courseFee: courseIn.value,
+      registrationFee: regIn.value,
+      discounted: discountChk.checked,
+      balance: discountChk.checked ? balanceOut.value : undefined,
+      payments: paymentsOverride != null ? paymentsOverride : ensureStoredPayments(liveRecord, student),
+      note: liveRecord.note || ""
+    }, student);
+  }
+
+  function refreshSummary() {
+    var payload = buildPlanPayload();
+    paidSummary.value = formatRupee(payload.amountPaid);
+    if (!discountChk.checked) {
+      balanceOut.value = String(payload.balance);
+    }
+    liveRecord = payload;
+    return payload;
   }
 
   var classSel = document.createElement("select");
@@ -2487,11 +2670,11 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   regIn.step = "50";
   regIn.value = String(record.registrationFee || DEFAULT_REGISTRATION_FEE);
 
-  var paidIn = document.createElement("input");
-  paidIn.type = "number";
-  paidIn.min = "0";
-  paidIn.step = "100";
-  paidIn.value = String(record.amountPaid || 0);
+  var paidSummary = document.createElement("input");
+  paidSummary.type = "text";
+  paidSummary.readOnly = true;
+  paidSummary.className = "fees-balance-readonly";
+  paidSummary.value = formatRupee(record.amountPaid || 0);
 
   var discountChk = document.createElement("input");
   discountChk.type = "checkbox";
@@ -2501,31 +2684,22 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   balanceOut.type = "number";
   balanceOut.min = "0";
   balanceOut.step = "100";
-  balanceOut.value = String(
-    record.balance !== undefined && record.balance !== null
-      ? record.balance
-      : computeBalance(courseIn.value, paidIn.value)
-  );
+  balanceOut.value = String(record.balance !== undefined && record.balance !== null ? record.balance : computeBalance(courseIn.value, record.amountPaid || 0));
 
   function setBalanceEditable(editable) {
     balanceOut.readOnly = !editable;
     balanceOut.classList.toggle("fees-balance-readonly", !editable);
-    if (!editable) refreshBalance();
-  }
-
-  function refreshBalance() {
-    if (discountChk.checked) return;
-    balanceOut.value = String(computeBalance(courseIn.value, paidIn.value));
+    if (!editable) refreshSummary();
   }
 
   function applySuggest() {
     courseIn.value = String(suggestCourseFee(classSel.value, planSel.value));
-    refreshBalance();
+    refreshSummary();
   }
 
   discountChk.addEventListener("change", function () {
     if (discountChk.checked) {
-      balanceOut.value = String(computeBalance(courseIn.value, paidIn.value));
+      balanceOut.value = String(buildPlanPayload().balance);
       setBalanceEditable(true);
     } else {
       setBalanceEditable(false);
@@ -2534,38 +2708,8 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
 
   classSel.addEventListener("change", applySuggest);
   planSel.addEventListener("change", applySuggest);
-  courseIn.addEventListener("input", refreshBalance);
-  paidIn.addEventListener("input", refreshBalance);
+  courseIn.addEventListener("input", refreshSummary);
   setBalanceEditable(discountChk.checked);
-
-  var dateIn = document.createElement("input");
-  dateIn.type = "date";
-  dateIn.value = record.paymentDate || todayIso();
-
-  function suggestedReceiptNo() {
-    return feeReceiptNumber(student, {
-      paymentDate: dateIn.value || todayIso(),
-      receiptNo: ""
-    });
-  }
-
-  var receiptIn = document.createElement("input");
-  receiptIn.type = "text";
-  receiptIn.value = record.receiptNo || suggestedReceiptNo();
-  if (record.receiptNo) receiptIn.dataset.manual = "1";
-
-  receiptIn.addEventListener("input", function () {
-    receiptIn.dataset.manual = receiptIn.value.trim() ? "1" : "0";
-  });
-  dateIn.addEventListener("change", function () {
-    if (receiptIn.dataset.manual !== "1") {
-      receiptIn.value = suggestedReceiptNo();
-    }
-  });
-
-  var noteIn = document.createElement("textarea");
-  noteIn.rows = 2;
-  noteIn.value = record.note || "";
 
   var suggestBtn = document.createElement("button");
   suggestBtn.type = "button";
@@ -2579,7 +2723,7 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   grid.appendChild(field(t("admin.feesColPlan"), planSel));
   grid.appendChild(field(t("admin.feesColCourse"), courseIn));
   grid.appendChild(field(t("admin.feesReg"), regIn));
-  grid.appendChild(field(t("admin.feesAmountPaid"), paidIn));
+  grid.appendChild(field(t("admin.feesTotalPaid"), paidSummary));
   var balanceField = document.createElement("div");
   balanceField.className = "field fees-balance-field";
   var balanceLab = document.createElement("label");
@@ -2592,64 +2736,206 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   balanceField.appendChild(discountLabel);
   balanceField.appendChild(balanceOut);
   grid.appendChild(balanceField);
-  grid.appendChild(field(t("admin.feesPaymentDate"), dateIn));
-  grid.appendChild(field(t("admin.feesReceipt"), receiptIn));
-  var noteField = field(t("admin.feesNoteField"), noteIn);
-  noteField.classList.add("full");
-  grid.appendChild(noteField);
 
-  var sendReceiptOnSave = document.createElement("input");
-  sendReceiptOnSave.type = "checkbox";
-  sendReceiptOnSave.id = "feesSendReceiptOnSave";
-  var sendReceiptOnSaveLabel = document.createElement("label");
-  sendReceiptOnSaveLabel.className = "fees-discount-toggle fees-send-receipt-toggle";
-  sendReceiptOnSaveLabel.htmlFor = "feesSendReceiptOnSave";
-  sendReceiptOnSaveLabel.appendChild(sendReceiptOnSave);
-  sendReceiptOnSaveLabel.appendChild(document.createTextNode(" " + t("admin.feesSendReceiptOnSave")));
+  var historyWrap = document.createElement("div");
+  historyWrap.className = "fees-payment-history";
+
+  var payDateIn = document.createElement("input");
+  payDateIn.type = "date";
+  payDateIn.value = todayIso();
+
+  var payAmountIn = document.createElement("input");
+  payAmountIn.type = "number";
+  payAmountIn.min = "0";
+  payAmountIn.step = "100";
+  payAmountIn.placeholder = "1000";
+
+  function suggestedNewReceiptNo() {
+    var n = ensureStoredPayments(liveRecord, student).length + 1;
+    return feeReceiptNumber(student, { paymentDate: payDateIn.value || todayIso(), receiptNo: "" }, n);
+  }
+
+  var payReceiptIn = document.createElement("input");
+  payReceiptIn.type = "text";
+  payReceiptIn.value = suggestedNewReceiptNo();
+
+  payDateIn.addEventListener("change", function () {
+    if (payReceiptIn.dataset.manual !== "1") {
+      payReceiptIn.value = suggestedNewReceiptNo();
+    }
+  });
+  payReceiptIn.addEventListener("input", function () {
+    payReceiptIn.dataset.manual = payReceiptIn.value.trim() ? "1" : "0";
+  });
+
+  var payNoteIn = document.createElement("textarea");
+  payNoteIn.rows = 2;
+
+  var sendReceiptOnPay = document.createElement("input");
+  sendReceiptOnPay.type = "checkbox";
+  sendReceiptOnPay.id = "feesSendReceiptOnPay";
+
+  var note = document.createElement("p");
+  note.className = "admin-note";
+
+  function renderPaymentHistory() {
+    historyWrap.innerHTML = "";
+    var title = document.createElement("h4");
+    title.className = "fees-payment-history-title";
+    title.textContent = t("admin.feesPaymentHistory");
+    historyWrap.appendChild(title);
+
+    var payments = effectivePayments(liveRecord);
+    if (!payments.length) {
+      var empty = document.createElement("p");
+      empty.className = "fees-payment-empty";
+      empty.textContent = t("admin.feesNoPayments");
+      historyWrap.appendChild(empty);
+      return;
+    }
+
+    var table = document.createElement("table");
+    table.className = "data-table fees-payment-table";
+    table.innerHTML =
+      "<thead><tr><th>#</th><th>" + t("admin.date") + "</th><th>" + t("admin.feesThisPayment") + "</th>" +
+      "<th>" + t("admin.feesReceipt") + "</th><th>" + t("admin.note") + "</th><th>" + t("admin.feesColAction") + "</th></tr></thead>";
+    var tbody = document.createElement("tbody");
+
+    payments.forEach(function (payment, idx) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + (idx + 1) + "</td>" +
+        "<td>" + (payment.paymentDate || "—") + "</td>" +
+        "<td>" + formatRupee(payment.amount) + "</td>" +
+        "<td>" + (payment.receiptNo || "—") + "</td>" +
+        "<td>" + (payment.note || "—") + "</td>";
+      var tdAct = document.createElement("td");
+      tdAct.className = "fees-payment-actions";
+
+      var emailBtn = document.createElement("button");
+      emailBtn.type = "button";
+      emailBtn.className = "btn btn-outline btn-sm";
+      emailBtn.textContent = t("admin.feesSendReceipt");
+      emailBtn.addEventListener("click", function () {
+        emailBtn.disabled = true;
+        sendStudentFeeReceipt(student, liveRecord, note, false, payment).finally(function () {
+          emailBtn.disabled = false;
+        });
+      });
+      tdAct.appendChild(emailBtn);
+
+      var waBtn = document.createElement("button");
+      waBtn.type = "button";
+      waBtn.className = "btn btn-whatsapp btn-sm";
+      waBtn.textContent = "WA";
+      waBtn.title = t("admin.feesSendWhatsApp");
+      waBtn.addEventListener("click", function () {
+        openStudentFeeReceiptWhatsApp(student, liveRecord, note, payment);
+      });
+      tdAct.appendChild(waBtn);
+
+      var linkBtn = document.createElement("button");
+      linkBtn.type = "button";
+      linkBtn.className = "btn btn-outline btn-sm";
+      linkBtn.textContent = t("admin.feesCopyLink");
+      linkBtn.addEventListener("click", function () {
+        copyFeeReceiptLink(student, liveRecord, note, payment);
+      });
+      tdAct.appendChild(linkBtn);
+
+      if (payment.id !== "legacy") {
+        var delPayBtn = document.createElement("button");
+        delPayBtn.type = "button";
+        delPayBtn.className = "icon-btn";
+        delPayBtn.textContent = "×";
+        delPayBtn.title = t("admin.feesDelete");
+        delPayBtn.addEventListener("click", function () {
+          var msg = t("admin.feesConfirmDeletePayment")
+            .replace("{receipt}", payment.receiptNo || "—")
+            .replace("{amount}", formatRupee(payment.amount));
+          if (!window.confirm(msg)) return;
+          deleteFeePayment(student, liveRecord, payment.id, note, function (updated) {
+            liveRecord = updated;
+            refreshSummary();
+            renderPaymentHistory();
+            payReceiptIn.value = suggestedNewReceiptNo();
+            payReceiptIn.dataset.manual = "0";
+          });
+        });
+        tdAct.appendChild(delPayBtn);
+      }
+
+      tr.appendChild(tdAct);
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    historyWrap.appendChild(table);
+  }
+
+  var addPaySection = document.createElement("div");
+  addPaySection.className = "fees-add-payment";
+  var addPayTitle = document.createElement("h4");
+  addPayTitle.textContent = t("admin.feesAddPayment");
+  addPaySection.appendChild(addPayTitle);
+
+  var payGrid = document.createElement("div");
+  payGrid.className = "student-fees-form-grid";
+  payGrid.appendChild(field(t("admin.feesPaymentDate"), payDateIn));
+  payGrid.appendChild(field(t("admin.feesPaymentAmount"), payAmountIn));
+  payGrid.appendChild(field(t("admin.feesReceipt"), payReceiptIn));
+  var payNoteField = field(t("admin.feesNoteField"), payNoteIn);
+  payNoteField.classList.add("full");
+  payGrid.appendChild(payNoteField);
+  addPaySection.appendChild(payGrid);
+
+  var payActions = document.createElement("div");
+  payActions.className = "actions fees-add-payment-actions";
+  var recordPayBtn = document.createElement("button");
+  recordPayBtn.type = "button";
+  recordPayBtn.className = "btn btn-primary btn-sm";
+  recordPayBtn.textContent = t("admin.feesRecordPayment");
+  var sendOnPayLabel = document.createElement("label");
+  sendOnPayLabel.className = "fees-discount-toggle fees-send-receipt-toggle";
+  sendOnPayLabel.htmlFor = "feesSendReceiptOnPay";
+  sendOnPayLabel.appendChild(sendReceiptOnPay);
+  sendOnPayLabel.appendChild(document.createTextNode(" " + t("admin.feesSendReceiptOnPay")));
+  payActions.appendChild(recordPayBtn);
+  payActions.appendChild(sendOnPayLabel);
+  addPaySection.appendChild(payActions);
+
+  recordPayBtn.addEventListener("click", function () {
+    recordPayBtn.disabled = true;
+    var planPayload = buildPlanPayload();
+    recordStudentFeePayment(student, planPayload, {
+      paymentDate: payDateIn.value,
+      amount: payAmountIn.value,
+      receiptNo: payReceiptIn.value,
+      note: payNoteIn.value
+    }, note, sendReceiptOnPay.checked, function (updated) {
+      liveRecord = updated;
+      refreshSummary();
+      renderPaymentHistory();
+      payAmountIn.value = "";
+      payNoteIn.value = "";
+      payReceiptIn.dataset.manual = "0";
+      payReceiptIn.value = suggestedNewReceiptNo();
+      if (onSaved) onSaved();
+    }).finally(function () {
+      recordPayBtn.disabled = false;
+    });
+  });
 
   var actions = document.createElement("div");
   actions.className = "actions";
   actions.appendChild(suggestBtn);
   var saveBtn = document.createElement("button");
   saveBtn.type = "button";
-  saveBtn.className = "btn btn-primary btn-sm";
-  saveBtn.textContent = t("admin.feesSave");
-  var note = document.createElement("p");
-  note.className = "admin-note";
+  saveBtn.className = "btn btn-outline btn-sm";
+  saveBtn.textContent = t("admin.feesSavePlan");
   actions.appendChild(saveBtn);
-  actions.appendChild(sendReceiptOnSaveLabel);
 
   if (hasSaved) {
-    var receiptBtn = document.createElement("button");
-    receiptBtn.type = "button";
-    receiptBtn.className = "btn btn-outline btn-sm";
-    receiptBtn.textContent = t("admin.feesSendReceipt");
-    receiptBtn.addEventListener("click", function () {
-      receiptBtn.disabled = true;
-      sendStudentFeeReceipt(student, record, note, false).finally(function () {
-        receiptBtn.disabled = false;
-      });
-    });
-    actions.appendChild(receiptBtn);
-
-    var waBtn = document.createElement("button");
-    waBtn.type = "button";
-    waBtn.className = "btn btn-whatsapp btn-sm";
-    waBtn.textContent = t("admin.feesSendWhatsApp");
-    waBtn.addEventListener("click", function () {
-      openStudentFeeReceiptWhatsApp(student, record, note);
-    });
-    actions.appendChild(waBtn);
-
-    var copyLinkBtn = document.createElement("button");
-    copyLinkBtn.type = "button";
-    copyLinkBtn.className = "btn btn-outline btn-sm";
-    copyLinkBtn.textContent = t("admin.feesCopyLink");
-    copyLinkBtn.addEventListener("click", function () {
-      copyFeeReceiptLink(student, record, note);
-    });
-    actions.appendChild(copyLinkBtn);
-
     var delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "icon-btn";
@@ -2671,43 +2957,14 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   }
 
   saveBtn.addEventListener("click", function () {
-    var key = rosterAttKey(student);
-    var payload = normalizeStudentFeesRecord({
-      studentKey: key,
-      name: student.name,
-      email: student.email,
-      mobile: student.mobile,
-      classKey: classSel.value,
-      paymentPlan: planSel.value,
-      courseFee: courseIn.value,
-      registrationFee: regIn.value,
-      amountPaid: paidIn.value,
-      discounted: discountChk.checked,
-      balance: discountChk.checked ? balanceOut.value : undefined,
-      paymentDate: dateIn.value,
-      receiptNo: receiptIn.value,
-      note: noteIn.value
-    }, student);
-    if (!payload.receiptNo) {
-      payload.receiptNo = feeReceiptNumber(student, payload);
-    }
-    if (!payload.paymentDate) {
-      payload.paymentDate = todayIso();
-    }
-
     saveBtn.disabled = true;
-    setDoc(doc(db, "studentFees", studentFeesDocId(key)), Object.assign({}, payload, { updatedAt: serverTimestamp() }))
-      .then(function () {
-        state.studentFeesMap[studentFeesDocId(key)] = payload;
-        setNote(note, t("admin.feesSaved"), "ok");
-        return publishFeeReceiptLink(student, payload).then(function () {
-          if (sendReceiptOnSave.checked) {
-            return sendStudentFeeReceipt(student, payload, note, true).then(function () {
-              if (onSaved) onSaved();
-            });
-          }
-          if (onSaved) onSaved();
-        });
+    var payload = buildPlanPayload();
+    saveStudentFeeRecord(student, payload, note, "admin.feesSaved")
+      .then(function (saved) {
+        liveRecord = saved;
+        refreshSummary();
+        renderPaymentHistory();
+        if (onSaved) onSaved();
       })
       .catch(function () {
         setNote(note, t("admin.feesErr"), "err");
@@ -2718,8 +2975,12 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   });
 
   editor.appendChild(grid);
+  editor.appendChild(historyWrap);
+  editor.appendChild(addPaySection);
   editor.appendChild(actions);
   editor.appendChild(note);
+  refreshSummary();
+  renderPaymentHistory();
   return editor;
 }
 
@@ -2789,13 +3050,14 @@ function renderStudentFeesTable() {
       btn.textContent = t("admin.feesEdit");
       btnRow.appendChild(btn);
       if (hasSaved) {
+        var latestPay = latestFeePayment(record);
         var receiptBtn = document.createElement("button");
         receiptBtn.type = "button";
         receiptBtn.className = "btn btn-outline btn-sm";
         receiptBtn.textContent = t("admin.feesSendReceipt");
         receiptBtn.addEventListener("click", function () {
           receiptBtn.disabled = true;
-          sendStudentFeeReceipt(student, record, el("studentFeesNote"), false).finally(function () {
+          sendStudentFeeReceipt(student, record, el("studentFeesNote"), false, latestPay).finally(function () {
             receiptBtn.disabled = false;
           });
         });
@@ -2806,7 +3068,7 @@ function renderStudentFeesTable() {
         waBtn.className = "btn btn-whatsapp btn-sm";
         waBtn.textContent = t("admin.feesSendWhatsApp");
         waBtn.addEventListener("click", function () {
-          openStudentFeeReceiptWhatsApp(student, record, el("studentFeesNote"));
+          openStudentFeeReceiptWhatsApp(student, record, el("studentFeesNote"), latestPay);
         });
         btnRow.appendChild(waBtn);
 
@@ -2815,7 +3077,7 @@ function renderStudentFeesTable() {
         copyLinkBtn.className = "btn btn-outline btn-sm";
         copyLinkBtn.textContent = t("admin.feesCopyLink");
         copyLinkBtn.addEventListener("click", function () {
-          copyFeeReceiptLink(student, record, el("studentFeesNote"));
+          copyFeeReceiptLink(student, record, el("studentFeesNote"), latestPay);
         });
         btnRow.appendChild(copyLinkBtn);
 

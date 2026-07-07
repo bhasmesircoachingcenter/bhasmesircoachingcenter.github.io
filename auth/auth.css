@@ -767,6 +767,45 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 .fees-send-receipt-toggle { margin: 0; }
 .fees-row-actions .btn,
 .fees-row-actions .icon-btn { flex-shrink: 0; }
+.fees-payment-history {
+  margin: 18px 0 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #d8dee8;
+}
+.fees-payment-history-title,
+.fees-add-payment h4 {
+  margin: 0 0 10px;
+  font-size: .95rem;
+  color: #1a365d;
+}
+.fees-payment-empty {
+  margin: 0;
+  font-size: .88rem;
+  color: #5a6578;
+}
+.fees-payment-table {
+  width: 100%;
+  font-size: .86rem;
+  margin-bottom: 8px;
+}
+.fees-payment-table th,
+.fees-payment-table td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+.fees-payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fees-add-payment {
+  margin: 14px 0;
+  padding: 14px 0 4px;
+  border-top: 1px dashed #d8dee8;
+}
+.fees-add-payment-actions {
+  margin-top: 10px;
+}
 .student-fees-editor .actions {
   display: flex;
   flex-wrap: wrap;

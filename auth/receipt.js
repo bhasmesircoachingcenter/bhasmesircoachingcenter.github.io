@@ -31,6 +31,15 @@ function renderReceipt(data) {
   var discountHtml = data.discounted
     ? '<div class="note">Discount applied / सवलत लागू</div>'
     : "";
+  var installmentHtml = data.installmentNo
+    ? '<div class="note installment"><strong>Installment / हप्ता ' + esc(String(data.installmentNo)) +
+      (data.installmentTotal ? " of " + esc(String(data.installmentTotal)) : "") + "</strong></div>"
+    : "";
+
+  var thisPaymentRow = data.paymentAmount != null && data.paymentAmount !== ""
+    ? "<tr><td>This payment / हे पेमेंट</td><td class=\"amount\">" + formatRupee(data.paymentAmount) + "</td></tr>"
+    : "";
+  var totalPaidRow = "<tr><td>Total paid so far / आतापर्यंत भरले</td><td class=\"amount\">" + formatRupee(data.amountPaid) + "</td></tr>";
 
   return (
     '<div class="page">' +
@@ -42,6 +51,7 @@ function renderReceipt(data) {
     '<div><strong>Receipt No / पावती क्र.</strong>' + esc(data.receiptNo) + "</div>" +
     '<div><strong>Date / तारीख</strong>' + esc(formatDate(data.paymentDate)) + "</div>" +
     "</div>" +
+    installmentHtml +
     '<div class="student-box"><h2>Student Details / विद्यार्थी माहिती</h2>' +
     '<div class="student-grid">' +
     "<div><strong>Name:</strong> " + esc(data.studentName) + "</div>" +
@@ -53,7 +63,8 @@ function renderReceipt(data) {
     "<tr><td>Payment plan / योजना — " + esc(data.paymentPlan) + '</td><td class="amount">—</td></tr>' +
     "<tr><td>Course fee / अभ्यासक्रम शुल्क</td><td class=\"amount\">" + formatRupee(data.courseFee) + "</td></tr>" +
     "<tr><td>Registration fee / नोंदणी शुल्क</td><td class=\"amount\">" + formatRupee(data.registrationFee) + "</td></tr>" +
-    "<tr><td>Amount paid / भरलेली रक्कम</td><td class=\"amount\">" + formatRupee(data.amountPaid) + "</td></tr>" +
+    thisPaymentRow +
+    totalPaidRow +
     '<tr class="total"><td>Balance due / बाकी</td><td class="amount">' + formatRupee(data.balance) + "</td></tr>" +
     "</tbody></table>" +
     discountHtml + noteHtml +
