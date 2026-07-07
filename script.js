@@ -74,6 +74,7 @@
       "c10.li2": "Pre-exam & mock test practice",
       "c10.li3": "School + board exam preparation",
 
+
       "videos.eyebrow": "Learn Online",
       "videos.heading": "Video Lectures",
       "videos.subtitle": "Watch free maths lessons by Bhasme Sir, anytime.",
@@ -205,6 +206,7 @@
       "c10.li1": "संपूर्ण SSC अभ्यासक्रम",
       "c10.li2": "पूर्वपरीक्षा व सराव चाचण्या",
       "c10.li3": "शालेय + बोर्ड परीक्षेची तयारी",
+
 
       "videos.eyebrow": "ऑनलाइन शिका",
       "videos.heading": "व्हिडिओ लेक्चर्स",

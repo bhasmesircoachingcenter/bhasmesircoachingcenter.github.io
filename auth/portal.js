@@ -13,8 +13,7 @@
 import { auth, db } from "./firebase-config.js";
 import {
   onAuthStateChanged,
-  signOut,
-  sendEmailVerification
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   doc,
@@ -299,42 +298,6 @@ function loadStudentData(uid) {
   });
 }
 
-/* ---------------- Email verification resend ---------------- */
-var verifyWired = false;
-function setupVerifyBanner(user) {
-  var dismiss = el("dismissVerify");
-  if (dismiss && !verifyWired) {
-    dismiss.addEventListener("click", function () {
-      var banner = el("verifyBanner");
-      if (banner) banner.classList.add("hidden");
-    });
-  }
-  var resendBtn = el("resendBtn");
-  var note = el("verifyNote");
-  if (resendBtn && !verifyWired) {
-    resendBtn.addEventListener("click", function () {
-      resendBtn.disabled = true;
-      if (note) { note.textContent = ""; note.className = "verify-note"; }
-      sendEmailVerification(user)
-        .then(function () {
-          if (note) { note.textContent = t("portal.resendOk"); note.className = "verify-note ok"; }
-        })
-        .catch(function (err) {
-          var code = err && err.code;
-          if (note) {
-            note.textContent = code === "auth/too-many-requests" ? t("portal.resendWait") : t("portal.resendErr");
-            note.className = "verify-note err";
-          }
-        })
-        .finally(function () {
-          // Re-enable after a short delay to discourage rapid repeat requests.
-          setTimeout(function () { resendBtn.disabled = false; }, 30000);
-        });
-    });
-  }
-  verifyWired = true;
-}
-
 /* ---------------- Boot ---------------- */
 var langToggle = document.getElementById("langToggle");
 if (langToggle) {
@@ -366,11 +329,6 @@ onAuthStateChanged(auth, function (user) {
   if (app) app.classList.remove("hidden");
 
   setText("studentEmail", user.email || "");
-
-  // Show the resend-verification banner for unverified users (non-blocking).
-  var verifyBanner = el("verifyBanner");
-  if (verifyBanner) verifyBanner.classList.toggle("hidden", !!user.emailVerified);
-  setupVerifyBanner(user);
 
   // Reveal the Admin link only if this user is an admin (admins/{uid} exists).
   getDoc(doc(db, "admins", user.uid)).then(function (snap) {

@@ -16,7 +16,6 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -54,7 +53,7 @@ var I18N = {
     "auth.haveAccount": "Already have an account?",
     "auth.loginLink": "Log In",
     "auth.forgotTitle": "Reset Password",
-    "auth.forgotIntro": "Enter your email and we'll send you a password reset link.",
+    "auth.forgotIntro": "Enter your email and we'll send you a password reset link. If it doesn't arrive, check your Spam or Promotions folder.",
     "auth.sendReset": "Send Reset Link",
     "auth.backToLogin": "Back to login",
     // dynamic messages
@@ -68,8 +67,8 @@ var I18N = {
     "msg.network": "Network error. Please check your connection.",
     "msg.welcome": "Signed in — redirecting…",
     "msg.emailInUse": "This email is already registered. Try logging in instead.",
-    "msg.registered": "Account created! A verification email has been sent — please check your inbox and Spam/Promotions folder. Redirecting…",
-    "msg.resetSent": "If that email is registered, a reset link has been sent.",
+    "msg.registered": "Account created! Redirecting to your portal…",
+    "msg.resetSent": "If that email is registered, a reset link has been sent. Check your Spam/Promotions folder if you don't see it in a few minutes.",
     "msg.popupClosed": "Sign-in was cancelled.",
     "msg.generic": "Something went wrong. Please try again."
   },
@@ -98,7 +97,7 @@ var I18N = {
     "auth.haveAccount": "आधीच खाते आहे?",
     "auth.loginLink": "लॉग इन करा",
     "auth.forgotTitle": "पासवर्ड रीसेट करा",
-    "auth.forgotIntro": "तुमचा ईमेल टाका, आम्ही पासवर्ड रीसेट लिंक पाठवू.",
+    "auth.forgotIntro": "तुमचा ईमेल टाका, आम्ही पासवर्ड रीसेट लिंक पाठवू. लिंक न आल्यास Spam किंवा Promotions फोल्डर तपासा.",
     "auth.sendReset": "रीसेट लिंक पाठवा",
     "auth.backToLogin": "लॉगिनकडे परत",
     // dynamic messages
@@ -112,8 +111,8 @@ var I18N = {
     "msg.network": "नेटवर्क त्रुटी. कृपया तुमचे कनेक्शन तपासा.",
     "msg.welcome": "साइन इन झाले — पुनर्निर्देशित करत आहोत…",
     "msg.emailInUse": "हा ईमेल आधीच नोंदणीकृत आहे. कृपया लॉग इन करा.",
-    "msg.registered": "खाते तयार झाले! पडताळणी ईमेल पाठवला आहे — कृपया तुमचा इनबॉक्स व Spam/Promotions फोल्डर तपासा. पुनर्निर्देशित करत आहोत…",
-    "msg.resetSent": "जर तो ईमेल नोंदणीकृत असेल, तर रीसेट लिंक पाठवली आहे.",
+    "msg.registered": "खाते तयार झाले! तुमच्या पोर्टलकडे पुनर्निर्देशित करत आहोत…",
+    "msg.resetSent": "जर तो ईमेल नोंदणीकृत असेल, तर रीसेट लिंक पाठवली आहे. काही मिनिटांत दिसत नसेल तर Spam/Promotions फोल्डर तपासा.",
     "msg.popupClosed": "साइन-इन रद्द केले.",
     "msg.generic": "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा."
   }
@@ -292,7 +291,7 @@ if (registerForm) {
     createUserWithEmailAndPassword(auth, email, password)
       .then(function (cred) {
         var user = cred.user;
-        // Set the display name, create the Firestore profile, send verification.
+        // Set the display name and create the Firestore profile.
         var tasks = [
           updateProfile(user, { displayName: name }),
           setDoc(doc(db, "students", user.uid), {
@@ -301,8 +300,7 @@ if (registerForm) {
             phone: phone,
             batch: "",
             createdAt: serverTimestamp()
-          }),
-          sendEmailVerification(user)
+          })
         ];
         return Promise.allSettled(tasks);
       })

@@ -164,7 +164,8 @@ var I18N = {
     "admin.accountsStatusActive": "Active",
     "admin.accountsCreate": "Create account",
     "admin.accountsRemove": "Remove account",
-    "admin.accountsCreated": "Account created. Student can log in with email + mobile as password.",
+    "admin.accountsCreated": "Account created and welcome email sent. Login: email + mobile as password.",
+    "admin.accountsCreatedNoEmail": "Account created, but welcome email could not be sent. Student can still log in with email + mobile.",
     "admin.accountsRemoved": "Portal account removed.",
     "admin.accountsNoEmail": "Email missing — cannot create account.",
     "admin.accountsInvalidEmail": "Invalid email in Admissions — fix the sheet, then refresh.",
@@ -464,7 +465,8 @@ var I18N = {
     "admin.accountsStatusActive": "सक्रिय",
     "admin.accountsCreate": "खाते तयार करा",
     "admin.accountsRemove": "खाते काढा",
-    "admin.accountsCreated": "खाते तयार झाले. विद्यार्थी ईमेल + मोबाइल पासवर्डने लॉगिन करू शकतो.",
+    "admin.accountsCreated": "खाते तयार झाले आणि स्वागत ईमेल पाठवला. लॉगिन: ईमेल + मोबाइल पासवर्ड.",
+    "admin.accountsCreatedNoEmail": "खाते तयार झाले, पण स्वागत ईमेल पाठवता आला नाही. विद्यार्थी अजूनही ईमेल + मोबाइलने लॉगिन करू शकतो.",
     "admin.accountsRemoved": "पोर्टल खाते काढले.",
     "admin.accountsNoEmail": "ईमेल नाही — खाते तयार करता येत नाही.",
     "admin.accountsInvalidEmail": "Admissions मध्ये चुकीचा ईमेल — शीट दुरुस्त करा, नंतर रिफ्रेश करा.",
@@ -1112,7 +1114,20 @@ function createPortalAccount(admissionRow, btn) {
       createdAt: serverTimestamp()
     }).catch(function () { throw new Error("firestore-failed"); });
   }).then(function () {
-    if (note) setNote(note, t("admin.accountsCreated"), "ok");
+    var user = auth.currentUser;
+    if (!user) return "email-skipped";
+    return user.getIdToken().then(function (idToken) {
+      return sheetAdminPost(idToken, "portalwelcome", {
+        name: admissionRow.name || "",
+        email: email,
+        phone: phone,
+        batch: admissionRow.batch || ""
+      }).then(function () { return "email-ok"; }).catch(function () { return "email-failed"; });
+    });
+  }).then(function (emailStatus) {
+    if (note) {
+      setNote(note, t(emailStatus === "email-failed" ? "admin.accountsCreatedNoEmail" : "admin.accountsCreated"), "ok");
+    }
     return loadStudents().then(function () {
       state.admissions = null;
       return ensureAdmissions(true);

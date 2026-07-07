@@ -20,9 +20,9 @@ If **Portal Accounts** shows an Apps Script error, redeploy with a new version (
 2. Students from the **Admissions** sheet without an account show **Create account**
 3. Registered students show **Remove account**
 
-**Create:** Apps Script calls Firebase Auth REST API (`signUp`); admin browser writes `students/{uid}` in Firestore.
+**Create:** Admin browser creates the Firebase Auth user and Firestore profile; Apps Script sends a **welcome email** with login details (same Gmail account as enquiry emails — usually better inbox delivery than Firebase verification mail).
 
-**Remove:** Apps Script signs in as the student and deletes the Auth user; admin browser deletes Firestore profile + attendance/results subcollections.
+**Remove:** Admin browser signs in as the student and deletes the Auth user; Firestore profile + attendance/results subcollections are removed.
 
 ## Student login
 
@@ -37,6 +37,7 @@ Self-registration on the login page is disabled; accounts are created by admin o
 - `unauthorized` — sign in as `bhasmesircoachingcenter@gmail.com` in the admin panel
 - `already-exists` — student already has an account with that email
 - `invalid-phone` — mobile must be a valid 10-digit Indian number (password)
+- Welcome email not sent — redeploy Apps Script (`portalwelcome` action); account still works for login
 
 ---
 
