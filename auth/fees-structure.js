@@ -32,8 +32,8 @@ export function detectClassKey(batchOrClass) {
 export function suggestCourseFee(classKey, paymentPlan) {
   var rates = CLASS_RATES[classKey];
   if (!rates) return 0;
-  if (paymentPlan === "installment") return rates.installment;
-  return rates.onetime;
+  if (paymentPlan === "onetime") return rates.onetime;
+  return rates.installment;
 }
 
 export function defaultRatesReferenceHtml(lang) {
@@ -50,7 +50,7 @@ export function defaultRatesReferenceHtml(lang) {
     "<table class='data-table fees-ref-table'><thead><tr>" +
     "<th>" + (mr ? "इयत्ता" : "Class") + "</th>" +
     "<th>" + (mr ? "एकवेळ" : "One-time") + "</th>" +
-    "<th>" + (mr ? "मासिक/त्रैमासिक" : "Monthly/Quarterly") + "</th>" +
+    "<th>" + (mr ? "हप्त्यात / वेळोवेळी" : "Installments") + "</th>" +
     "</tr></thead><tbody>";
   rows.forEach(function (r) {
     tbl += "<tr><td>" + r[0] + "</td><td>" + formatRupee(r[1]) + "</td><td>" + formatRupee(r[2]) + "</td></tr>";
