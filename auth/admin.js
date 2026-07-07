@@ -1984,12 +1984,7 @@ function loadAllStudentFees() {
 function renderFeesReference() {
   var wrap = el("feesRefWrap");
   if (!wrap) return;
-  wrap.innerHTML =
-    "<p class=\"fees-flyer-link\"><a href=\"fee-structure.html\" target=\"_blank\" rel=\"noopener noreferrer\">" +
-    (lang === "mr" ? "पालकांसाठी फी फ्लायर पहा / प्रिंट करा" : "View / print fee flyer for parents") +
-    "</a></p>" +
-    "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" +
-    defaultRatesReferenceHtml(lang);
+  wrap.innerHTML = "<h3 class=\"accounts-subtitle\">" + t("admin.feesRefTitle") + "</h3>" + defaultRatesReferenceHtml(lang);
 }
 
 function getFeesSearchQuery() {
