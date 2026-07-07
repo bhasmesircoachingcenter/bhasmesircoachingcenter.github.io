@@ -1915,12 +1915,28 @@ function studentMatchesFeesSearch(student, query) {
   return hay.indexOf(query) >= 0;
 }
 
-function studentMatchesFeesClassFilter(student, filter) {
-  if (!filter || filter === "all") return true;
+function feesClassFilterKeyForStudent(student) {
   var info = studentFeesRecordFor(student);
   var batch = normalizeAttClass(student.batch);
-  var classKey = info.record.classKey || detectClassKey(student.batch);
-  return batch === filter || classKey === filter;
+  return info.record.classKey || detectClassKey(batch) || batch || "";
+}
+
+var FEES_CLASS_ORDER = ["8th", "9th", "10th"];
+
+function sortFeesClassOptions(list) {
+  return list.sort(function (a, b) {
+    var ai = FEES_CLASS_ORDER.indexOf(a);
+    var bi = FEES_CLASS_ORDER.indexOf(b);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+function studentMatchesFeesClassFilter(student, filter) {
+  if (!filter || filter === "all") return true;
+  return feesClassFilterKeyForStudent(student) === filter;
 }
 
 function studentMatchesFeesStatusFilter(student, filter) {
@@ -1951,12 +1967,10 @@ function populateFeesClassFilter() {
   var prev = getFeesClassFilter();
   var classes = {};
   state.attendanceRoster.forEach(function (s) {
-    var batch = normalizeAttClass(s.batch);
-    if (batch) classes[batch] = true;
-    var ck = detectClassKey(s.batch);
-    if (ck) classes[ck] = true;
+    var key = feesClassFilterKeyForStudent(s);
+    if (key) classes[key] = true;
   });
-  var list = Object.keys(classes).sort(function (a, b) { return a.localeCompare(b); });
+  var list = sortFeesClassOptions(Object.keys(classes));
 
   sel.textContent = "";
   var allOpt = document.createElement("option");
