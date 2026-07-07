@@ -189,7 +189,7 @@ function loginErrorKey(code) {
 
 function redirectAfterLogin(user) {
   return getDoc(doc(db, "admins", user.uid)).then(function (snap) {
-    window.location.href = snap.exists() ? "admin.html" : "portal.html";
+    window.location.href = snap.exists() ? "admin.html?v=2" : "portal.html";
   }).catch(function () {
     window.location.href = "portal.html";
   });
