@@ -682,6 +682,21 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 }
 .fees-filter-meta { margin: 0 0 12px; font-size: .88rem; }
 .fees-report-group .btn { width: 100%; min-height: 42px; }
+.fees-revoke-group { min-width: 280px; flex: 1 1 320px; }
+.fees-revoke-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.fees-revoke-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  font-size: .88rem;
+}
+.fees-revoke-row .btn { flex-shrink: 0; }
 
 .fees-ref-wrap {
   margin: 0 0 20px;

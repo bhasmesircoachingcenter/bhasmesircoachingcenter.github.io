@@ -28,7 +28,9 @@ import {
   addDoc,
   deleteDoc,
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   DEFAULT_REGISTRATION_FEE,
@@ -143,6 +145,11 @@ var I18N = {
     "admin.feesErrDeletePayment": "Could not delete payment.",
     "admin.feesTotalPaid": "Total paid (₹)",
     "admin.feesThisPayment": "This payment",
+    "admin.feesRevokeLink": "Revoke receipt link",
+    "admin.feesRevokePh": "Paste receipt URL or token",
+    "admin.feesRevoked": "Receipt link revoked.",
+    "admin.feesRevokeErr": "Could not revoke receipt link.",
+    "admin.feesRevokeInvalid": "Paste a valid receipt link or token.",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -438,6 +445,11 @@ var I18N = {
     "admin.feesErrDeletePayment": "पेमेंट काढता आले नाही.",
     "admin.feesTotalPaid": "एकूण भरले (₹)",
     "admin.feesThisPayment": "हे पेमेंट",
+    "admin.feesRevokeLink": "पावती लिंक रद्द करा",
+    "admin.feesRevokePh": "पावती URL किंवा token पेस्ट करा",
+    "admin.feesRevoked": "पावती लिंक रद्द झाली.",
+    "admin.feesRevokeErr": "पावती लिंक रद्द करता आली नाही.",
+    "admin.feesRevokeInvalid": "वैध पावती लिंक किंवा token पेस्ट करा.",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -2269,6 +2281,16 @@ function bindStudentFeesFilters() {
   if (classFilter) classFilter.addEventListener("change", onFilterChange);
   if (statusFilter) statusFilter.addEventListener("change", onFilterChange);
   if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
+
+  var revokeBtn = el("feesRevokeBtn");
+  var revokeInput = el("feesRevokeInput");
+  if (revokeBtn && revokeInput) {
+    revokeBtn.addEventListener("click", function () {
+      revokeReceiptLinkFromInput(revokeInput.value, el("studentFeesNote")).then(function (ok) {
+        if (ok) revokeInput.value = "";
+      });
+    });
+  }
 }
 
 function receiptTokensFromRecord(record) {
@@ -2283,12 +2305,60 @@ function receiptTokensFromRecord(record) {
   });
 }
 
+function parseReceiptTokenFromInput(input) {
+  var s = String(input || "").trim();
+  if (!s) return "";
+  try {
+    var url = new URL(s);
+    var fromQuery = url.searchParams.get("r");
+    if (fromQuery) return String(fromQuery).trim();
+  } catch (err) {}
+  return s.replace(/[^a-f0-9]/gi, "").slice(0, 64) || s;
+}
+
+function findReceiptTokensForStudent(docId) {
+  return getDocs(query(collection(db, "feeReceiptLinks"), where("studentFeesDocId", "==", docId)))
+    .then(function (qs) {
+      var tokens = [];
+      qs.forEach(function (d) { tokens.push(d.id); });
+      return tokens;
+    })
+    .catch(function () { return []; });
+}
+
+function revokeFeeReceiptLink(token) {
+  if (!token) return Promise.reject(new Error("no-token"));
+  return setDoc(doc(db, "feeReceiptLinks", token), {
+    revoked: true,
+    revokedAt: new Date().toISOString()
+  }, { merge: true }).then(function () {
+    return deleteDoc(doc(db, "feeReceiptLinks", token)).catch(function () {});
+  });
+}
+
 function deleteFeeReceiptLinks(tokens) {
   tokens = tokens || [];
   if (!tokens.length) return Promise.resolve();
   return Promise.all(tokens.map(function (token) {
-    return deleteDoc(doc(db, "feeReceiptLinks", token)).catch(function () {});
+    return revokeFeeReceiptLink(token);
   }));
+}
+
+function revokeReceiptLinkFromInput(input, noteEl) {
+  var token = parseReceiptTokenFromInput(input);
+  if (!token || token.length < 8) {
+    if (noteEl) setNote(noteEl, t("admin.feesRevokeInvalid"), "err");
+    return Promise.resolve(false);
+  }
+  return revokeFeeReceiptLink(token)
+    .then(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesRevoked"), "ok");
+      return true;
+    })
+    .catch(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesRevokeErr"), "err");
+      return false;
+    });
 }
 
 function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
@@ -2296,9 +2366,24 @@ function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
   if (!window.confirm(msg)) return Promise.resolve(false);
 
   var record = state.studentFeesMap[docId];
-  var tokens = receiptTokensFromRecord(record);
+  var loadRecord = record
+    ? Promise.resolve(record)
+    : getDoc(doc(db, "studentFees", docId)).then(function (snap) {
+        return snap.exists() ? normalizeStudentFeesRecord(snap.data(), null) : null;
+      });
 
-  return deleteFeeReceiptLinks(tokens)
+  return loadRecord
+    .then(function (rec) {
+      var tokens = receiptTokensFromRecord(rec);
+      return findReceiptTokensForStudent(docId).then(function (linked) {
+        return tokens.concat(linked).filter(function (token, index, list) {
+          return token && list.indexOf(token) === index;
+        });
+      });
+    })
+    .then(function (tokens) {
+      return deleteFeeReceiptLinks(tokens);
+    })
     .then(function () {
       return deleteDoc(doc(db, "studentFees", docId));
     })
@@ -2386,7 +2471,10 @@ function publishPaymentReceiptLink(student, record, payment, paymentIndex, payme
   var token = payment.receiptToken || randomReceiptToken();
   payment.receiptToken = token;
   var payload = buildPaymentReceiptPayload(student, record, payment, paymentIndex, payments);
+  var docId = studentFeesDocId(rosterAttKey(student));
   return setDoc(doc(db, "feeReceiptLinks", token), Object.assign({}, payload, {
+    studentFeesDocId: docId,
+    revoked: false,
     publishedAt: new Date().toISOString()
   })).then(function () {
     return feeReceiptPublicUrl(token);

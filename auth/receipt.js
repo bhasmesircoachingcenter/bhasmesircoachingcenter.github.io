@@ -88,7 +88,7 @@ if (!token) {
   getDoc(doc(db, "feeReceiptLinks", token))
     .then(function (snap) {
       el("loadingView").classList.add("hidden");
-      if (!snap.exists()) {
+      if (!snap.exists() || snap.data().revoked) {
         el("errorView").classList.remove("hidden");
         return;
       }
