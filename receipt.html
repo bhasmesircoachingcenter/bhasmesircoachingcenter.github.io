@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fee Receipt | Bhasme Sir Coaching Center</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="assets/logo.png?v=2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="auth/receipt.css?v=1" />
+</head>
+<body>
+  <div id="loadingView" class="receipt-loading">Loading receipt…</div>
+  <div id="errorView" class="receipt-error hidden">
+    <h1>Receipt not found</h1>
+    <p>This link may be invalid or expired. Contact the coaching center if you need help.</p>
+    <a class="btn" href="index.html">Back to website</a>
+  </div>
+  <main id="receiptView" class="hidden"></main>
+  <script type="module" src="auth/receipt.js?v=1"></script>
+</body>
+</html>

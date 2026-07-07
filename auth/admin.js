@@ -117,8 +117,10 @@ var I18N = {
     "admin.feesReceiptSubject": "Fee Receipt – {name} ({receipt})",
     "admin.feesReceiptConfirm": "Send fee receipt to {name} at {email}?",
     "admin.feesReceiptSending": "Sending receipt…",
-    "admin.feesReceiptSent": "PDF receipt emailed to student (copy to admin).",
+    "admin.feesReceiptSent": "Receipt link emailed to student (copy to admin).",
     "admin.feesReceiptErr": "Could not send receipt. Try again.",
+    "admin.feesCopyLink": "Copy receipt link",
+    "admin.feesLinkCopied": "Receipt link copied.",
     "admin.feesReceiptNoEmail": "No valid student email — add email in Admissions sheet.",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
@@ -393,8 +395,10 @@ var I18N = {
     "admin.feesReceiptSubject": "फी पावती – {name} ({receipt})",
     "admin.feesReceiptConfirm": "{name} ला {email} वर फी पावती पाठवायची?",
     "admin.feesReceiptSending": "पावती पाठवत आहे…",
-    "admin.feesReceiptSent": "PDF पावती विद्यार्थ्याला ईमेल झाली (अॅडमिनला प्रत).",
+    "admin.feesReceiptSent": "पावती लिंक विद्यार्थ्याला ईमेल झाली (अॅडमिनला प्रत).",
     "admin.feesReceiptErr": "पावती पाठवता आली नाही. पुन्हा प्रयत्न करा.",
+    "admin.feesCopyLink": "पावती लिंक कॉपी करा",
+    "admin.feesLinkCopied": "पावती लिंक कॉपी झाली.",
     "admin.feesReceiptNoEmail": "वैध ईमेल नाही — Admissions sheet मध्ये ईमेल भरा.",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
@@ -634,6 +638,7 @@ var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // which the server verifies — no static secret/token is embedded here.
 var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
 var ADMIN_REPORT_EMAIL = "bhasmesircoachingcenter@gmail.com";
+var RECEIPT_PUBLIC_ORIGIN = "https://bhasmesircoachingcenter.github.io";
 
 function applyLang(next) {
   if (!I18N[next]) next = "en";
@@ -2244,6 +2249,79 @@ function feeReceiptNumber(student, record) {
   return "BCC-" + datePart + "-" + initials;
 }
 
+function randomReceiptToken() {
+  var arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
+
+function feeReceiptPublicUrl(token) {
+  return RECEIPT_PUBLIC_ORIGIN + "/receipt.html?r=" + encodeURIComponent(token);
+}
+
+function publishFeeReceiptLink(student, record) {
+  var key = rosterAttKey(student);
+  var docId = studentFeesDocId(key);
+  var saved = state.studentFeesMap[docId] || record;
+  var token = saved.publicReceiptToken || record.publicReceiptToken || randomReceiptToken();
+  var payload = buildFeeReceiptPayload(student, record);
+
+  return setDoc(doc(db, "feeReceiptLinks", token), {
+    receiptNo: payload.receiptNo,
+    paymentDate: payload.paymentDate,
+    studentName: payload.studentName,
+    classLabel: payload.classLabel,
+    email: payload.email,
+    mobile: payload.mobile,
+    paymentPlan: payload.paymentPlan,
+    courseFee: payload.courseFee,
+    registrationFee: payload.registrationFee,
+    amountPaid: payload.amountPaid,
+    balance: payload.balance,
+    discounted: payload.discounted,
+    note: payload.note,
+    publishedAt: new Date().toISOString()
+  }).then(function () {
+    return setDoc(doc(db, "studentFees", docId), { publicReceiptToken: token }, { merge: true }).then(function () {
+      if (state.studentFeesMap[docId]) state.studentFeesMap[docId].publicReceiptToken = token;
+      return feeReceiptPublicUrl(token);
+    });
+  });
+}
+
+function buildFeeReceiptEmailBody(student, record, url) {
+  return [
+    "Dear " + (student.name || record.name || "Student") + ",",
+    "",
+    "Your fee receipt is ready. Open this link:",
+    url,
+    "",
+    "Receipt No / पावती क्र.: " + feeReceiptNumber(student, record),
+    "Amount paid / भरलेली रक्कम: " + formatRupee(record.amountPaid),
+    "Balance due / बाकी: " + formatRupee(record.balance),
+    "",
+    "You can print or save as PDF from the receipt page.",
+    "",
+    "Thank you,",
+    "Bhasme Sir Coaching Center"
+  ].join("\n");
+}
+
+function copyFeeReceiptLink(student, record, noteEl) {
+  return publishFeeReceiptLink(student, record).then(function (url) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(url).then(function () {
+        if (noteEl) setNote(noteEl, t("admin.feesLinkCopied"), "ok");
+        return url;
+      });
+    }
+    window.prompt(t("admin.feesCopyLink"), url);
+    return url;
+  }).catch(function () {
+    if (noteEl) setNote(noteEl, t("admin.feesReceiptErr"), "err");
+  });
+}
+
 function buildFeeReceiptPayload(student, record) {
   return {
     receiptNo: feeReceiptNumber(student, record),
@@ -2262,7 +2340,7 @@ function buildFeeReceiptPayload(student, record) {
   };
 }
 
-function buildFeeReceiptWhatsAppText(student, record) {
+function buildFeeReceiptWhatsAppText(student, record, url) {
   var receiptNo = feeReceiptNumber(student, record);
   var classLabel = record.classKey || detectClassKey(student.batch) || normalizeAttClass(student.batch) || "—";
   var lines = [
@@ -2283,20 +2361,27 @@ function buildFeeReceiptWhatsAppText(student, record) {
   ];
   if (record.discounted) lines.push("Discount applied / सवलत लागू");
   if (record.note) lines.push("Note / टीप: " + record.note);
+  if (url) {
+    lines.push("", "View receipt / पावती पहा:", url);
+  }
   lines.push("", "Thank you / धन्यवाद", "+91 70585 05983");
   return lines.join("\n");
 }
 
 function openStudentFeeReceiptWhatsApp(student, record, noteEl) {
   var phone = student.mobile || record.mobile;
-  var url = whatsAppDirectUrl(phone, buildFeeReceiptWhatsAppText(student, record));
-  if (!url) {
-    if (noteEl) setNote(noteEl, t("admin.feesWhatsAppNoPhone"), "err");
-    return false;
-  }
-  window.open(url, "_blank", "noopener,noreferrer");
-  if (noteEl) setNote(noteEl, t("admin.feesWhatsAppOpened"), "ok");
-  return true;
+  publishFeeReceiptLink(student, record).then(function (url) {
+    var text = buildFeeReceiptWhatsAppText(student, record, url);
+    var waUrl = whatsAppDirectUrl(phone, text);
+    if (!waUrl) {
+      if (noteEl) setNote(noteEl, t("admin.feesWhatsAppNoPhone"), "err");
+      return;
+    }
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    if (noteEl) setNote(noteEl, t("admin.feesWhatsAppOpened"), "ok");
+  }).catch(function () {
+    if (noteEl) setNote(noteEl, t("admin.feesReceiptErr"), "err");
+  });
 }
 
 function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
@@ -2322,14 +2407,18 @@ function sendStudentFeeReceipt(student, record, noteEl, skipConfirm) {
   var receiptPayload = buildFeeReceiptPayload(student, record);
   var user = auth.currentUser;
 
-  return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
-    .then(function (idToken) {
-      return sheetAdminPost(idToken, "feereceipt", {
-        to: email,
-        subject: subject,
-        receiptJson: JSON.stringify(receiptPayload),
-        lang: lang
-      });
+  return publishFeeReceiptLink(student, record)
+    .then(function (url) {
+      return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+        .then(function (idToken) {
+          return sheetAdminPost(idToken, "feereceipt", {
+            to: email,
+            subject: subject,
+            body: buildFeeReceiptEmailBody(student, record, url),
+            link: url,
+            lang: lang
+          });
+        });
     })
     .then(function () {
       if (noteEl) setNote(noteEl, t("admin.feesReceiptSent"), "ok");
@@ -2525,6 +2614,15 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
     });
     actions.appendChild(waBtn);
 
+    var copyLinkBtn = document.createElement("button");
+    copyLinkBtn.type = "button";
+    copyLinkBtn.className = "btn btn-outline btn-sm";
+    copyLinkBtn.textContent = t("admin.feesCopyLink");
+    copyLinkBtn.addEventListener("click", function () {
+      copyFeeReceiptLink(student, record, note);
+    });
+    actions.appendChild(copyLinkBtn);
+
     var delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "icon-btn";
@@ -2569,12 +2667,14 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
       .then(function () {
         state.studentFeesMap[studentFeesDocId(key)] = payload;
         setNote(note, t("admin.feesSaved"), "ok");
-        if (sendReceiptOnSave.checked) {
-          return sendStudentFeeReceipt(student, payload, note, true).then(function () {
-            if (onSaved) onSaved();
-          });
-        }
-        if (onSaved) onSaved();
+        return publishFeeReceiptLink(student, payload).then(function () {
+          if (sendReceiptOnSave.checked) {
+            return sendStudentFeeReceipt(student, payload, note, true).then(function () {
+              if (onSaved) onSaved();
+            });
+          }
+          if (onSaved) onSaved();
+        });
       })
       .catch(function () {
         setNote(note, t("admin.feesErr"), "err");
@@ -2676,6 +2776,15 @@ function renderStudentFeesTable() {
           openStudentFeeReceiptWhatsApp(student, record, el("studentFeesNote"));
         });
         btnRow.appendChild(waBtn);
+
+        var copyLinkBtn = document.createElement("button");
+        copyLinkBtn.type = "button";
+        copyLinkBtn.className = "btn btn-outline btn-sm";
+        copyLinkBtn.textContent = t("admin.feesCopyLink");
+        copyLinkBtn.addEventListener("click", function () {
+          copyFeeReceiptLink(student, record, el("studentFeesNote"));
+        });
+        btnRow.appendChild(copyLinkBtn);
 
         var delBtn = document.createElement("button");
         delBtn.type = "button";

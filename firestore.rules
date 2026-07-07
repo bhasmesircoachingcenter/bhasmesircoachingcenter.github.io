@@ -81,6 +81,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ---- public fee receipt links (read with secret token in URL; admin writes) ----
+    match /feeReceiptLinks/{token} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ---- default deny everything else ----
     match /{document=**} {
       allow read, write: if false;
