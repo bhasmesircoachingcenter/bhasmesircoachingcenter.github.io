@@ -97,9 +97,9 @@ var I18N = {
     "admin.feesFilterNone": "No students match your filters.",
     "admin.feesEmailReport": "Email fee report",
     "admin.feesReportSubject": "Student fees report ({n} students)",
-    "admin.feesReportConfirm": "Email fee report for {n} student(s) to bhasmesircoachingcenter@gmail.com?",
-    "admin.feesReportSending": "Sending fee report…",
-    "admin.feesReportSent": "Fee report emailed to admin.",
+    "admin.feesReportConfirm": "Email fee report with Excel file ({total} students) to bhasmesircoachingcenter@gmail.com?",
+    "admin.feesReportSending": "Sending fee report with Excel…",
+    "admin.feesReportSent": "Fee report emailed with Excel attachment.",
     "admin.feesReportErr": "Could not send fee report. Try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
     "admin.feesDiscount": "Discounted price (edit balance manually)",
@@ -369,9 +369,9 @@ var I18N = {
     "admin.feesFilterNone": "फिल्टरशी जुळणारे विद्यार्थी नाहीत.",
     "admin.feesEmailReport": "फी अहवाल ईमेल करा",
     "admin.feesReportSubject": "विद्यार्थी फी अहवाल ({n} विद्यार्थी)",
-    "admin.feesReportConfirm": "{n} विद्यार्थ्यांचा फी अहवाल bhasmesircoachingcenter@gmail.com वर पाठवायचा?",
-    "admin.feesReportSending": "फी अहवाल पाठवत आहे…",
-    "admin.feesReportSent": "फी अहवाल अॅडमिनला ईमेल झाला.",
+    "admin.feesReportConfirm": "Excel सहित फी अहवाल ({total} विद्यार्थी) bhasmesircoachingcenter@gmail.com वर पाठवायचा?",
+    "admin.feesReportSending": "Excel सह फी अहवाल पाठवत आहे…",
+    "admin.feesReportSent": "Excel जोडलेला फी अहवाल ईमेल झाला.",
     "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
     "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
@@ -2018,6 +2018,99 @@ function updateFeesFilterMeta(shown, total) {
   setNote(meta, t("admin.feesFilterMeta").replace("{n}", shown).replace("{total}", total), "");
 }
 
+function buildFeesReportExcelRows(roster) {
+  var headers = [
+    "Student",
+    "Class",
+    "Batch",
+    "Plan",
+    "Course Fee",
+    "Registration",
+    "Amount Paid",
+    "Balance",
+    "Discount",
+    "Status",
+    "Payment Date",
+    "Receipt No",
+    "Email",
+    "Mobile",
+    "Note"
+  ];
+  var rows = [headers];
+
+  roster.forEach(function (student) {
+    var info = studentFeesRecordFor(student);
+    var r = info.record;
+    var classLabel = r.classKey || detectClassKey(student.batch) || "";
+    var batch = normalizeAttClass(student.batch) || "";
+    var status = info.hasSaved ? t("admin.feesStatusSet") : t("admin.feesStatusPending");
+
+    rows.push([
+      student.name || "",
+      classLabel,
+      batch,
+      info.hasSaved ? planLabel(r.paymentPlan) : "",
+      info.hasSaved ? r.courseFee : "",
+      info.hasSaved ? r.registrationFee : "",
+      info.hasSaved ? r.amountPaid : "",
+      info.hasSaved ? r.balance : "",
+      info.hasSaved ? (r.discounted ? "Yes" : "No") : "",
+      status,
+      info.hasSaved ? (r.paymentDate || "") : "",
+      info.hasSaved ? (r.receiptNo || "") : "",
+      student.email || "",
+      student.mobile || "",
+      info.hasSaved ? (r.note || "") : ""
+    ]);
+  });
+
+  return rows;
+}
+
+function buildFeesReportEmailBody(filteredRoster, fullRoster) {
+  var lines = [
+    "Bhasme Sir Coaching Center — Student Fees Report",
+    "Generated: " + new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
+    "",
+    "Attached Excel file includes all " + fullRoster.length + " student(s) from Admissions."
+  ];
+
+  var query = getFeesSearchQuery();
+  var classFilter = getFeesClassFilter();
+  var statusFilter = getFeesStatusFilter();
+  if (query || classFilter !== "all" || statusFilter !== "all") {
+    lines.push("");
+    lines.push("Current screen filters (summary only):");
+    if (query) lines.push("  Search: " + query);
+    if (classFilter !== "all") lines.push("  Class: " + classFilter);
+    if (statusFilter !== "all") lines.push("  Status: " + statusFilter);
+    lines.push("  Matching on screen: " + filteredRoster.length + " of " + fullRoster.length);
+  }
+
+  var recorded = 0;
+  var totalCourse = 0;
+  var totalPaid = 0;
+  var totalBalance = 0;
+  fullRoster.forEach(function (student) {
+    var info = studentFeesRecordFor(student);
+    if (!info.hasSaved) return;
+    recorded++;
+    totalCourse += info.record.courseFee;
+    totalPaid += info.record.amountPaid;
+    totalBalance += info.record.balance;
+  });
+
+  lines.push("");
+  lines.push("Summary (all recorded fees in Excel):");
+  lines.push("  Students with fees recorded: " + recorded + " / " + fullRoster.length);
+  lines.push("  Total course fee: " + formatRupee(totalCourse));
+  lines.push("  Total amount paid: " + formatRupee(totalPaid));
+  lines.push("  Total balance due: " + formatRupee(totalBalance));
+  lines.push("");
+  lines.push("Open the attached .xlsx file in Excel or Google Sheets for the full list.");
+  return lines.join("\n");
+}
+
 function buildFeesReportBody(roster) {
   var lines = [
     "Bhasme Sir Coaching Center — Student Fees Report",
@@ -2089,44 +2182,54 @@ function buildFeesReportBody(roster) {
 
 function sendFeesReportEmail() {
   var note = el("studentFeesNote");
-  var roster = getFilteredFeesRoster();
-  if (!roster.length) {
-    if (note) setNote(note, t("admin.feesReportEmpty"), "err");
-    return;
-  }
-
-  var confirmMsg = t("admin.feesReportConfirm").replace("{n}", roster.length);
-  if (!window.confirm(confirmMsg)) return;
-
   var btn = el("feesEmailReportBtn");
-  if (btn) btn.disabled = true;
-  if (note) setNote(note, t("admin.feesReportSending"), "");
 
-  var subject = t("admin.feesReportSubject").replace("{n}", roster.length);
-  var body = buildFeesReportBody(roster);
-  var user = auth.currentUser;
+  ensureAttendanceRoster(true).then(function (fullRoster) {
+    var filtered = getFilteredFeesRoster(fullRoster);
+    if (!fullRoster.length) {
+      if (note) setNote(note, t("admin.feesReportEmpty"), "err");
+      return;
+    }
+    if (!filtered.length) {
+      if (note) setNote(note, t("admin.feesFilterNone"), "err");
+      return;
+    }
 
-  Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
-    .then(function (idToken) {
-      var params = new URLSearchParams();
-      params.append("action", "broadcast");
-      params.append("idToken", idToken);
-      params.append("subject", subject);
-      params.append("body", body);
-      params.append("audience", "registered");
-      params.append("recipients", ADMIN_REPORT_EMAIL);
-      params.append("lang", lang);
-      return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
-    })
-    .then(function () {
-      if (note) setNote(note, t("admin.feesReportSent"), "ok");
-    })
-    .catch(function () {
-      if (note) setNote(note, t("admin.feesReportErr"), "err");
-    })
-    .finally(function () {
-      if (btn) btn.disabled = false;
-    });
+    var confirmMsg = t("admin.feesReportConfirm").replace("{total}", fullRoster.length);
+    if (!window.confirm(confirmMsg)) return;
+
+    if (btn) btn.disabled = true;
+    if (note) setNote(note, t("admin.feesReportSending"), "");
+
+    var subject = t("admin.feesReportSubject").replace("{n}", fullRoster.length);
+    var body = buildFeesReportEmailBody(filtered, fullRoster);
+    var excelRows = buildFeesReportExcelRows(fullRoster);
+    var user = auth.currentUser;
+
+    return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+      .then(function (idToken) {
+        var params = new URLSearchParams();
+        params.append("action", "feereport");
+        params.append("idToken", idToken);
+        params.append("subject", subject);
+        params.append("body", body);
+        params.append("rowsJson", JSON.stringify(excelRows));
+        params.append("lang", lang);
+        return fetch(SHEET_ENDPOINT, { method: "POST", body: params, mode: "no-cors", keepalive: true });
+      })
+      .then(function () {
+        if (note) setNote(note, t("admin.feesReportSent"), "ok");
+      })
+      .catch(function () {
+        if (note) setNote(note, t("admin.feesReportErr"), "err");
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }).catch(function () {
+    if (note) setNote(note, t("admin.feesReportErr"), "err");
+    if (btn) btn.disabled = false;
+  });
 }
 
 function bindStudentFeesFilters() {
