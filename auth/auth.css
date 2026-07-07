@@ -758,6 +758,12 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   color: #1565c0;
   vertical-align: middle;
 }
+.fees-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 .student-fees-editor .actions {
   display: flex;
   flex-wrap: wrap;

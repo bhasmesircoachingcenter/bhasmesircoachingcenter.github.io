@@ -103,6 +103,10 @@ var I18N = {
     "admin.feesReportEmpty": "No students to include in the report.",
     "admin.feesDiscount": "Discounted price (edit balance manually)",
     "admin.feesDiscountShort": "Discount",
+    "admin.feesDelete": "Delete",
+    "admin.feesConfirmDelete": "Delete fee record for {name}? This cannot be undone.",
+    "admin.feesDeleted": "Fee record deleted.",
+    "admin.feesErrDelete": "Could not delete fee record. Try again.",
     "admin.studentsTitle": "Students",
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
@@ -362,6 +366,10 @@ var I18N = {
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
     "admin.feesDiscount": "सवलतीची फी (बाकी स्वहस्ते भरा)",
     "admin.feesDiscountShort": "सवलत",
+    "admin.feesDelete": "हटवा",
+    "admin.feesConfirmDelete": "{name} ची फी नोंद हटवायची? हे परत मिळवता येणार नाही.",
+    "admin.feesDeleted": "फी नोंद हटवली.",
+    "admin.feesErrDelete": "फी नोंद हटवता आली नाही. पुन्हा प्रयत्न करा.",
     "admin.studentsTitle": "विद्यार्थी",
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
@@ -2112,7 +2120,24 @@ function bindStudentFeesFilters() {
   if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
 }
 
-function buildStudentFeesEditor(student, record, onSaved) {
+function deleteStudentFeeEntry(docId, studentName, noteEl, onDone) {
+  var msg = t("admin.feesConfirmDelete").replace("{name}", studentName || t("dash"));
+  if (!window.confirm(msg)) return Promise.resolve(false);
+
+  return deleteDoc(doc(db, "studentFees", docId))
+    .then(function () {
+      delete state.studentFeesMap[docId];
+      if (noteEl) setNote(noteEl, t("admin.feesDeleted"), "ok");
+      if (onDone) onDone();
+      return true;
+    })
+    .catch(function () {
+      if (noteEl) setNote(noteEl, t("admin.feesErrDelete"), "err");
+      return false;
+    });
+}
+
+function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   var editor = document.createElement("div");
   editor.className = "student-fees-editor";
 
@@ -2264,6 +2289,27 @@ function buildStudentFeesEditor(student, record, onSaved) {
   note.className = "admin-note";
   actions.appendChild(saveBtn);
 
+  if (hasSaved) {
+    var delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "icon-btn";
+    delBtn.textContent = t("admin.feesDelete");
+    delBtn.addEventListener("click", function () {
+      delBtn.disabled = true;
+      saveBtn.disabled = true;
+      deleteStudentFeeEntry(
+        studentFeesDocId(rosterAttKey(student)),
+        student.name,
+        note,
+        onSaved
+      ).finally(function () {
+        delBtn.disabled = false;
+        saveBtn.disabled = false;
+      });
+    });
+    actions.appendChild(delBtn);
+  }
+
   saveBtn.addEventListener("click", function () {
     var key = rosterAttKey(student);
     var payload = normalizeStudentFeesRecord({
@@ -2361,11 +2407,30 @@ function renderStudentFeesTable() {
         t(hasSaved ? "admin.feesStatusSet" : "admin.feesStatusPending") + "</span></td>";
 
       var tdAct = document.createElement("td");
+      tdAct.className = "fees-actions-cell";
+      var btnRow = document.createElement("div");
+      btnRow.className = "fees-row-actions";
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn btn-outline btn-sm";
       btn.textContent = t("admin.feesEdit");
-      tdAct.appendChild(btn);
+      btnRow.appendChild(btn);
+      if (hasSaved) {
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "icon-btn";
+        delBtn.textContent = t("admin.feesDelete");
+        delBtn.addEventListener("click", function () {
+          delBtn.disabled = true;
+          deleteStudentFeeEntry(docId, student.name, el("studentFeesNote"), function () {
+            renderStudentFeesTable();
+          }).finally(function () {
+            delBtn.disabled = false;
+          });
+        });
+        btnRow.appendChild(delBtn);
+      }
+      tdAct.appendChild(btnRow);
       tr.appendChild(tdAct);
 
       var editorRow = document.createElement("tr");
@@ -2385,7 +2450,7 @@ function renderStudentFeesTable() {
           return;
         }
         editorCell.innerHTML = "";
-        editorCell.appendChild(buildStudentFeesEditor(student, record, function () {
+        editorCell.appendChild(buildStudentFeesEditor(student, record, hasSaved, function () {
           editorRow.classList.add("hidden");
           renderStudentFeesTable();
         }));
