@@ -961,6 +961,58 @@ function getAttendanceForDate(dateStr) {
   return Object.keys(byKey).map(function (k) { return byKey[k]; });
 }
 
+/** Search Attendance sheet by name, optional class, and date range. */
+function searchAttendanceRecords_(name, batch, dateFrom, dateTo) {
+  name = String(name || '').trim().toLowerCase();
+  batch = String(batch || '').trim();
+  dateFrom = formatDateCell(dateFrom || '');
+  dateTo = formatDateCell(dateTo || dateFrom || '');
+  if (!dateFrom && !dateTo) {
+    dateTo = formatDateCell(new Date());
+    dateFrom = dateTo;
+  }
+  if (!dateFrom) dateFrom = dateTo;
+  if (!dateTo) dateTo = dateFrom;
+  if (dateFrom > dateTo) {
+    var swap = dateFrom;
+    dateFrom = dateTo;
+    dateTo = swap;
+  }
+
+  var sheet = getAttendanceSheet();
+  var lastCol = Math.max(sheet.getLastColumn(), ATTENDANCE_HEADERS.length);
+  var data = readSheetData_(sheet, lastCol);
+  if (!data.length) return [];
+
+  var idx = getAttendanceHeaderMap_(sheet);
+  var results = [];
+
+  for (var r = 0; r < data.length; r++) {
+    var row = data[r];
+    var rowDate = idx.Date >= 0 ? formatDateCell(row[idx.Date]) : '';
+    if (!rowDate || rowDate < dateFrom || rowDate > dateTo) continue;
+
+    var rec = {
+      date: rowDate,
+      name: idx.Name >= 0 ? String(row[idx.Name] || '').trim() : '',
+      email: idx.Email >= 0 ? String(row[idx.Email] || '').trim() : '',
+      batch: idx.Batch >= 0 ? String(row[idx.Batch] || '').trim() : '',
+      status: idx.Status >= 0 ? String(row[idx.Status] || 'present').toLowerCase() : 'present',
+      note: idx.Note >= 0 ? String(row[idx.Note] || '').trim() : ''
+    };
+
+    if (name && rec.name.toLowerCase().indexOf(name) === -1) continue;
+    if (batch && batch !== 'all' && rec.batch !== batch) continue;
+    results.push(rec);
+  }
+
+  results.sort(function (a, b) {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  return results;
+}
+
 function saveAttendanceForDate(dateStr, records, mode) {
   dateStr = formatDateCell(dateStr);
   if (!dateStr) throw new Error('missing date');
@@ -1063,6 +1115,11 @@ function handleAttendanceRequest(p) {
   if (sub === 'get') {
     var dateStr = formatDateCell(p.date || '');
     return respondAdmin({ result: 'success', records: getAttendanceForDate(dateStr) }, p);
+  }
+
+  if (sub === 'search') {
+    var searchRows = searchAttendanceRecords_(p.name, p.batch, p.dateFrom, p.dateTo);
+    return respondAdmin({ result: 'success', records: searchRows }, p);
   }
 
   if (sub === 'save') {

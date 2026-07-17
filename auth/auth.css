@@ -389,15 +389,23 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
   letter-spacing: .04em; color: var(--muted);
 }
 .att-control-group input[type="date"],
-.att-control-group select {
+.att-control-group select,
+.att-control-group input[type="search"] {
   width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
   font: inherit; font-size: 16px; color: var(--ink); background: #fff;
   min-height: 44px;
 }
 .att-control-group input[type="date"]:focus,
-.att-control-group select:focus {
+.att-control-group select:focus,
+.att-control-group input[type="search"]:focus {
   outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47, 158, 158, .15);
 }
+.att-lookup-card { margin-top: 16px; }
+.att-lookup-panel { margin-top: 12px; }
+.att-lookup-actions .btn { width: 100%; min-height: 44px; }
+.att-lookup-results-wrap { margin-top: 8px; min-height: 48px; }
+.att-lookup-present { color: #1a6b38; font-weight: 600; }
+.att-lookup-absent { color: #9b2c2c; font-weight: 600; }
 .att-control-quick .att-actions-row { margin-top: 2px; }
 .att-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-att-present {

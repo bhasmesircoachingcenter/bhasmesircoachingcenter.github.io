@@ -218,6 +218,20 @@ var I18N = {
     "admin.attFilterClass": "Class",
     "admin.attAllClasses": "All classes",
     "admin.attNoClassMatch": "No students in this class.",
+    "admin.attSearchName": "Search student",
+    "admin.attSearchNamePh": "Type name…",
+    "admin.attNoSearchMatch": "No students match your search.",
+    "admin.attLookupTitle": "Look up attendance",
+    "admin.attLookupSub": "Search saved records by student name, class, and date range",
+    "admin.attLookupFrom": "From date",
+    "admin.attLookupTo": "To date",
+    "admin.attLookupSearch": "Search",
+    "admin.attLookupHint": "Enter a student name and tap Search.",
+    "admin.attLookupNeedName": "Enter a student name to search.",
+    "admin.attLookupSearching": "Searching attendance records…",
+    "admin.attLookupFound": "Found {n} record(s).",
+    "admin.attLookupNone": "No attendance records match your search.",
+    "admin.attLookupColDate": "Date",
     "admin.attSummary": "{present} present · {absent} absent · {total} students",
     "admin.attSummaryFiltered": "{present} present · {absent} absent · {total} in {className}",
     "admin.attSaved": "Attendance saved to Google Sheet.",
@@ -524,6 +538,20 @@ var I18N = {
     "admin.attFilterClass": "इयत्ता",
     "admin.attAllClasses": "सर्व इयत्ता",
     "admin.attNoClassMatch": "या इयत्तेत विद्यार्थी नाहीत.",
+    "admin.attSearchName": "विद्यार्थी शोधा",
+    "admin.attSearchNamePh": "नाव टाइप करा…",
+    "admin.attNoSearchMatch": "आपल्या शोधाशी जुळणारे विद्यार्थी नाहीत.",
+    "admin.attLookupTitle": "हजेरी शोधा",
+    "admin.attLookupSub": "विद्यार्थी नाव, इयत्ता आणि दिनांक श्रेणीनुसार जतन केलेले रेकॉर्ड शोधा",
+    "admin.attLookupFrom": "पासून दिनांक",
+    "admin.attLookupTo": "पर्यंत दिनांक",
+    "admin.attLookupSearch": "शोधा",
+    "admin.attLookupHint": "विद्यार्थ्याचे नाव टाकून Search दाबा.",
+    "admin.attLookupNeedName": "शोधासाठी विद्यार्थ्याचे नाव टाका.",
+    "admin.attLookupSearching": "हजेरी रेकॉर्ड शोधत आहे…",
+    "admin.attLookupFound": "{n} नोंदी सापडल्या.",
+    "admin.attLookupNone": "आपल्या शोधाशी जुळणारी हजेरी नाही.",
+    "admin.attLookupColDate": "दिनांक",
     "admin.attSummary": "{present} हजर · {absent} गैरहजर · {total} विद्यार्थी",
     "admin.attSummaryFiltered": "{present} हजर · {absent} गैरहजर · {total} — {className}",
     "admin.attSaved": "हजेरी Google Sheet मध्ये जतन झाली.",
@@ -1527,31 +1555,28 @@ function getAttClassFilter() {
   return sel && sel.value ? sel.value : "all";
 }
 
+function getAttNameSearch() {
+  var input = el("attNameSearch");
+  return input ? String(input.value || "").trim().toLowerCase() : "";
+}
+
 function normalizeAttClass(batch) {
   return String(batch || "").trim();
 }
 
-function getFilteredAttendanceRoster() {
-  var filter = getAttClassFilter();
-  if (!filter || filter === "all") return state.attendanceRoster;
-  return state.attendanceRoster.filter(function (s) {
-    return normalizeAttClass(s.batch) === filter;
-  });
-}
-
-function populateAttClassFilter() {
-  var sel = el("attClassFilter");
-  var wrap = sel ? sel.closest(".att-class-filter") : null;
-  if (!sel) return;
-
-  var prev = getAttClassFilter();
+function getAttendanceClassList() {
   var classes = {};
   state.attendanceRoster.forEach(function (s) {
     var c = normalizeAttClass(s.batch);
     if (c) classes[c] = true;
   });
-  var list = Object.keys(classes).sort(function (a, b) { return a.localeCompare(b); });
+  return Object.keys(classes).sort(function (a, b) { return a.localeCompare(b); });
+}
 
+function fillClassSelectOptions(sel, prev) {
+  if (!sel) return;
+  var list = getAttendanceClassList();
+  var keep = prev != null ? prev : (sel.value || "all");
   sel.textContent = "";
   var allOpt = document.createElement("option");
   allOpt.value = "all";
@@ -1563,11 +1588,32 @@ function populateAttClassFilter() {
     opt.textContent = c;
     sel.appendChild(opt);
   });
-
-  if (prev !== "all" && classes[prev]) sel.value = prev;
+  if (keep !== "all" && list.indexOf(keep) >= 0) sel.value = keep;
   else sel.value = "all";
+}
 
+function getFilteredAttendanceRoster() {
+  var filter = getAttClassFilter();
+  var nameQ = getAttNameSearch();
+  return state.attendanceRoster.filter(function (s) {
+    if (filter && filter !== "all" && normalizeAttClass(s.batch) !== filter) return false;
+    if (nameQ && String(s.name || "").toLowerCase().indexOf(nameQ) < 0) return false;
+    return true;
+  });
+}
+
+function populateAttClassFilter() {
+  var sel = el("attClassFilter");
+  var wrap = sel ? sel.closest(".att-control-class") : null;
+  if (!sel) return;
+  fillClassSelectOptions(sel, getAttClassFilter());
   if (wrap) wrap.classList.toggle("hidden", !state.attendanceRoster.length);
+}
+
+function populateAttLookupClassFilter() {
+  var sel = el("attLookupClass");
+  if (!sel) return;
+  fillClassSelectOptions(sel, sel.value || "all");
 }
 
 function updateAttSummary() {
@@ -1617,11 +1663,12 @@ function renderAttendanceGrid() {
   }
 
   populateAttClassFilter();
+  populateAttLookupClassFilter();
   var visible = getFilteredAttendanceRoster();
   if (!visible.length) {
     var noClass = document.createElement("p");
     noClass.className = "empty-state";
-    noClass.textContent = t("admin.attNoClassMatch");
+    noClass.textContent = getAttNameSearch() ? t("admin.attNoSearchMatch") : t("admin.attNoClassMatch");
     wrap.appendChild(noClass);
     updateAttSummary();
     return;
@@ -1846,6 +1893,145 @@ function saveDailyAttendance() {
   });
 }
 
+function addDaysIso(iso, days) {
+  var d = new Date(String(iso || todayIso()) + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  var m = String(d.getMonth() + 1).padStart(2, "0");
+  var day = String(d.getDate()).padStart(2, "0");
+  return d.getFullYear() + "-" + m + "-" + day;
+}
+
+function attLookupStatusLabel(status) {
+  return String(status || "").toLowerCase() === "absent" ? t("status.absent") : t("status.present");
+}
+
+function renderAttendanceLookupResults(rows) {
+  var wrap = el("attLookupResults");
+  if (!wrap) return;
+  wrap.textContent = "";
+  if (!rows.length) {
+    var empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = t("admin.attLookupNone");
+    wrap.appendChild(empty);
+    return;
+  }
+
+  var table = document.createElement("table");
+  table.className = "data-table att-lookup-table";
+  var thead = document.createElement("thead");
+  var htr = document.createElement("tr");
+  [t("admin.attLookupColDate"), t("dcol.name"), t("admin.attFilterClass"), t("admin.colAttStatus"), t("admin.note")].forEach(function (h) {
+    htr.appendChild(cell("th", h));
+  });
+  thead.appendChild(htr);
+  table.appendChild(thead);
+
+  var tbody = document.createElement("tbody");
+  rows.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.classList.toggle("absent-row", String(r.status || "").toLowerCase() === "absent");
+    var tdDate = cell("td", r.date || t("dash"));
+    tdDate.setAttribute("data-label", t("admin.attLookupColDate"));
+    tr.appendChild(tdDate);
+    var tdName = cell("td", r.name || t("dash"));
+    tdName.className = "att-name";
+    tdName.setAttribute("data-label", t("dcol.name"));
+    tr.appendChild(tdName);
+    var tdBatch = cell("td", r.batch || t("dash"));
+    tdBatch.setAttribute("data-label", t("admin.attFilterClass"));
+    tr.appendChild(tdBatch);
+    var tdStatus = cell("td", attLookupStatusLabel(r.status));
+    tdStatus.className = String(r.status || "").toLowerCase() === "absent" ? "att-lookup-absent" : "att-lookup-present";
+    tdStatus.setAttribute("data-label", t("admin.colAttStatus"));
+    tr.appendChild(tdStatus);
+    var tdNote = cell("td", r.note || t("dash"));
+    tdNote.setAttribute("data-label", t("admin.note"));
+    tr.appendChild(tdNote);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+}
+
+function runAttendanceLookup() {
+  var note = el("attLookupNote");
+  var wrap = el("attLookupResults");
+  var btn = el("attLookupBtn");
+  var nameInput = el("attLookupName");
+  var name = nameInput ? String(nameInput.value || "").trim() : "";
+  if (!name) {
+    if (note) setNote(note, t("admin.attLookupNeedName"), "err");
+    return;
+  }
+
+  var batchSel = el("attLookupClass");
+  var batch = batchSel && batchSel.value !== "all" ? batchSel.value : "";
+  var dateFrom = el("attLookupDateFrom") ? el("attLookupDateFrom").value : "";
+  var dateTo = el("attLookupDateTo") ? el("attLookupDateTo").value : "";
+  if (!dateFrom) dateFrom = todayIso();
+  if (!dateTo) dateTo = dateFrom;
+  if (dateFrom > dateTo) {
+    var swap = dateFrom;
+    dateFrom = dateTo;
+    dateTo = swap;
+  }
+
+  if (btn) btn.disabled = true;
+  if (note) setNote(note, t("admin.attLookupSearching"), "");
+  if (wrap) {
+    wrap.textContent = "";
+    var loading = document.createElement("p");
+    loading.className = "empty-state";
+    loading.textContent = t("admin.attLookupSearching");
+    wrap.appendChild(loading);
+  }
+
+  sheetAdminRequest("attendance", {
+    subaction: "search",
+    name: name,
+    batch: batch,
+    dateFrom: dateFrom,
+    dateTo: dateTo
+  }).then(function (payload) {
+    var rows = payload.records || [];
+    renderAttendanceLookupResults(rows);
+    if (note) setNote(note, t("admin.attLookupFound").replace("{n}", rows.length), rows.length ? "ok" : "");
+  }).catch(function () {
+    if (wrap) {
+      wrap.textContent = "";
+      var err = document.createElement("p");
+      err.className = "empty-state";
+      err.textContent = t("admin.attErrLoad");
+      wrap.appendChild(err);
+    }
+    if (note) setNote(note, t("admin.attErrLoad"), "err");
+  }).then(function () {
+    if (btn) btn.disabled = false;
+  });
+}
+
+function initAttendanceLookup() {
+  var from = el("attLookupDateFrom");
+  var to = el("attLookupDateTo");
+  var btn = el("attLookupBtn");
+  var nameInput = el("attLookupName");
+  if (!from && !btn) return;
+
+  if (from && !from.value) from.value = addDaysIso(todayIso(), -30);
+  if (to && !to.value) to.value = todayIso();
+
+  if (btn) btn.addEventListener("click", runAttendanceLookup);
+  if (nameInput) {
+    nameInput.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        runAttendanceLookup();
+      }
+    });
+  }
+}
+
 function initDailyAttendance() {
   var dateInput = el("attDate");
   var saveBtn = el("attSaveBtn");
@@ -1866,6 +2052,15 @@ function initDailyAttendance() {
       renderAttendanceGrid();
     });
   }
+
+  var nameSearch = el("attNameSearch");
+  if (nameSearch) {
+    nameSearch.addEventListener("input", function () {
+      renderAttendanceGrid();
+    });
+  }
+
+  initAttendanceLookup();
 
   if (allP) {
     allP.addEventListener("click", function () { setAttPresentAll(true); });

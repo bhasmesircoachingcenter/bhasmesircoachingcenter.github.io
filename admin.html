@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth/auth.css?v=18" />
+  <link rel="stylesheet" href="auth/auth.css?v=19" />
 </head>
 <body>
   <!-- Resolving auth/admin state -->
@@ -135,6 +135,10 @@
                   <option value="all" data-i18n="admin.attAllClasses">All classes</option>
                 </select>
               </div>
+              <div class="att-control-group att-control-search">
+                <label for="attNameSearch" data-i18n="admin.attSearchName">Search student</label>
+                <input type="search" id="attNameSearch" name="nameSearch" autocomplete="off" data-i18n-placeholder="admin.attSearchNamePh" placeholder="Type name…" />
+              </div>
               <div class="att-control-group att-control-quick">
                 <span class="att-control-label" data-i18n="admin.attQuickMark">Quick mark</span>
                 <div class="att-actions-row">
@@ -165,6 +169,46 @@
             <button type="button" class="btn btn-primary" id="attSaveBtn" data-i18n="admin.attSave">Save Attendance to Sheet</button>
             <p class="admin-note" id="attendanceNote" role="status" aria-live="polite"></p>
           </div>
+        </div>
+
+        <div class="admin-card att-card att-lookup-card">
+          <header class="att-header">
+            <div class="att-header-brand">
+              <span class="att-header-icon" aria-hidden="true">🔍</span>
+              <div>
+                <h2 class="att-header-title" data-i18n="admin.attLookupTitle">Look up attendance</h2>
+                <p class="att-header-sub" data-i18n="admin.attLookupSub">Search saved records by student name, class, and date range</p>
+              </div>
+            </div>
+            <div class="att-control-panel att-lookup-panel">
+              <div class="att-control-group">
+                <label for="attLookupName" data-i18n="admin.attSearchName">Search student</label>
+                <input type="search" id="attLookupName" autocomplete="off" data-i18n-placeholder="admin.attSearchNamePh" placeholder="Type name…" />
+              </div>
+              <div class="att-control-group">
+                <label for="attLookupClass" data-i18n="admin.attFilterClass">Class</label>
+                <select id="attLookupClass" aria-label="Filter lookup by class">
+                  <option value="all" data-i18n="admin.attAllClasses">All classes</option>
+                </select>
+              </div>
+              <div class="att-control-group">
+                <label for="attLookupDateFrom" data-i18n="admin.attLookupFrom">From date</label>
+                <input type="date" id="attLookupDateFrom" />
+              </div>
+              <div class="att-control-group">
+                <label for="attLookupDateTo" data-i18n="admin.attLookupTo">To date</label>
+                <input type="date" id="attLookupDateTo" />
+              </div>
+              <div class="att-control-group att-lookup-actions">
+                <span class="att-control-label" aria-hidden="true">&nbsp;</span>
+                <button type="button" class="btn btn-primary" id="attLookupBtn" data-i18n="admin.attLookupSearch">Search</button>
+              </div>
+            </div>
+          </header>
+          <div class="table-scroll att-lookup-results-wrap" id="attLookupResults">
+            <p class="empty-state" data-i18n="admin.attLookupHint">Enter a student name and tap Search.</p>
+          </div>
+          <p class="admin-note" id="attLookupNote" role="status" aria-live="polite"></p>
         </div>
       </section>
 
@@ -330,6 +374,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=63"></script>
+  <script type="module" src="auth/admin.js?v=64"></script>
 </body>
 </html>
