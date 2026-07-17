@@ -33,8 +33,11 @@ Physical print form: `admission-form.pdf` (same fields).
 **Existing form (optional fields still required on live form):**
 
 1. Paste updated `Code.gs` / `apps-script-admission.gs` into Apps Script and Save.
-2. Run **`updateAdmissionFormFieldSettings`** once — sets Mother's name, Occupation, Alternate mobile, **Email**, Referral, Special note, batch timing, and payment mode to optional without recreating the form.
-3. For **2-column layout** (Google Forms UI only): open the form → **Customize** (palette icon) → **Layout** → **Two columns** if your account shows it. The Apps Script FormApp API does not support this.
+2. Run **`updateAdmissionFormFieldSettings`** once — **removes** Mother's name, Occupation, Alternate mobile, Referral, and Special note from the form; sets Email, marks, batch, and payment mode to optional.
+3. For **2-column layout** (Google Forms UI only — not possible via Apps Script):
+   - Open the form in **Edit** mode (forms.google.com, not the public respond link)
+   - Click **Customize** (paint palette icon, top right)
+   - Open **Layout** → choose **Two columns** (if your account shows it; some accounts do not have this yet)
 
 To recreate from scratch: run **`resetAdmissionFormUrl`**, then **`createAdmissionGoogleForm`** again (old form link will stop working).
 

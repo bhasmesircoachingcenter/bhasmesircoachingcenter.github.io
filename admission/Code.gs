@@ -1636,14 +1636,18 @@ function resetAdmissionFormUrl() {
   Logger.log('Cleared saved admission form URL. Now run createAdmissionGoogleForm.');
 }
 
-/** Optional admission questions (not required on submit). */
-var ADMISSION_OPTIONAL_Q = [
+/** Removed from the Google Form — collect on paper / phone if needed. */
+var ADMISSION_REMOVE_FROM_FORM_Q = [
   ADMISSION_Q.MOTHER,
   ADMISSION_Q.OCCUPATION,
   ADMISSION_Q.ALT_MOBILE,
-  ADMISSION_Q.EMAIL,
   ADMISSION_Q.REFERRAL,
-  ADMISSION_Q.NOTE,
+  ADMISSION_Q.NOTE
+];
+
+/** Still on the form but not required on submit. */
+var ADMISSION_OPTIONAL_Q = [
+  ADMISSION_Q.EMAIL,
   ADMISSION_Q.MARKS,
   ADMISSION_Q.BATCH,
   ADMISSION_Q.PAY_MODE
@@ -1672,6 +1676,25 @@ function openAdmissionForm_() {
   } catch (err) {
     return null;
   }
+}
+
+/** Delete form questions whose titles match (one pass per title). */
+function deleteFormQuestionsByTitle_(form, titles) {
+  var deleted = [];
+  var missing = [];
+  (titles || []).forEach(function (title) {
+    var items = form.getItems();
+    var i, found = false;
+    for (i = 0; i < items.length; i++) {
+      if (items[i].getTitle() !== title) continue;
+      form.deleteItem(items[i]);
+      deleted.push(title);
+      found = true;
+      break;
+    }
+    if (!found) missing.push(title);
+  });
+  return { deleted: deleted, missing: missing };
 }
 
 /** Set required flag on a form question matched by exact title. */
@@ -1724,30 +1747,17 @@ function addAdmissionFormQuestions_(form) {
 
   form.addSectionHeaderItem()
     .setTitle('2. Parent / guardian & contact / पालक व संपर्क')
-    .setHelpText("Mother's name, occupation, and alternate mobile are optional.");
+    .setHelpText('Email and batch timing are optional. Mobile number is required.');
 
   form.addTextItem().setTitle(ADMISSION_Q.FATHER).setRequired(true);
-  form.addTextItem().setTitle(ADMISSION_Q.MOTHER).setRequired(false);
-  form.addTextItem().setTitle(ADMISSION_Q.OCCUPATION).setRequired(false);
   form.addTextItem().setTitle(ADMISSION_Q.MOBILE).setRequired(true);
-  form.addTextItem().setTitle(ADMISSION_Q.ALT_MOBILE).setRequired(false);
   form.addTextItem().setTitle(ADMISSION_Q.EMAIL).setRequired(false);
   form.addParagraphTextItem().setTitle(ADMISSION_Q.ADDRESS).setRequired(true);
-
-  form.addSectionHeaderItem()
-    .setTitle('3. Batch & other / इतर माहिती')
-    .setHelpText('Referral and special note are optional.');
-
   form.addMultipleChoiceItem()
     .setTitle(ADMISSION_Q.BATCH).setChoiceValues(['Morning', 'Evening']).setRequired(false);
-  form.addMultipleChoiceItem()
-    .setTitle(ADMISSION_Q.REFERRAL)
-    .setChoiceValues(['Friend', 'Social media', 'Flyer', 'Website', 'Other'])
-    .setRequired(false);
-  form.addParagraphTextItem().setTitle(ADMISSION_Q.NOTE).setRequired(false);
 
   form.addSectionHeaderItem()
-    .setTitle('4. Fee payment / शुल्क भरणा');
+    .setTitle('3. Fee payment / शुल्क भरणा');
 
   form.addMultipleChoiceItem()
     .setTitle(ADMISSION_Q.FEE_PLAN)
@@ -1760,15 +1770,19 @@ function addAdmissionFormQuestions_(form) {
 }
 
 /**
- * Run on an EXISTING Google Form to apply optional/required flags without recreating the form.
- * Select this function → Run. Also run after pasting updated Code.gs if the live form still
- * marks optional fields as required.
+ * Run on an EXISTING Google Form: removes unused questions, sets optional/required flags.
+ * Select this function → Run. Also run after pasting updated Code.gs.
  */
 function updateAdmissionFormFieldSettings() {
   var form = openAdmissionForm_();
   if (!form) {
     Logger.log('Could not open admission form. Run syncAdmissionFormUrlFromSpreadsheet, or resetAdmissionFormUrl + createAdmissionGoogleForm.');
     return false;
+  }
+
+  var removed = deleteFormQuestionsByTitle_(form, ADMISSION_REMOVE_FROM_FORM_Q);
+  if (removed.deleted.length) {
+    Logger.log('Removed from form: ' + removed.deleted.join(', '));
   }
 
   var missing = [];
@@ -1789,7 +1803,8 @@ function updateAdmissionFormFieldSettings() {
     Logger.log('Some questions were not found (check titles match ADMISSION_Q): ' + missing.join(', '));
   }
   Logger.log('Updated field settings on: ' + form.getPublishedUrl());
-  Logger.log('Optional: open the form editor → Customize → Layout → Two columns (manual only).');
+  Logger.log('2-column layout: open the form in EDIT mode (not preview) → paint icon Customize → Layout → Two columns.');
+  Logger.log('If Layout is missing, your Google account may not support it yet — the form stays single column.');
   return true;
 }
 

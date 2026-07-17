@@ -41,13 +41,16 @@ var ADMISSION_Q = {
   PAY_MODE: 'Preferred payment mode'
 };
 
-var ADMISSION_OPTIONAL_Q = [
+var ADMISSION_REMOVE_FROM_FORM_Q = [
   ADMISSION_Q.MOTHER,
   ADMISSION_Q.OCCUPATION,
   ADMISSION_Q.ALT_MOBILE,
-  ADMISSION_Q.EMAIL,
   ADMISSION_Q.REFERRAL,
-  ADMISSION_Q.NOTE,
+  ADMISSION_Q.NOTE
+];
+
+var ADMISSION_OPTIONAL_Q = [
+  ADMISSION_Q.EMAIL,
   ADMISSION_Q.MARKS,
   ADMISSION_Q.BATCH,
   ADMISSION_Q.PAY_MODE
@@ -74,6 +77,24 @@ function openAdmissionForm_() {
   } catch (err) {
     return null;
   }
+}
+
+function deleteFormQuestionsByTitle_(form, titles) {
+  var deleted = [];
+  var missing = [];
+  (titles || []).forEach(function (title) {
+    var items = form.getItems();
+    var i, found = false;
+    for (i = 0; i < items.length; i++) {
+      if (items[i].getTitle() !== title) continue;
+      form.deleteItem(items[i]);
+      deleted.push(title);
+      found = true;
+      break;
+    }
+    if (!found) missing.push(title);
+  });
+  return { deleted: deleted, missing: missing };
 }
 
 function setFormQuestionRequired_(form, title, required) {
@@ -127,32 +148,19 @@ function addAdmissionFormQuestions_(form) {
 
   form.addSectionHeaderItem()
     .setTitle('2. Parent / guardian & contact / पालक व संपर्क')
-    .setHelpText("Mother's name, occupation, and alternate mobile are optional.");
+    .setHelpText('Email and batch timing are optional. Mobile number is required.');
 
   form.addTextItem().setTitle(ADMISSION_Q.FATHER).setRequired(true);
-  form.addTextItem().setTitle(ADMISSION_Q.MOTHER).setRequired(false);
-  form.addTextItem().setTitle(ADMISSION_Q.OCCUPATION).setRequired(false);
   form.addTextItem().setTitle(ADMISSION_Q.MOBILE).setRequired(true);
-  form.addTextItem().setTitle(ADMISSION_Q.ALT_MOBILE).setRequired(false);
   form.addTextItem().setTitle(ADMISSION_Q.EMAIL).setRequired(false);
   form.addParagraphTextItem().setTitle(ADMISSION_Q.ADDRESS).setRequired(true);
-
-  form.addSectionHeaderItem()
-    .setTitle('3. Batch & other / इतर माहिती')
-    .setHelpText('Referral and special note are optional.');
-
   form.addMultipleChoiceItem()
     .setTitle(ADMISSION_Q.BATCH)
     .setChoiceValues(['Morning', 'Evening'])
     .setRequired(false);
-  form.addMultipleChoiceItem()
-    .setTitle(ADMISSION_Q.REFERRAL)
-    .setChoiceValues(['Friend', 'Social media', 'Flyer', 'Website', 'Other'])
-    .setRequired(false);
-  form.addParagraphTextItem().setTitle(ADMISSION_Q.NOTE).setRequired(false);
 
   form.addSectionHeaderItem()
-    .setTitle('4. Fee payment / शुल्क भरणा');
+    .setTitle('3. Fee payment / शुल्क भरणा');
 
   form.addMultipleChoiceItem()
     .setTitle(ADMISSION_Q.FEE_PLAN)
@@ -176,6 +184,8 @@ function updateAdmissionFormFieldSettings() {
     return false;
   }
 
+  var removed = deleteFormQuestionsByTitle_(form, ADMISSION_REMOVE_FROM_FORM_Q);
+
   ADMISSION_OPTIONAL_Q.forEach(function (title) {
     setFormQuestionRequired_(form, title, false);
   });
@@ -191,7 +201,9 @@ function updateAdmissionFormFieldSettings() {
 
   SpreadsheetApp.getUi().alert(
     'Form updated',
-    'Optional fields are no longer required.\n\nFor 2-column layout: open the form → Customize → Layout → Two columns (if available).\n\n' + form.getPublishedUrl(),
+    'Removed: ' + (removed.deleted.length ? removed.deleted.join(', ') : '(already removed)') +
+      '\n\nFor 2-column layout: open the form in EDIT mode → Customize (paint icon) → Layout → Two columns.\n\n' +
+      form.getPublishedUrl(),
     SpreadsheetApp.getUi().ButtonSet.OK
   );
   return true;
