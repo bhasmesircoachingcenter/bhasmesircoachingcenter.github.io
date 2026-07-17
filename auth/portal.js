@@ -328,8 +328,6 @@ onAuthStateChanged(auth, function (user) {
   if (loading) loading.classList.add("hidden");
   if (app) app.classList.remove("hidden");
 
-  setText("studentEmail", user.email || "");
-
   // Reveal the Admin link only if this user is an admin (admins/{uid} exists).
   getDoc(doc(db, "admins", user.uid)).then(function (snap) {
     if (snap.exists()) {
@@ -339,9 +337,12 @@ onAuthStateChanged(auth, function (user) {
   }).catch(function () { /* not admin / unavailable: keep hidden */ });
 
   loadStudentData(user.uid).then(function () {
-    // Ensure email from auth wins if the profile doc lacks it.
-    if (state.student && !state.student.email) state.student.email = user.email || "";
     if (state.student && !state.student.name) state.student.name = user.displayName || "";
+    var subLine = (state.student && state.student.phone) || "";
+    if (state.student && state.student.email) {
+      subLine = subLine ? (subLine + " · " + state.student.email) : state.student.email;
+    }
+    setText("studentEmail", subLine || user.email || "");
     renderProfileAndBatch();
     renderAttendance();
     renderResults();

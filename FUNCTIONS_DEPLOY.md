@@ -1,6 +1,6 @@
 # Portal accounts (admin-created student logins)
 
-Students log in with **email** (from the Admissions sheet) and **password = 10-digit mobile number**.
+Students log in with **10-digit mobile number** as both **username and password**. Email is **optional** (contact only — welcome/receipt emails sent only when an email is on file).
 
 ## Default path (free — no Blaze plan)
 
@@ -17,17 +17,18 @@ If **Portal Accounts** shows an Apps Script error, redeploy with a new version (
 ### Admin usage
 
 1. Open **Admin → Portal Accounts**
-2. Students from the **Admissions** sheet without an account show **Create account**
+2. Students from the **Admissions** sheet without an account show **Create account** (mobile required; email optional)
 3. Registered students show **Remove account**
 
-**Create:** Admin browser creates the Firebase Auth user and Firestore profile; Apps Script sends a **welcome email** with login details (same Gmail account as enquiry emails — usually better inbox delivery than Firebase verification mail).
+**Create:** Admin browser creates the Firebase Auth user (synthetic `{mobile}@portal.bhasmesircoaching.in`) and Firestore profile. Optional welcome email sent only if a contact email exists.
 
-**Remove:** Admin browser signs in as the student and deletes the Auth user; Firestore profile + attendance/results subcollections are removed.
+**Remove:** Admin browser deletes the Auth user; Firestore profile + attendance/results subcollections are removed.
 
 ## Student login
 
-- **Username:** email from admission form  
-- **Password:** 10-digit mobile (no +91), e.g. `7058505983`
+- **Username:** 10-digit mobile (no +91), e.g. `7058505983`
+- **Password:** same 10-digit mobile
+- **Legacy:** older accounts created with real email can still log in with that email + mobile password
 
 Self-registration on the login page is disabled; accounts are created by admin only.
 
@@ -35,9 +36,10 @@ Self-registration on the login page is disabled; accounts are created by admin o
 
 - Apps Script outdated / `unknown subaction` — paste latest `Code.gs`, deploy **New version**
 - `unauthorized` — sign in as `bhasmesircoachingcenter@gmail.com` in the admin panel
-- `already-exists` — student already has an account with that email
-- `invalid-phone` — mobile must be a valid 10-digit Indian number (password)
-- Welcome email not sent — paste latest `admission/Code.gs`, deploy **New version** (`portalwelcome` action), then hard-refresh admin (`admin.js?v=59+`). Account still works for login. If the note mentions Gmail/mail failure, check Apps Script **MailApp** daily quota.
+- `already-exists` — student already has a portal account for that mobile
+- `invalid-phone` — mobile must be a valid 10-digit Indian number
+- Welcome email skipped — normal when no optional email on file; use WhatsApp to share login details
+- Existing old accounts — remove and recreate, or student can try legacy email login
 
 ---
 

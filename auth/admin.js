@@ -12,6 +12,11 @@
 
 import { auth, db, provisionAuth } from "./firebase-config.js";
 import {
+  normalizePhone,
+  portalAuthEmail,
+  optionalContactEmail
+} from "./portal-auth.js";
+import {
   onAuthStateChanged,
   signOut,
   createUserWithEmailAndPassword,
@@ -128,7 +133,7 @@ var I18N = {
     "admin.feesReceiptErr": "Could not send receipt. Try again.",
     "admin.feesCopyLink": "Copy receipt link",
     "admin.feesLinkCopied": "Receipt link copied.",
-    "admin.feesReceiptNoEmail": "No valid student email — add email in Admissions sheet.",
+    "admin.feesReceiptNoEmail": "No email on file — use WhatsApp to send the receipt instead.",
     "admin.feesPaymentHistory": "Payment history",
     "admin.feesNoPayments": "No payments recorded yet.",
     "admin.feesAddPayment": "Record new payment",
@@ -154,8 +159,8 @@ var I18N = {
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
     "admin.accountsTitle": "Portal Accounts",
-    "admin.accountsHint": "Create login accounts from the Admissions sheet. Students sign in with their email; initial password is their 10-digit mobile number.",
-    "admin.accountsLoginHint": "Tell students: Login = email from admission form · Password = 10-digit mobile (no +91). Firebase may send a verification email — they can ignore it and log in.",
+    "admin.accountsHint": "Create login accounts from the Admissions sheet. Students sign in with their 10-digit mobile number (username and password). Email is optional.",
+    "admin.accountsLoginHint": "Tell students: Login = 10-digit mobile · Password = same mobile (no +91). Welcome email is sent only if an optional email is on file.",
     "admin.accountsLoading": "Loading admissions and portal accounts…",
     "admin.accountsPendingTitle": "From Admissions (no account yet)",
     "admin.accountsActiveTitle": "Active portal accounts",
@@ -164,21 +169,21 @@ var I18N = {
     "admin.accountsStatusActive": "Active",
     "admin.accountsCreate": "Create account",
     "admin.accountsRemove": "Remove account",
-    "admin.accountsCreated": "Account created and welcome email sent. Login: email + mobile as password.",
-    "admin.accountsCreatedNoEmail": "Account created, but welcome email could not be sent. Student can still log in with email + mobile.",
+    "admin.accountsCreated": "Account created. Login: mobile number · password: same mobile.",
+    "admin.accountsCreatedWelcome": "Account created and welcome email sent to optional contact email.",
+    "admin.accountsCreatedNoEmail": "Account created. No contact email on file — welcome email skipped.",
     "admin.accountsRemoved": "Portal account removed.",
-    "admin.accountsNoEmail": "Email missing — cannot create account.",
-    "admin.accountsInvalidEmail": "Invalid email in Admissions — fix the sheet, then refresh.",
+    "admin.accountsInvalidEmail": "Optional email in Admissions is invalid — fix the sheet or leave blank.",
     "admin.accountsNoPhone": "Valid 10-digit mobile required for password.",
     "admin.accountsNoPending": "All admission students already have portal accounts.",
     "admin.accountsNoActive": "No portal accounts yet.",
-    "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nLogin: {email}\nPassword: {phone} (10-digit mobile)",
+    "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nLogin (mobile): {phone}\nPassword: {phone} (same 10-digit mobile)",
     "admin.accountsConfirmRemove": "Remove portal account for {name}? This deletes their login and profile.",
     "admin.accountsErrCreate": "Could not create account.",
     "admin.accountsErrWeakPassword": "Firebase rejected this password — use a different mobile number or contact support.",
     "admin.accountsErrFirestore": "Login was created but student profile could not be saved. Try Create account again.",
     "admin.accountsErrRemove": "Could not remove account.",
-    "admin.accountsErrExists": "This email already has a portal account.",
+    "admin.accountsErrExists": "This mobile number already has a portal account.",
     "admin.accountsErrFunctions": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version.",
     "admin.edit": "Edit",
     "admin.save": "Save",
@@ -429,7 +434,7 @@ var I18N = {
     "admin.feesReceiptErr": "पावती पाठवता आली नाही. पुन्हा प्रयत्न करा.",
     "admin.feesCopyLink": "पावती लिंक कॉपी करा",
     "admin.feesLinkCopied": "पावती लिंक कॉपी झाली.",
-    "admin.feesReceiptNoEmail": "वैध ईमेल नाही — Admissions sheet मध्ये ईमेल भरा.",
+    "admin.feesReceiptNoEmail": "ईमेल नाही — पावती WhatsApp ने पाठवा.",
     "admin.feesPaymentHistory": "पेमेंट इतिहास",
     "admin.feesNoPayments": "अद्याप कोणतेही पेमेंट नाही.",
     "admin.feesAddPayment": "नवीन पेमेंट नोंदवा",
@@ -455,8 +460,8 @@ var I18N = {
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
     "admin.accountsTitle": "पोर्टल खाती",
-    "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. विद्यार्थी ईमेलने लॉगिन करतात; प्रारंभिक पासवर्ड १० अंकी मोबाइल नंबर.",
-    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको). Firebase पडताळणी ईमेल पाठवू शकते — लॉगिन करता येईल.",
+    "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. विद्यार्थी १० अंकी मोबाइलने लॉगिन करतात (user id व पासवर्ड). ईमेल ऐच्छिक.",
+    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = १० अंकी मोबाइल · पासवर्ड = तोच मोबाइल (+91 नको). स्वागत ईमेल फक्त ऐच्छिक ईमेल असल्यास.",
     "admin.accountsLoading": "प्रवेश व पोर्टल खाती लोड होत आहेत…",
     "admin.accountsPendingTitle": "Admissions मधून (अद्याप खाते नाही)",
     "admin.accountsActiveTitle": "सक्रिय पोर्टल खाती",
@@ -465,21 +470,21 @@ var I18N = {
     "admin.accountsStatusActive": "सक्रिय",
     "admin.accountsCreate": "खाते तयार करा",
     "admin.accountsRemove": "खाते काढा",
-    "admin.accountsCreated": "खाते तयार झाले आणि स्वागत ईमेल पाठवला. लॉगिन: ईमेल + मोबाइल पासवर्ड.",
-    "admin.accountsCreatedNoEmail": "खाते तयार झाले, पण स्वागत ईमेल पाठवता आला नाही. विद्यार्थी अजूनही ईमेल + मोबाइलने लॉगिन करू शकतो.",
+    "admin.accountsCreated": "खाते तयार झाले. लॉगिन: मोबाइल · पासवर्ड: तोच मोबाइल.",
+    "admin.accountsCreatedWelcome": "खाते तयार झाले आणि ऐच्छिक ईमेलवर स्वागत ईमेल पाठवला.",
+    "admin.accountsCreatedNoEmail": "खाते तयार झाले. संपर्क ईमेल नाही — स्वागत ईमेल वगळला.",
     "admin.accountsRemoved": "पोर्टल खाते काढले.",
-    "admin.accountsNoEmail": "ईमेल नाही — खाते तयार करता येत नाही.",
-    "admin.accountsInvalidEmail": "Admissions मध्ये चुकीचा ईमेल — शीट दुरुस्त करा, नंतर रिफ्रेश करा.",
+    "admin.accountsInvalidEmail": "Admissions मध्ये ऐच्हिक ईमेल चुकीचा — दुरुस्त करा किंवा रिकामा ठेवा.",
     "admin.accountsNoPhone": "पासवर्डसाठी वैध १० अंकी मोबाइल हवा.",
     "admin.accountsNoPending": "सर्व प्रवेश विद्यार्थ्यांची पोर्टल खाती आहेत.",
     "admin.accountsNoActive": "अद्याप पोर्टल खाती नाहीत.",
-    "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nलॉगिन: {email}\nपासवर्ड: {phone} (१० अंकी मोबाइल)",
+    "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nलॉगिन (मोबाइल): {phone}\nपासवर्ड: {phone} (तोच १० अंकी मोबाइल)",
     "admin.accountsConfirmRemove": "{name} चे पोर्टल खाते काढायचे? लॉगिन व प्रोफाइल हटवले जाईल.",
     "admin.accountsErrCreate": "खाते तयार करता आले नाही.",
     "admin.accountsErrWeakPassword": "Firebase ने हा पासवर्ड नाकारला — वेगळा मोबाइल वापरा.",
     "admin.accountsErrFirestore": "लॉगिन तयार झाले पण प्रोफाइल जतन झाली नाही. पुन्हा Create account दाबा.",
     "admin.accountsErrRemove": "खाते काढता आले नाही.",
-    "admin.accountsErrExists": "या ईमेलवर आधीच पोर्टल खाते आहे.",
+    "admin.accountsErrExists": "या मोबाइल क्रमांकावर आधीच पोर्टल खाते आहे.",
     "admin.accountsErrFunctions": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → Manage deployments → New version.",
     "admin.edit": "संपादित करा",
     "admin.save": "जतन करा",
@@ -774,6 +779,14 @@ function loadStudents() {
   });
 }
 
+function portalStudentMetaLine(s) {
+  var parts = [];
+  if (s.phone) parts.push(s.phone);
+  if (s.email) parts.push(s.email);
+  if (s.batch) parts.push(s.batch);
+  return parts.join(" · ") || t("dash");
+}
+
 function appendPortalStudentRow(s, wrap) {
   var row = document.createElement("div");
   row.className = "student-row";
@@ -783,7 +796,7 @@ function appendPortalStudentRow(s, wrap) {
   var strong = document.createElement("strong");
   strong.textContent = s.name || t("dash");
   var small = document.createElement("small");
-  small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
+  small.textContent = portalStudentMetaLine(s);
   meta.appendChild(strong);
   meta.appendChild(small);
 
@@ -840,7 +853,7 @@ function appendPortalStudentRow(s, wrap) {
       s.batch = batchField.input.value.trim();
       s.schedule = schedField.input.value.trim();
       s.phone = phoneField.input.value.trim();
-      small.textContent = (s.email || "") + (s.batch ? " · " + s.batch : "");
+      small.textContent = portalStudentMetaLine(s);
       setNote(note, t("admin.saved"), "ok");
       populateStudentSelects();
       updateBroadcastCount();
@@ -859,18 +872,11 @@ function appendPortalStudentRow(s, wrap) {
 
 /* ---------------- Portal accounts (admin-provisioned login) ---------------- */
 
-function normalizePhone(raw) {
-  var digits = String(raw || "").replace(/[\s\-()]/g, "");
-  digits = digits.replace(/^\+91/, "").replace(/^0+/, "");
-  if (/^[6-9]\d{9}$/.test(digits)) return digits;
-  return null;
-}
-
-function studentByEmail(email) {
-  var lower = String(email || "").trim().toLowerCase();
-  if (!lower) return null;
+function studentByPhone(phone) {
+  phone = normalizePhone(phone);
+  if (!phone) return null;
   for (var i = 0; i < state.students.length; i++) {
-    if ((state.students[i].email || "").trim().toLowerCase() === lower) return state.students[i];
+    if (normalizePhone(state.students[i].phone) === phone) return state.students[i];
   }
   return null;
 }
@@ -885,10 +891,7 @@ function admissionAccountRow(r) {
   };
 }
 
-function accountPendingStatus(email, phone) {
-  email = String(email || "").trim();
-  if (!email) return t("admin.accountsNoEmail");
-  if (!EMAIL_RE.test(email)) return t("admin.accountsInvalidEmail");
+function accountPendingStatus(phone) {
   if (!normalizePhone(phone)) return t("admin.accountsNoPhone");
   return t("admin.accountsStatusPending");
 }
@@ -899,8 +902,9 @@ function buildAdmissionAccountList(rows) {
   (rows || []).forEach(function (r) {
     var row = admissionAccountRow(r);
     if (!row.name) return;
+    var phoneKey = normalizePhone(row.phone);
     var emailKey = row.email ? row.email.trim().toLowerCase() : "";
-    var key = emailKey || ("n:" + row.name.toLowerCase() + "|" + row.phone);
+    var key = phoneKey || emailKey || ("n:" + row.name.toLowerCase());
     if (seen[key]) return;
     seen[key] = true;
     list.push(row);
@@ -911,7 +915,7 @@ function buildAdmissionAccountList(rows) {
 function portalAccountsErrorKey(err) {
   var code = (err && err.code) || (err && err.message) || "";
   if (code === "auth/email-already-in-use") return "admin.accountsErrExists";
-  if (code === "auth/invalid-email") return "admin.accountsNoEmail";
+  if (code === "auth/invalid-email") return "admin.accountsInvalidEmail";
   if (code === "auth/weak-password") return "admin.accountsNoPhone";
   if (code === "auth/wrong-password" || code === "auth/invalid-credential" || code === "auth/user-not-found") {
     return "admin.accountsErrRemove";
@@ -922,8 +926,10 @@ function portalAccountsErrorKey(err) {
   return null;
 }
 
-function provisionCreateAuthUser(email, phone, name) {
-  return createUserWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
+function provisionCreateAuthUser(contactEmail, phone, name) {
+  var authEmail = portalAuthEmail(phone);
+  if (!authEmail) return Promise.reject({ code: "invalid-phone" });
+  return createUserWithEmailAndPassword(provisionAuth, authEmail, phone).then(function (cred) {
     var user = cred.user;
     var uid = user.uid;
     var done = name ? updateProfile(user, { displayName: name }) : Promise.resolve();
@@ -932,7 +938,7 @@ function provisionCreateAuthUser(email, phone, name) {
     });
   }).catch(function (err) {
     if (err && err.code === "auth/email-already-in-use") {
-      return signInWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
+      return signInWithEmailAndPassword(provisionAuth, authEmail, phone).then(function (cred) {
         var uid = cred.user.uid;
         return signOut(provisionAuth).then(function () { return uid; });
       });
@@ -941,11 +947,19 @@ function provisionCreateAuthUser(email, phone, name) {
   });
 }
 
-function provisionDeleteAuthUser(email, phone) {
-  return signInWithEmailAndPassword(provisionAuth, email, phone).then(function (cred) {
-    return deleteUser(cred.user).then(function () {
-      return signOut(provisionAuth);
+function provisionDeleteAuthUser(contactEmail, phone) {
+  var authEmail = portalAuthEmail(phone);
+  function tryDelete(loginEmail) {
+    return signInWithEmailAndPassword(provisionAuth, loginEmail, phone).then(function (cred) {
+      return deleteUser(cred.user).then(function () {
+        return signOut(provisionAuth);
+      });
     });
+  }
+  return tryDelete(authEmail).catch(function (err) {
+    var legacy = optionalContactEmail(contactEmail);
+    if (legacy && legacy !== authEmail) return tryDelete(legacy);
+    throw err;
   });
 }
 
@@ -1027,13 +1041,13 @@ function renderPortalAccounts() {
   if (!pendingWrap || !activeWrap) return;
 
   var admissions = buildAdmissionAccountList(state.admissions || []);
-  var pending = admissions.filter(function (a) { return !studentByEmail(a.email); });
+  var pending = admissions.filter(function (a) { return !studentByPhone(a.phone); });
   var active = state.students.slice().sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); });
 
   pendingWrap.textContent = "";
   activeWrap.textContent = "";
 
-  var pendingHeaders = [t("dcol.name"), t("dcol.email"), t("admin.phone"), t("admin.attFilterClass"), t("admin.accountsColStatus")];
+  var pendingHeaders = [t("dcol.name"), t("admin.phone"), t("dcol.email"), t("admin.attFilterClass"), t("admin.accountsColStatus")];
   if (!pending.length) {
     var pEmpty = document.createElement("p");
     pEmpty.className = "empty-state";
@@ -1041,18 +1055,18 @@ function renderPortalAccounts() {
     pendingWrap.appendChild(pEmpty);
   } else {
     var pendingRows = pending.map(function (a) {
-      var email = (a.email || "").trim();
+      var email = optionalContactEmail(a.email);
       var phone = normalizePhone(a.phone);
-      var canCreate = email && EMAIL_RE.test(email) && phone;
+      var canCreate = !!phone;
       return {
         data: a,
         nameCell: true,
         cells: [
           a.name || t("dash"),
-          email || t("dash"),
           phone || (a.phone || t("dash")),
+          email || t("dash"),
           a.batch || t("dash"),
-          accountPendingStatus(a.email, a.phone)
+          accountPendingStatus(a.phone)
         ],
         canCreate: canCreate
       };
@@ -1083,10 +1097,10 @@ function renderPortalAccounts() {
 
 function createPortalAccount(admissionRow, btn) {
   var note = el("accountsNote");
-  var email = String(admissionRow.email || "").trim().toLowerCase();
+  var contactEmail = optionalContactEmail(admissionRow.email);
   var phone = normalizePhone(admissionRow.phone);
-  if (!email || !EMAIL_RE.test(email)) {
-    if (note) setNote(note, t("admin.accountsNoEmail"), "err");
+  if (String(admissionRow.email || "").trim() && !contactEmail) {
+    if (note) setNote(note, t("admin.accountsInvalidEmail"), "err");
     return;
   }
   if (!phone) {
@@ -1095,18 +1109,17 @@ function createPortalAccount(admissionRow, btn) {
   }
   var msg = t("admin.accountsConfirmCreate")
     .replace("{name}", admissionRow.name || "")
-    .replace("{email}", email)
     .replace("{phone}", phone);
   if (!window.confirm(msg)) return;
 
   if (btn) btn.disabled = true;
   if (note) setNote(note, "", "");
 
-  provisionCreateAuthUser(email, phone, admissionRow.name).then(function (uid) {
+  provisionCreateAuthUser(contactEmail, phone, admissionRow.name).then(function (uid) {
     if (!uid) throw new Error("bad-response");
     return setDoc(doc(db, "students", uid), {
       name: admissionRow.name,
-      email: email,
+      email: contactEmail,
       phone: phone,
       batch: admissionRow.batch || "",
       schedule: "",
@@ -1114,22 +1127,25 @@ function createPortalAccount(admissionRow, btn) {
       createdAt: serverTimestamp()
     }).catch(function () { throw new Error("firestore-failed"); });
   }).then(function () {
+    if (!contactEmail) return { ok: true, skipped: true };
     var user = auth.currentUser;
-    if (!user) return "email-skipped";
+    if (!user) return { ok: true, skipped: true };
     return user.getIdToken().then(function (idToken) {
       return sheetAdminPost(idToken, "portalwelcome", {
         name: admissionRow.name || "",
-        email: email,
+        email: contactEmail,
         phone: phone,
         batch: admissionRow.batch || ""
-      }).then(function () { return { ok: true }; }).catch(function (err) { return { ok: false, err: err }; });
+      }).then(function () { return { ok: true, skipped: false }; }).catch(function (err) { return { ok: false, err: err }; });
     });
   }).then(function (emailResult) {
     if (note) {
-      if (emailResult === "email-skipped") {
+      if (emailResult && emailResult.skipped) {
         setNote(note, t("admin.accountsCreatedNoEmail"), "ok");
       } else if (emailResult && emailResult.ok === false) {
         setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail"), "ok");
+      } else if (emailResult && emailResult.ok && !emailResult.skipped) {
+        setNote(note, t("admin.accountsCreatedWelcome"), "ok");
       } else {
         setNote(note, t("admin.accountsCreated"), "ok");
       }
@@ -1151,7 +1167,7 @@ function createPortalAccount(admissionRow, btn) {
 
 function removePortalAccount(student, btn) {
   var note = el("accountsNote");
-  var msg = t("admin.accountsConfirmRemove").replace("{name}", student.name || student.email || "");
+  var msg = t("admin.accountsConfirmRemove").replace("{name}", student.name || student.phone || "");
   if (!window.confirm(msg)) return;
 
   if (btn) btn.disabled = true;
@@ -1422,7 +1438,7 @@ function sheetAdminErrorMessage(err, fallbackKey) {
   if (/no rows|invalid rows/i.test(msg)) return t("admin.feesReportEmpty");
   if (/mail-failed|excel-failed/i.test(msg)) return t("admin.feesReportMailErr");
   if (/invalid-phone/i.test(msg)) return t("admin.accountsNoPhone");
-  if (/no.recipient|no-recipient/i.test(msg)) return t("admin.accountsNoEmail");
+  if (/no.recipient|no-recipient/i.test(msg)) return t("admin.accountsCreatedNoEmail");
   if (/bad-response|empty-response|network|timeout/i.test(msg)) {
     return t(feesContext ? "admin.feesNeedDeploy" : "admin.accountsErrFunctions");
   }

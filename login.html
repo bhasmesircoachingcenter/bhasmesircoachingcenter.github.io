@@ -32,16 +32,16 @@
       <section id="loginView">
         <h1 data-i18n="auth.loginTitle">Student Login</h1>
         <p class="auth-intro" data-i18n="auth.loginIntro">Sign in to view your batch, attendance, test results and announcements.</p>
-        <p class="auth-login-hint" data-i18n="auth.loginHint">Login with your email address. Password is your 10-digit mobile number (from admission).</p>
+        <p class="auth-login-hint" data-i18n="auth.loginHint">Students: login with 10-digit mobile number · password = same mobile (no +91).</p>
         <p class="auth-admin-hint" data-i18n="auth.adminHint">Admins: use <strong>Continue with Google</strong> or your full email password (not limited to 10 digits).</p>
 
         <form id="loginForm" novalidate>
           <div class="field">
-            <label for="loginEmail" data-i18n="auth.email">Email</label>
-            <input type="email" id="loginEmail" name="email" autocomplete="email" required aria-required="true" />
+            <label for="loginMobile" data-i18n="auth.mobile">Mobile Number</label>
+            <input type="tel" id="loginMobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="20" required aria-required="true" />
           </div>
           <div class="field">
-            <label for="loginPassword" data-i18n="auth.password">Password</label>
+            <label for="loginPassword" data-i18n="auth.passwordMobile">Password (10-digit mobile)</label>
             <input type="password" id="loginPassword" name="password" autocomplete="current-password" required aria-required="true" />
           </div>
           <div class="forgot-row">
@@ -76,8 +76,8 @@
             <input type="tel" id="regPhone" name="phone" inputmode="numeric" autocomplete="tel" maxlength="20" required aria-required="true" />
           </div>
           <div class="field">
-            <label for="regEmail" data-i18n="auth.email">Email</label>
-            <input type="email" id="regEmail" name="email" autocomplete="email" required aria-required="true" />
+            <label for="regEmail" data-i18n="auth.emailOptional">Email (optional)</label>
+            <input type="email" id="regEmail" name="email" autocomplete="email" />
           </div>
           <div class="field">
             <label for="regPassword" data-i18n="auth.password">Password</label>
@@ -97,20 +97,11 @@
         </p>
       </section>
 
-      <!-- ===================== FORGOT PASSWORD ===================== -->
+      <!-- Login help — students use mobile as username + password -->
       <section id="forgotView" class="hidden">
-        <h1 data-i18n="auth.forgotTitle">Reset Password</h1>
-        <p class="auth-intro" data-i18n="auth.forgotIntro">Enter your email and we'll send you a password reset link. If it doesn't arrive, check your Spam or Promotions folder.</p>
-
-        <form id="forgotForm" novalidate>
-          <div class="field">
-            <label for="forgotEmail" data-i18n="auth.email">Email</label>
-            <input type="email" id="forgotEmail" name="email" autocomplete="email" required aria-required="true" />
-          </div>
-          <button type="submit" class="btn btn-primary" data-i18n="auth.sendReset">Send Reset Link</button>
-          <p class="auth-note" id="forgotNote" role="status" aria-live="polite"></p>
-        </form>
-
+        <h1 data-i18n="auth.forgotTitle">Login help</h1>
+        <p class="auth-intro" data-i18n="auth.forgotIntro">Student login uses your 10-digit mobile number as username and password. If you still cannot sign in, contact the coaching center admin.</p>
+        <p class="auth-login-hint" data-i18n="auth.forgotContact">Call or WhatsApp: +91 70585 05983</p>
         <p class="auth-switch">
           <button type="button" class="link-btn" id="backToLogin" data-i18n="auth.backToLogin">Back to login</button>
         </p>
@@ -118,6 +109,6 @@
     </div>
   </main>
 
-  <script type="module" src="auth/auth.js?v=5"></script>
+  <script type="module" src="auth/auth.js?v=6"></script>
 </body>
 </html>

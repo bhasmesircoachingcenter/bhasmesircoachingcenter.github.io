@@ -11,11 +11,15 @@
 
 import { auth, db } from "./firebase-config.js";
 import {
+  normalizePhone,
+  optionalContactEmail,
+  resolveStudentLoginEmail
+} from "./portal-auth.js";
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -34,9 +38,11 @@ var I18N = {
     "brand.sub": "Coaching Center",
     "auth.loginTitle": "Student Login",
     "auth.loginIntro": "Sign in to view your batch, attendance, test results and announcements.",
-    "auth.loginHint": "Students: login with email from admission · password = 10-digit mobile (no +91).",
+    "auth.loginHint": "Students: login with 10-digit mobile number · password = same mobile (no +91).",
     "auth.adminHint": "Admins: use Continue with Google or your full email password.",
+    "auth.mobile": "Mobile Number",
     "auth.email": "Email",
+    "auth.emailOptional": "Email (optional)",
     "auth.password": "Password",
     "auth.passwordMobile": "Password (10-digit mobile)",
     "auth.forgot": "Forgot password?",
@@ -52,9 +58,9 @@ var I18N = {
     "auth.registerBtn": "Create Account",
     "auth.haveAccount": "Already have an account?",
     "auth.loginLink": "Log In",
-    "auth.forgotTitle": "Reset Password",
-    "auth.forgotIntro": "Enter your email and we'll send you a password reset link. If it doesn't arrive, check your Spam or Promotions folder.",
-    "auth.sendReset": "Send Reset Link",
+    "auth.forgotTitle": "Login help",
+    "auth.forgotIntro": "Student login uses your 10-digit mobile number as username and password. If you still cannot sign in, contact the coaching center admin.",
+    "auth.forgotContact": "Call or WhatsApp: +91 70585 05983",
     "auth.backToLogin": "Back to login",
     // dynamic messages
     "msg.fillAll": "Please fill in all fields.",
@@ -62,7 +68,7 @@ var I18N = {
     "msg.pwShort": "Password must be at least 6 characters.",
     "msg.pwMismatch": "Passwords do not match.",
     "msg.phoneInvalid": "Please enter a valid 10-digit mobile number.",
-    "msg.loginFail": "Invalid email or password.",
+    "msg.loginFail": "Invalid mobile number or password.",
     "msg.tooMany": "Too many attempts. Please try again later.",
     "msg.network": "Network error. Please check your connection.",
     "msg.welcome": "Signed in — redirecting…",
@@ -78,9 +84,11 @@ var I18N = {
     "brand.sub": "कोचिंग सेंटर",
     "auth.loginTitle": "विद्यार्थी लॉगिन",
     "auth.loginIntro": "तुमची बॅच, हजेरी, चाचणी निकाल व घोषणा पाहण्यासाठी साइन इन करा.",
-    "auth.loginHint": "विद्यार्थी: प्रवेश अर्जातील ईमेल · पासवर्ड = १० अंकी मोबाइल (+91 नको).",
+    "auth.loginHint": "विद्यार्थी: १० अंकी मोबाइल नंबर · पासवर्ड = तोच मोबाइल (+91 नको).",
     "auth.adminHint": "प्रशासक: Google ने सुरू ठेवा किंवा पूर्ण ईमेल पासवर्ड वापरा.",
+    "auth.mobile": "मोबाइल नंबर",
     "auth.email": "ईमेल",
+    "auth.emailOptional": "ईमेल (ऐच्छिक)",
     "auth.password": "पासवर्ड",
     "auth.passwordMobile": "पासवर्ड (१० अंकी मोबाइल)",
     "auth.forgot": "पासवर्ड विसरलात?",
@@ -96,9 +104,9 @@ var I18N = {
     "auth.registerBtn": "खाते तयार करा",
     "auth.haveAccount": "आधीच खाते आहे?",
     "auth.loginLink": "लॉग इन करा",
-    "auth.forgotTitle": "पासवर्ड रीसेट करा",
-    "auth.forgotIntro": "तुमचा ईमेल टाका, आम्ही पासवर्ड रीसेट लिंक पाठवू. लिंक न आल्यास Spam किंवा Promotions फोल्डर तपासा.",
-    "auth.sendReset": "रीसेट लिंक पाठवा",
+    "auth.forgotTitle": "लॉगिन मदत",
+    "auth.forgotIntro": "विद्यार्थी लॉगिन: १० अंकी मोबाइल=user id व पासवर्ड. अजूनही लॉगिन होत नसेल तर कोचिंग सेंटर प्रशासकाशी संपर्क करा.",
+    "auth.forgotContact": "कॉल / WhatsApp: +91 70585 05983",
     "auth.backToLogin": "लॉगिनकडे परत",
     // dynamic messages
     "msg.fillAll": "कृपया सर्व माहिती भरा.",
@@ -106,7 +114,7 @@ var I18N = {
     "msg.pwShort": "पासवर्ड किमान ६ अक्षरांचा हवा.",
     "msg.pwMismatch": "पासवर्ड जुळत नाहीत.",
     "msg.phoneInvalid": "कृपया वैध १० अंकी मोबाइल नंबर भरा.",
-    "msg.loginFail": "ईमेल किंवा पासवर्ड चुकीचा आहे.",
+    "msg.loginFail": "मोबाइल नंबर किंवा पासवर्ड चुकीचा आहे.",
     "msg.tooMany": "खूप प्रयत्न झाले. कृपया नंतर पुन्हा प्रयत्न करा.",
     "msg.network": "नेटवर्क त्रुटी. कृपया तुमचे कनेक्शन तपासा.",
     "msg.welcome": "साइन इन झाले — पुनर्निर्देशित करत आहोत…",
@@ -149,17 +157,6 @@ function applyLang(next) {
 }
 
 /* ---------------- Helpers ---------------- */
-var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Validate an Indian mobile: 10 digits (6-9 start), optionally +91 / 0 prefix.
-// Returns the normalized 10-digit string, or null if invalid.
-function normalizePhone(raw) {
-  var digits = (raw || "").replace(/[\s\-()]/g, "");
-  digits = digits.replace(/^\+91/, "").replace(/^0+/, "");
-  if (/^[6-9]\d{9}$/.test(digits)) return digits;
-  return null;
-}
-
 function setNote(el, key, type) {
   if (!el) return;
   el.textContent = t(key);
@@ -243,14 +240,15 @@ var loginNote = document.getElementById("loginNote");
 if (loginForm) {
   loginForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    var email = (loginForm.elements.email.value || "").trim();
+    var loginId = (loginForm.elements.mobile.value || "").trim();
     var password = loginForm.elements.password.value || "";
-    if (!email || !password) { setNote(loginNote, "msg.fillAll", "err"); return; }
-    if (!EMAIL_RE.test(email)) { setNote(loginNote, "msg.invalidEmail", "err"); return; }
+    if (!loginId || !password) { setNote(loginNote, "msg.fillAll", "err"); return; }
+    var authEmail = resolveStudentLoginEmail(loginId);
+    if (!authEmail) { setNote(loginNote, "msg.phoneInvalid", "err"); return; }
 
     var btn = loginForm.querySelector("button[type=submit]");
     if (btn) btn.disabled = true;
-    signInWithEmailAndPassword(auth, email, password)
+    signInWithEmailAndPassword(auth, authEmail, password)
       .then(function () {
         setNote(loginNote, "msg.welcome", "ok");
         redirectToPortal();
@@ -277,18 +275,18 @@ if (registerForm) {
     var password = els.password.value || "";
     var confirm = els.confirm.value || "";
 
-    if (!name || !email || !password || !confirm) { setNote(registerNote, "msg.fillAll", "err"); return; }
-    if (!EMAIL_RE.test(email)) { setNote(registerNote, "msg.invalidEmail", "err"); return; }
-    // Phone is required; show the specific phone error for empty OR malformed input.
+    if (!name || !password || !confirm) { setNote(registerNote, "msg.fillAll", "err"); return; }
     var phone = normalizePhone(phoneRaw);
     if (!phone) { setNote(registerNote, "msg.phoneInvalid", "err"); return; }
+    var contactEmail = optionalContactEmail(email);
+    if (email && !contactEmail) { setNote(registerNote, "msg.invalidEmail", "err"); return; }
     if (password.length < 6) { setNote(registerNote, "msg.pwShort", "err"); return; }
     if (password !== confirm) { setNote(registerNote, "msg.pwMismatch", "err"); return; }
 
     var btn = registerForm.querySelector("button[type=submit]");
     if (btn) btn.disabled = true;
 
-    createUserWithEmailAndPassword(auth, email, password)
+    createUserWithEmailAndPassword(auth, resolveStudentLoginEmail(phone), password)
       .then(function (cred) {
         var user = cred.user;
         // Set the display name and create the Firestore profile.
@@ -296,7 +294,7 @@ if (registerForm) {
           updateProfile(user, { displayName: name }),
           setDoc(doc(db, "students", user.uid), {
             name: name,
-            email: email,
+            email: contactEmail,
             phone: phone,
             batch: "",
             createdAt: serverTimestamp()
@@ -366,35 +364,4 @@ if (googleBtn) {
   });
 }
 
-/* ---------------- Forgot password ---------------- */
-var forgotForm = document.getElementById("forgotForm");
-var forgotNote = document.getElementById("forgotNote");
-if (forgotForm) {
-  forgotForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var email = (forgotForm.elements.email.value || "").trim();
-    if (!email || !EMAIL_RE.test(email)) { setNote(forgotNote, "msg.invalidEmail", "err"); return; }
-
-    var btn = forgotForm.querySelector("button[type=submit]");
-    if (btn) btn.disabled = true;
-    sendPasswordResetEmail(auth, email)
-      .then(function () {
-        // Always show the same generic message (no enumeration of accounts).
-        setNote(forgotNote, "msg.resetSent", "ok");
-      })
-      .catch(function (err) {
-        var code = err && err.code;
-        if (code === "auth/invalid-email") {
-          setNote(forgotNote, "msg.invalidEmail", "err");
-        } else if (code === "auth/network-request-failed") {
-          setNote(forgotNote, "msg.network", "err");
-        } else {
-          // Even on user-not-found we show the neutral "reset sent" message.
-          setNote(forgotNote, "msg.resetSent", "ok");
-        }
-      })
-      .finally(function () {
-        if (btn) btn.disabled = false;
-      });
-  });
-}
+/* Forgot password view is informational only — students log in with mobile. */

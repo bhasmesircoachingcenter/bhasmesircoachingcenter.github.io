@@ -112,7 +112,7 @@
       "contact.applyOnlineHint": "All details are saved to our student records — same as the paper form at the center.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone Number",
-      "form.email": "Email",
+      "form.email": "Email (optional)",
       "form.purposeLabel": "I'm interested in",
       "form.purposeDemo": "Free Demo Class",
       "form.purposeAdmission": "Admission",
@@ -245,7 +245,7 @@
       "contact.applyOnlineHint": "सर्व माहिती आमच्या विद्यार्थी नोंदींमध्ये जतन होते — केंद्रावरील कागदी अर्जासारखीच.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन नंबर",
-      "form.email": "ईमेल",
+      "form.email": "ईमेल (ऐच्छिक)",
       "form.purposeLabel": "मला यामध्ये रस आहे",
       "form.purposeDemo": "मोफत डेमो वर्ग",
       "form.purposeAdmission": "प्रवेश",
@@ -401,11 +401,7 @@
       }
 
       var email = (form.elements.email && form.elements.email.value || "").trim();
-      if (!email) {
-        setNote(isMr ? "कृपया तुमचा ईमेल पत्ता भरा." : "Please enter your email address.", "err");
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         setNote(isMr ? "कृपया वैध ईमेल पत्ता भरा." : "Please enter a valid email address.", "err");
         return;
       }
