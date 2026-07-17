@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admission Form – Bhasme Sir Coaching Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --black: #000; --mid: #333; }
+  @page { size: A4; margin: 10mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Poppins", "Mukta", sans-serif;
+    color: var(--black);
+    font-size: 9pt;
+    line-height: 1.35;
+    background: #fff;
+  }
+  .page {
+    width: 190mm;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* Compact header — height fits text only (no photo stretch) */
+  .header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border: 2px solid var(--black);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+  .header img {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--black);
+    filter: grayscale(100%) contrast(1.15);
+    flex-shrink: 0;
+  }
+  .header .center { flex: 1; min-width: 0; }
+  .header .center h1 {
+    font-size: 12.5pt;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 2px;
+  }
+  .header .center .sub {
+    font-size: 7.8pt;
+    color: var(--mid);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .header .center .title-bar {
+    font-size: 10pt;
+    font-weight: 800;
+    border-top: 1px solid var(--black);
+    padding-top: 4px;
+    margin-top: 4px;
+  }
+  .header .center .title-bar span {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--mid);
+  }
+
+  /* Row 1: Form No + Name (spaced); Row 2: Date; Photo on right */
+  .meta-block {
+    display: grid;
+    grid-template-columns: 32mm 1fr 28mm;
+    grid-template-rows: auto auto;
+    column-gap: 20px;
+    row-gap: 8px;
+    align-items: end;
+    margin-bottom: 10px;
+    border: 1.5px solid var(--black);
+    padding: 8px 12px;
+  }
+  .meta-block .form-no { grid-column: 1; grid-row: 1; }
+  .meta-block .form-name { grid-column: 2; grid-row: 1; }
+  .meta-block .form-date { grid-column: 1; grid-row: 2; }
+  .photo-wrap {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: start;
+    text-align: center;
+  }
+  .photo-wrap label { font-size: 7.5pt; font-weight: 700; margin-bottom: 3px; display: block; }
+  .photo-box {
+    width: 26mm;
+    height: 32mm;
+    border: 2px solid var(--black);
+    background: #fff;
+  }
+
+  .note {
+    font-size: 8pt;
+    border: 1px solid var(--black);
+    padding: 6px 10px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .note strong { font-weight: 800; }
+  .note .mr { font-family: "Mukta", sans-serif; display: block; margin-top: 2px; }
+
+  .section { margin-bottom: 12px; }
+  .section h3 {
+    font-size: 9pt;
+    font-weight: 800;
+    border: 1px solid var(--black);
+    border-left-width: 5px;
+    padding: 5px 10px;
+    margin-bottom: 8px;
+  }
+  .section h3 span { font-weight: 600; font-size: 8pt; color: var(--mid); }
+
+  .row { display: flex; gap: 14px; margin-bottom: 8px; align-items: flex-end; }
+  .field { flex: 1; min-width: 0; }
+  .field.xs { flex: 0 0 20%; }
+  .field.sm { flex: 0 0 28%; }
+  .field.md { flex: 0 0 48%; }
+  label {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 700;
+    margin-bottom: 3px;
+    line-height: 1.2;
+  }
+  label .mr {
+    font-family: "Mukta", sans-serif;
+    font-weight: 600;
+    color: var(--mid);
+    font-size: 7pt;
+  }
+  label .opt {
+    font-weight: 600;
+    color: #666;
+    font-size: 6.8pt;
+    font-style: italic;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+    margin-bottom: 8px;
+  }
+  .grid2 .field { min-width: 0; }
+  .line {
+    border: none;
+    border-bottom: 1.5px solid var(--black);
+    min-height: 20px;
+    width: 100%;
+  }
+
+  .checks { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 2px; }
+  .chk { display: flex; align-items: center; gap: 5px; font-size: 8.5pt; font-weight: 500; }
+  .box {
+    width: 13px; height: 13px;
+    border: 1.5px solid var(--black);
+    flex-shrink: 0;
+    background: #fff;
+  }
+
+  .cols2 {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .cols2 > .col {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #ccc;
+    padding-right: 14px;
+  }
+  .cols2 > .col:last-child {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .decl {
+    border: 1px solid var(--black);
+    padding: 8px 10px;
+    font-size: 8pt;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .decl .mr { font-family: "Mukta", sans-serif; color: var(--mid); font-size: 7.5pt; margin-top: 4px; }
+
+  .sign-row { display: flex; gap: 16px; margin-bottom: 12px; }
+  .sign { flex: 1; }
+  .sign .line { margin-top: 24px; }
+  .sign label { text-align: center; font-size: 7.5pt; }
+
+  .office {
+    border: 2px dashed var(--black);
+    padding: 8px 10px;
+    margin-bottom: 10px;
+  }
+  .office h4 {
+    font-size: 8pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .footer {
+    padding-top: 8px;
+    border-top: 2px solid var(--black);
+    font-size: 7.5pt;
+    color: var(--mid);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .footer strong { color: var(--black); font-weight: 800; }
+
+  .fee-note {
+    font-size: 7.5pt;
+    color: var(--mid);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .fee-plans { margin-bottom: 6px; }
+  .pay-modes .chk { font-size: 8pt; }
+
+  @media print {
+    body { -webkit-print-color-adjust: economy; print-color-adjust: economy; }
+    .page { width: auto; margin: 0; }
+    .header img { filter: grayscale(100%) contrast(1.2); }
+    * { box-shadow: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="header">
+    <img src="../flyer/logo.png" alt="Logo" />
+    <div class="center">
+      <h1>Bhasme Sir Coaching Center / भस्मे सर कोचिंग सेंटर</h1>
+      <p class="sub">Maths · Class 8th to 10th · Maharashtra State Board (SSC) · Ph: +91 70585 05983 · bhasmesircoachingcenter@gmail.com</p>
+      <div class="title-bar">
+        ADMISSION FORM / प्रवेश अर्ज — 2026–27
+        <span> · महाराष्ट्र राज्य मंडळ (एस.एस.सी.) गणित कोचिंग</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="note">
+    <strong>Instructions / सूचना:</strong> Fill in BLOCK LETTERS (or clearly in Devanagari). Attach passport-size photograph.
+    <span class="mr">कृपया स्पष्ट अक्षरात भरा. एक पासपोर्ट आकाराचा फोटो जोडा.</span>
+  </div>
+
+  <div class="meta-block">
+    <div class="field form-no">
+      <label>Form No. <span class="mr">अर्ज क्र.</span></label>
+      <div class="line"></div>
+    </div>
+    <div class="field form-name">
+      <label>Student Full Name <span class="mr">पूर्ण नाव (शाळेच्या नोंदीप्रमाणे)</span></label>
+      <div class="line"></div>
+    </div>
+    <div class="field form-date">
+      <label>Date <span class="mr">दिनांक</span></label>
+      <div class="line"></div>
+    </div>
+    <div class="photo-wrap">
+      <label>Photo / फोटो</label>
+      <div class="photo-box"></div>
+    </div>
+  </div>
+
+  <section class="section">
+    <h3>1. Student Details <span>/ विद्यार्थी माहिती</span></h3>
+    <div class="grid2">
+      <div class="field"><label>Date of Birth <span class="mr">जन्मतारीख</span></label><div class="line"></div></div>
+      <div class="field"><label>Age <span class="mr">वय</span></label><div class="line"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Gender <span class="mr">लिंग</span></label>
+        <div class="checks">
+          <span class="chk"><span class="box"></span> Male / पुरुष</span>
+          <span class="chk"><span class="box"></span> Female / स्त्री</span>
+        </div>
+      </div>
+      <div class="field"><label>Last Year Maths % <span class="mr">मागील वर्ष गुण</span> <span class="opt">optional</span></label><div class="line"></div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>School Name &amp; Address <span class="mr">शाळेचे नाव व पत्ता</span></label><div class="line"></div></div>
+    </div>
+    <div class="row">
+      <div class="field md">
+        <label>Class applying for <span class="mr">प्रवेश इयत्ता</span></label>
+        <div class="checks">
+          <span class="chk"><span class="box"></span> 8th Maths / ८वी</span>
+          <span class="chk"><span class="box"></span> 9th Maths / ९वी</span>
+          <span class="chk"><span class="box"></span> 10th SSC / १०वी</span>
+        </div>
+      </div>
+      <div class="field md">
+        <label>Medium <span class="mr">शिक्षण माध्यम</span></label>
+        <div class="checks">
+          <span class="chk"><span class="box"></span> Marathi / मराठी</span>
+          <span class="chk"><span class="box"></span> Semi-English</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cols2">
+    <section class="section col" style="margin-bottom:0;">
+      <h3>2. Parent / Guardian <span>/ पालक माहिती</span></h3>
+      <div class="row"><div class="field"><label>Father / Guardian <span class="mr">वडील / पालक</span></label><div class="line"></div></div></div>
+      <div class="row"><div class="field"><label>Mother <span class="mr">आई</span> <span class="opt">optional</span></label><div class="line"></div></div></div>
+      <div class="row">
+        <div class="field md"><label>Occupation <span class="mr">व्यवसाय</span> <span class="opt">optional</span></label><div class="line"></div></div>
+        <div class="field md"><label>Mobile <span class="mr">मोबाईल</span></label><div class="line"></div></div>
+      </div>
+      <div class="row">
+        <div class="field md"><label>Alt. Mobile <span class="mr">पर्यायी</span> <span class="opt">optional</span></label><div class="line"></div></div>
+        <div class="field md"><label>Email <span class="mr">ईमेल</span></label><div class="line"></div></div>
+      </div>
+    </section>
+    <section class="section col" style="margin-bottom:0;">
+      <h3>3. Other Details <span>/ इतर माहिती</span></h3>
+      <div class="row"><div class="field"><label>Residential Address <span class="mr">राहण्याचा पत्ता</span></label><div class="line"></div></div></div>
+      <div class="row"><div class="field"><label>&nbsp;</label><div class="line"></div></div></div>
+      <div class="row">
+        <div class="field">
+          <label>Preferred Batch Timing <span class="mr">इच्छित वेळ</span></label>
+          <div class="checks">
+            <span class="chk"><span class="box"></span> Morning / सकाळ</span>
+            <span class="chk"><span class="box"></span> Evening / संध्याकाळ</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>How did you hear about us? <span class="mr">कसे कळले</span> <span class="opt">optional</span></label>
+          <div class="checks">
+            <span class="chk"><span class="box"></span> Friend</span>
+            <span class="chk"><span class="box"></span> Social media</span>
+            <span class="chk"><span class="box"></span> Flyer</span>
+            <span class="chk"><span class="box"></span> Website</span>
+            <span class="chk"><span class="box"></span> Other</span>
+          </div>
+        </div>
+      </div>
+      <div class="row"><div class="field"><label>Any special note <span class="mr">विशेष टिप्पणी</span> <span class="opt">optional</span></label><div class="line"></div></div></div>
+      <div class="row"><div class="field"><label>&nbsp;</label><div class="line"></div></div></div>
+      <p style="font-size:7.5pt;border:1px solid #000;padding:5px 8px;line-height:1.35;">
+        <strong>SSC only:</strong> Classes for Maharashtra State Board syllabus only.<br />
+        <span style="font-family:Mukta,sans-serif;">फक्त महाराष्ट्र राज्य मंडळ (एस.एस.सी.) अभ्यासक्रमासाठी.</span>
+      </p>
+    </section>
+  </div>
+
+  <section class="section">
+    <h3>4. Fee Payment Preference <span>/ शुल्क भरणा पद्धत</span></h3>
+    <p class="fee-note">Course duration: <strong>8 months</strong>. Please select your preferred fee payment plan (final plan subject to confirmation at the center).
+      <span class="mr" style="font-family:Mukta,sans-serif;display:block;margin-top:2px;">अभ्यासक्रम कालावधी: <strong>८ महिने</strong>. कृपया शुल्क भरण्याची पसंती निवडा (अंतिम निर्णय केंद्रावर निश्चित होईल).</span>
+    </p>
+    <div class="checks fee-plans">
+      <span class="chk"><span class="box"></span> Monthly / मासिक</span>
+      <span class="chk"><span class="box"></span> Two installments / दोन हप्त्यात</span>
+      <span class="chk"><span class="box"></span> One-time full payment / एकवेळ पूर्ण भरणा</span>
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <div class="field">
+        <label>Preferred payment mode <span class="mr">भरणा पद्धत</span></label>
+        <div class="checks pay-modes">
+          <span class="chk"><span class="box"></span> Cash / रोख</span>
+          <span class="chk"><span class="box"></span> UPI</span>
+          <span class="chk"><span class="box"></span> Bank transfer / बँक हस्तांतरण</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>5. Declaration <span>/ घोषणा</span></h3>
+    <div class="decl">
+      I declare that the information given above is true and correct. I agree to follow the rules of Bhasme Sir Coaching Center.
+      <div class="mr">वरील माहिती बरोबर आहे. केंद्राचे नियम पाळण्यास मी/आम्ही सहमत आहोत.</div>
+    </div>
+    <div class="sign-row">
+      <div class="sign"><div class="line"></div><label>Parent Signature <span class="mr">पालकाची सही</span></label></div>
+      <div class="sign"><div class="line"></div><label>Date <span class="mr">दिनांक</span></label></div>
+      <div class="sign"><div class="line"></div><label>Place <span class="mr">ठिकाण</span></label></div>
+    </div>
+  </section>
+
+  <div class="office">
+    <h4>For Office Use Only / कार्यालयीन वापरासाठी</h4>
+    <div class="row" style="margin-bottom:0;">
+      <div class="field"><label>Status</label><div class="line"></div></div>
+      <div class="field"><label>Batch</label><div class="line"></div></div>
+      <div class="field"><label>Fee Receipt No.</label><div class="line"></div></div>
+      <div class="field"><label>Received By</label><div class="line"></div></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div><strong>Bhasme House, Dhawad Layout, I.U.D.P. Road, Katol, Maharashtra 441302</strong></div>
+    <div style="text-align:right;">+91 70585 05983 · bhasmesircoachingcenter.github.io</div>
+  </footer>
+</div>
+
+</body>
+</html>

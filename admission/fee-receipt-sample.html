@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sample Fee Receipt | Bhasme Sir Coaching Center</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef2f7;
+      color: #1a2b44;
+      padding: 24px;
+    }
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #d8dee8;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(26, 43, 68, .08);
+    }
+    .head {
+      background: linear-gradient(135deg, #1a365d 0%, #234876 100%);
+      color: #fff;
+      padding: 28px 32px 22px;
+    }
+    .head h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .head p {
+      margin-top: 6px;
+      font-size: .92rem;
+      opacity: .92;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 14px;
+      background: #f57c00;
+      color: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+    .body { padding: 28px 32px 32px; }
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 24px;
+      margin-bottom: 22px;
+      font-size: .92rem;
+    }
+    .meta div strong {
+      display: block;
+      font-size: .74rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #5a6578;
+      margin-bottom: 4px;
+    }
+    .student-box {
+      background: #f7f9fc;
+      border: 1px solid #e3e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .student-box h2 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      color: #1a365d;
+    }
+    .student-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 20px;
+      font-size: .9rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+      font-size: .92rem;
+    }
+    th, td {
+      border: 1px solid #e3e8f0;
+      padding: 11px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f0f4fa;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #4a5568;
+    }
+    td.amount, th.amount { text-align: right; }
+    tr.total td {
+      font-weight: 700;
+      background: #fff8ef;
+      color: #c05600;
+    }
+    .note {
+      font-size: .88rem;
+      color: #4a5568;
+      border-left: 4px solid #f57c00;
+      padding: 10px 12px;
+      background: #fffaf5;
+      margin-bottom: 18px;
+    }
+    .footer {
+      border-top: 1px dashed #d8dee8;
+      padding-top: 16px;
+      font-size: .86rem;
+      color: #5a6578;
+      line-height: 1.55;
+    }
+    .footer strong { color: #1a365d; }
+    .bilingual {
+      margin-top: 8px;
+      font-size: .84rem;
+      color: #6b7280;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; border: none; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="head">
+      <h1>Bhasme Sir Coaching Center</h1>
+      <p>Math's Coaching by Bhasme Sir</p>
+      <span class="badge">Fee Receipt / फी पावती</span>
+    </div>
+    <div class="body">
+      <div class="meta">
+        <div>
+          <strong>Receipt No / पावती क्र.</strong>
+          BCC-20260707-DHIR
+        </div>
+        <div>
+          <strong>Date / तारीख</strong>
+          07 Jul 2026
+        </div>
+      </div>
+
+      <div class="student-box">
+        <h2>Student Details / विद्यार्थी माहिती</h2>
+        <div class="student-grid">
+          <div><strong>Name:</strong> Dhiraj</div>
+          <div><strong>Class:</strong> 8th</div>
+          <div><strong>Email:</strong> dhiraj.bhasme@gmail.com</div>
+          <div><strong>Mobile:</strong> 9999999999</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Description / वर्णन</th>
+            <th class="amount">Amount / रक्कम</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Payment plan / योजना — One-time full payment</td>
+            <td class="amount">—</td>
+          </tr>
+          <tr>
+            <td>Course fee / अभ्यासक्रम शुल्क</td>
+            <td class="amount">₹3,000</td>
+          </tr>
+          <tr>
+            <td>Registration fee / नोंदणी शुल्क</td>
+            <td class="amount">₹500</td>
+          </tr>
+          <tr>
+            <td>Amount paid / भरलेली रक्कम</td>
+            <td class="amount">₹500</td>
+          </tr>
+          <tr class="total">
+            <td>Balance due / बाकी</td>
+            <td class="amount">₹2,500</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note">
+        <strong>Note:</strong> First installment received. Balance payable as per coaching schedule.
+      </div>
+
+      <div class="footer">
+        <strong>Thank you for your payment.</strong>
+        <div class="bilingual">आपल्या पेमेंटबद्दल धन्यवाद.</div>
+        <div style="margin-top:10px;">
+          Bhasme Sir Coaching Center · +91 70585 05983<br />
+          This is a computer-generated receipt.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
