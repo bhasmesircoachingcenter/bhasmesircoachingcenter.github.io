@@ -37,11 +37,11 @@
 
         <form id="loginForm" novalidate>
           <div class="field">
-            <label for="loginMobile" data-i18n="auth.mobile">Mobile Number</label>
-            <input type="tel" id="loginMobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="20" required aria-required="true" />
+            <label for="loginMobile" data-i18n="auth.loginId">Mobile number or email</label>
+            <input type="text" id="loginMobile" name="mobile" inputmode="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="120" required aria-required="true" />
           </div>
           <div class="field">
-            <label for="loginPassword" data-i18n="auth.passwordMobile">Password (10-digit mobile)</label>
+            <label for="loginPassword" data-i18n="auth.password">Password</label>
             <input type="password" id="loginPassword" name="password" autocomplete="current-password" required aria-required="true" />
           </div>
           <div class="forgot-row">
@@ -109,6 +109,6 @@
     </div>
   </main>
 
-  <script type="module" src="auth/auth.js?v=6"></script>
+  <script type="module" src="auth/auth.js?v=7"></script>
 </body>
 </html>

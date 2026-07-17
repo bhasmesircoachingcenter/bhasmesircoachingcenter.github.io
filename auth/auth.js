@@ -39,7 +39,8 @@ var I18N = {
     "auth.loginTitle": "Student Login",
     "auth.loginIntro": "Sign in to view your batch, attendance, test results and announcements.",
     "auth.loginHint": "Students: login with 10-digit mobile number · password = same mobile (no +91).",
-    "auth.adminHint": "Admins: use Continue with Google or your full email password.",
+    "auth.adminHint": "Admins: use Continue with Google, or enter your full email in the field below with your admin password.",
+    "auth.loginId": "Mobile number or email",
     "auth.mobile": "Mobile Number",
     "auth.email": "Email",
     "auth.emailOptional": "Email (optional)",
@@ -68,7 +69,8 @@ var I18N = {
     "msg.pwShort": "Password must be at least 6 characters.",
     "msg.pwMismatch": "Passwords do not match.",
     "msg.phoneInvalid": "Please enter a valid 10-digit mobile number.",
-    "msg.loginFail": "Invalid mobile number or password.",
+    "msg.loginIdInvalid": "Enter a valid 10-digit mobile number or email address.",
+    "msg.loginFail": "Invalid login or password.",
     "msg.tooMany": "Too many attempts. Please try again later.",
     "msg.network": "Network error. Please check your connection.",
     "msg.welcome": "Signed in — redirecting…",
@@ -85,7 +87,8 @@ var I18N = {
     "auth.loginTitle": "विद्यार्थी लॉगिन",
     "auth.loginIntro": "तुमची बॅच, हजेरी, चाचणी निकाल व घोषणा पाहण्यासाठी साइन इन करा.",
     "auth.loginHint": "विद्यार्थी: १० अंकी मोबाइल नंबर · पासवर्ड = तोच मोबाइल (+91 नको).",
-    "auth.adminHint": "प्रशासक: Google ने सुरू ठेवा किंवा पूर्ण ईमेल पासवर्ड वापरा.",
+    "auth.adminHint": "प्रशासक: Google ने सुरू ठेवा, किंवा खाली पूर्ण ईमेल + प्रशासक पासवर्ड टाका.",
+    "auth.loginId": "मोबाइल नंबर किंवा ईमेल",
     "auth.mobile": "मोबाइल नंबर",
     "auth.email": "ईमेल",
     "auth.emailOptional": "ईमेल (ऐच्छिक)",
@@ -114,7 +117,8 @@ var I18N = {
     "msg.pwShort": "पासवर्ड किमान ६ अक्षरांचा हवा.",
     "msg.pwMismatch": "पासवर्ड जुळत नाहीत.",
     "msg.phoneInvalid": "कृपया वैध १० अंकी मोबाइल नंबर भरा.",
-    "msg.loginFail": "मोबाइल नंबर किंवा पासवर्ड चुकीचा आहे.",
+    "msg.loginIdInvalid": "वैध १० अंकी मोबाइल नंबर किंवा ईमेल पत्ता टाका.",
+    "msg.loginFail": "लॉगिन किंवा पासवर्ड चुकीचा आहे.",
     "msg.tooMany": "खूप प्रयत्न झाले. कृपया नंतर पुन्हा प्रयत्न करा.",
     "msg.network": "नेटवर्क त्रुटी. कृपया तुमचे कनेक्शन तपासा.",
     "msg.welcome": "साइन इन झाले — पुनर्निर्देशित करत आहोत…",
@@ -244,7 +248,7 @@ if (loginForm) {
     var password = loginForm.elements.password.value || "";
     if (!loginId || !password) { setNote(loginNote, "msg.fillAll", "err"); return; }
     var authEmail = resolveStudentLoginEmail(loginId);
-    if (!authEmail) { setNote(loginNote, "msg.phoneInvalid", "err"); return; }
+    if (!authEmail) { setNote(loginNote, "msg.loginIdInvalid", "err"); return; }
 
     var btn = loginForm.querySelector("button[type=submit]");
     if (btn) btn.disabled = true;
