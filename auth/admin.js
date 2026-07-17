@@ -171,6 +171,11 @@ var I18N = {
     "admin.accountsRemove": "Remove account",
     "admin.accountsCreated": "Account created. Login: mobile number · password: same mobile.",
     "admin.accountsCreatedWelcome": "Account created and welcome email sent to optional contact email.",
+    "admin.accountsCreatedWelcomeAndWhatsApp": "Account created. Welcome email sent. Tap Open WhatsApp below to notify the student.",
+    "admin.accountsCreatedWhatsAppOnly": "Account created. Tap Open WhatsApp below to send the welcome message.",
+    "admin.accountsWelcomeWhatsApp": "Send welcome WhatsApp",
+    "admin.accountsWelcomeWhatsAppOpened": "WhatsApp opened — review the message and tap Send.",
+    "admin.accountsOpenWhatsApp": "Open WhatsApp",
     "admin.accountsCreatedNoEmail": "Account created. No contact email on file — welcome email skipped.",
     "admin.accountsRemoved": "Portal account removed.",
     "admin.accountsInvalidEmail": "Optional email in Admissions is invalid — fix the sheet or leave blank.",
@@ -472,6 +477,11 @@ var I18N = {
     "admin.accountsRemove": "खाते काढा",
     "admin.accountsCreated": "खाते तयार झाले. लॉगिन: मोबाइल · पासवर्ड: तोच मोबाइल.",
     "admin.accountsCreatedWelcome": "खाते तयार झाले आणि ऐच्छिक ईमेलवर स्वागत ईमेल पाठवला.",
+    "admin.accountsCreatedWelcomeAndWhatsApp": "खाते तयार झाले. स्वागत ईमेल पाठवला. विद्यार्थ्याला कळवण्यासाठी खाली Open WhatsApp दाबा.",
+    "admin.accountsCreatedWhatsAppOnly": "खाते तयार झाले. स्वागत संदेश पाठवण्यासाठी खाली Open WhatsApp दाबा.",
+    "admin.accountsWelcomeWhatsApp": "स्वागत WhatsApp पाठवा",
+    "admin.accountsWelcomeWhatsAppOpened": "WhatsApp उघडले — संदेश तपासून Send दाबा.",
+    "admin.accountsOpenWhatsApp": "WhatsApp उघडा",
     "admin.accountsCreatedNoEmail": "खाते तयार झाले. संपर्क ईमेल नाही — स्वागत ईमेल वगळला.",
     "admin.accountsRemoved": "पोर्टल खाते काढले.",
     "admin.accountsInvalidEmail": "Admissions मध्ये ऐच्हिक ईमेल चुकीचा — दुरुस्त करा किंवा रिकामा ठेवा.",
@@ -696,6 +706,7 @@ var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxQbeYdQSdP7eP6sEvDV6knfsCAGmaIJhNS3cyHqfYP7eH6coPUErVaLUCl5l-IEMQJlA/exec";
 var ADMIN_REPORT_EMAIL = "bhasmesircoachingcenter@gmail.com";
 var RECEIPT_PUBLIC_ORIGIN = "https://bhasmesircoachingcenter.github.io";
+var PORTAL_LOGIN_URL = RECEIPT_PUBLIC_ORIGIN + "/login.html";
 
 function applyLang(next) {
   if (!I18N[next]) next = "en";
@@ -814,7 +825,24 @@ function appendPortalStudentRow(s, wrap) {
   removeBtn.textContent = t("admin.accountsRemove");
   removeBtn.addEventListener("click", function () { removePortalAccount(s, removeBtn); });
 
+  var waBtn = document.createElement("button");
+  waBtn.type = "button";
+  waBtn.className = "btn btn-whatsapp btn-sm";
+  waBtn.textContent = t("admin.accountsWelcomeWhatsApp");
+  waBtn.addEventListener("click", function () {
+    var noteEl = el("accountsNote");
+    clearWhatsAppOpenLink(noteEl);
+    var waUrl = portalWelcomeWhatsAppUrl(s);
+    if (!waUrl) {
+      if (noteEl) setNote(noteEl, t("admin.accountsNoPhone"), "err");
+      return;
+    }
+    window.open(waUrl, "_blank");
+    if (noteEl) setNote(noteEl, t("admin.accountsWelcomeWhatsAppOpened"), "ok");
+  });
+
   btnRow.appendChild(editBtn);
+  btnRow.appendChild(waBtn);
   btnRow.appendChild(removeBtn);
 
   var editor = document.createElement("div");
@@ -1113,6 +1141,7 @@ function createPortalAccount(admissionRow, btn) {
   if (!window.confirm(msg)) return;
 
   if (btn) btn.disabled = true;
+  clearWhatsAppOpenLink(note);
   if (note) setNote(note, "", "");
 
   provisionCreateAuthUser(contactEmail, phone, admissionRow.name).then(function (uid) {
@@ -1139,13 +1168,27 @@ function createPortalAccount(admissionRow, btn) {
       }).then(function () { return { ok: true, skipped: false }; }).catch(function (err) { return { ok: false, err: err }; });
     });
   }).then(function (emailResult) {
+    var waUrl = placePortalWelcomeWhatsAppLink({
+      name: admissionRow.name,
+      phone: phone,
+      batch: admissionRow.batch || ""
+    }, note);
     if (note) {
-      if (emailResult && emailResult.skipped) {
-        setNote(note, t("admin.accountsCreatedNoEmail"), "ok");
-      } else if (emailResult && emailResult.ok === false) {
-        setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail"), "ok");
-      } else if (emailResult && emailResult.ok && !emailResult.skipped) {
+      var emailSent = emailResult && emailResult.ok && !emailResult.skipped;
+      var emailSkipped = emailResult && emailResult.skipped;
+      var emailFailed = emailResult && emailResult.ok === false;
+      if (waUrl && emailSent) {
+        setNote(note, t("admin.accountsCreatedWelcomeAndWhatsApp"), "ok");
+      } else if (waUrl && emailSkipped) {
+        setNote(note, t("admin.accountsCreatedWhatsAppOnly"), "ok");
+      } else if (waUrl && emailFailed) {
+        setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail").replace(/\.$/, "") + ". " + t("admin.accountsCreatedWhatsAppOnly"), "ok");
+      } else if (emailSent) {
         setNote(note, t("admin.accountsCreatedWelcome"), "ok");
+      } else if (emailSkipped) {
+        setNote(note, t("admin.accountsCreatedNoEmail"), "ok");
+      } else if (emailFailed) {
+        setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail"), "ok");
       } else {
         setNote(note, t("admin.accountsCreated"), "ok");
       }
@@ -1886,7 +1929,28 @@ function whatsAppBroadcastUrl(text) {
 function whatsAppDirectUrl(phone10, text) {
   var p = normalizePhone(phone10);
   if (!p) return "";
-  return "https://api.whatsapp.com/send?phone=91" + p + "&text=" + encodeURIComponent(text);
+  return "https://wa.me/91" + p + "?text=" + encodeURIComponent(text);
+}
+
+function clearWhatsAppOpenLink(noteEl) {
+  if (!noteEl || !noteEl.parentNode) return;
+  var existing = noteEl.parentNode.querySelector(".wa-open-link-wrap");
+  if (existing) existing.remove();
+}
+
+function appendWhatsAppOpenLink(noteEl, waUrl, labelKey) {
+  if (!noteEl || !waUrl) return;
+  clearWhatsAppOpenLink(noteEl);
+  var wrap = document.createElement("p");
+  wrap.className = "wa-open-link-wrap";
+  var a = document.createElement("a");
+  a.href = waUrl;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.className = "btn btn-whatsapp btn-sm";
+  a.textContent = t(labelKey || "admin.accountsOpenWhatsApp");
+  wrap.appendChild(a);
+  noteEl.parentNode.insertBefore(wrap, noteEl.nextSibling);
 }
 
 function openWhatsAppBroadcast(title, body, noteEl) {
@@ -2557,6 +2621,65 @@ function copyFeeReceiptLink(student, record, noteEl, payment) {
   }).catch(function () {
     if (noteEl) setNote(noteEl, t("admin.feesReceiptErr"), "err");
   });
+}
+
+function buildPortalWelcomeWhatsAppText(name, phone, batch) {
+  name = String(name || "").trim() || "Student";
+  phone = normalizePhone(phone);
+  batch = String(batch || "").trim();
+  var lines = [
+    "*Bhasme Sir Coaching Center*",
+    "",
+    "Dear " + name + ",",
+    "",
+    "Welcome to Bhasme Sir Coaching Center!",
+    "",
+    "Your student portal account is ready. Sign in to view your batch, attendance, test results, and announcements.",
+    "",
+    "Login page:",
+    PORTAL_LOGIN_URL,
+    "*Mobile (username): " + phone + "*",
+    "*Password: " + phone + "* (same 10-digit mobile number)"
+  ];
+  if (batch) lines.push("Class / Batch: " + batch);
+  lines.push(
+    "",
+    "You can log in right away. For help, contact +91 70585 05983.",
+    "",
+    "------------------------------",
+    "",
+    "नमस्कार " + name + ",",
+    "",
+    "Bhasme Sir Coaching Center मध्ये आपले स्वागत आहे!",
+    "",
+    "तुमचे विद्यार्थी पोर्टल खाते तयार झाले आहे. बॅच, हजेरी, चाचणी निकाल आणि घोषणा पाहण्यासाठी लॉगिन करा.",
+    "",
+    "लॉगिन पृष्ठ:",
+    PORTAL_LOGIN_URL,
+    "*मोबाइल (user id): " + phone + "*",
+    "*पासवर्ड: " + phone + "* (तोच १० अंकी मोबाइल)"
+  );
+  if (batch) lines.push("इयत्ता / बॅच: " + batch);
+  lines.push(
+    "",
+    "तुम्ही लगेच लॉगिन करू शकता. मदत: +91 70585 05983"
+  );
+  return lines.join("\n");
+}
+
+function portalWelcomeWhatsAppUrl(data) {
+  data = data || {};
+  var phone = normalizePhone(data.phone);
+  if (!phone) return "";
+  var text = buildPortalWelcomeWhatsAppText(data.name, phone, data.batch);
+  return whatsAppDirectUrl(phone, text);
+}
+
+function placePortalWelcomeWhatsAppLink(data, noteEl) {
+  var waUrl = portalWelcomeWhatsAppUrl(data);
+  if (!waUrl) return "";
+  if (noteEl) appendWhatsAppOpenLink(noteEl, waUrl, "admin.accountsOpenWhatsApp");
+  return waUrl;
 }
 
 function buildFeeReceiptWhatsAppText(student, record, url, payment) {
