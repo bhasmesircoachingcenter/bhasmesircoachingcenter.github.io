@@ -294,7 +294,7 @@ var I18N = {
     "admin.bcQueuedSheet": "✅ Email queued to your enquiry contacts.",
     "admin.bcQueuedAll": "✅ Email queued to admissions, portal students, and enquiry contacts.",
     "admin.bcQueuedBoth": "✅ Email queued to portal students + enquiry contacts.",
-    "admin.bcTemplateBatch": "Use batch-start template (10 July)",
+    "admin.bcTemplateBatch": "Use welcome template",
     "admin.bcErrSend": "Could not send. Please try again.",
     "admin.bcMissing": "Please enter a subject and message.",
     "admin.detailsTitle": "Student Details",
@@ -614,7 +614,7 @@ var I18N = {
     "admin.bcQueuedSheet": "✅ ईमेल तुमच्या चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcQueuedAll": "✅ ईमेल प्रवेश, पोर्टल आणि चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
     "admin.bcQueuedBoth": "✅ ईमेल नोंदणीकृत विद्यार्थी + चौकशी संपर्कांना पाठवण्यासाठी रांगेत ठेवला.",
-    "admin.bcTemplateBatch": "बैच सुरू टेम्पलेट (१० जुलै)",
+    "admin.bcTemplateBatch": "स्वागत टेम्पलेट वापरा",
     "admin.bcErrSend": "पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
     "admin.bcMissing": "कृपया विषय व संदेश भरा.",
     "admin.detailsTitle": "विद्यार्थी तपशील",
@@ -3697,31 +3697,31 @@ function initAnnounceForm() {
 
 /* ---------------- Broadcast email ---------------- */
 var BATCH_START_EMAIL = {
-  subject: "Batch starts 10 July 2026 | बैच १० जुलै पासून सुरू",
+  subject: "Classes at Bhasme Sir Coaching Center | भास्मे सर कोचिंग सेंटर वर्ग",
   body: [
     "Dear Student / प्रिय विद्यार्थी,",
     "",
-    "We are pleased to inform you that classes at Bhasme Sir Coaching Center will begin from Thursday, 10th July 2026.",
+    "Thank you for joining Bhasme Sir Coaching Center. Our maths batches for Classes 7th–10th are running.",
     "",
-    "आपल्या माहितीसाठी — भास्मे सर कोचिंग सेंटरचे वर्ग १० जुलै २०२६ (गुरुवार) पासून सुरू होणार आहेत.",
+    "धन्यवाद — भास्मे सर कोचिंग सेंटरमध्ये तुमचे स्वागत. इयत्ता ७वी ते १०वी साठी गणित बॅच सुरू आहेत.",
     "",
     "Please remember:",
     "• Join on time as per your allotted batch",
     "• Bring notebook, pen, and school textbooks",
-    "• Student portal login: your admission email · password: 10-digit mobile (without +91)",
+    "• Student portal login: mobile number · password: same 10-digit mobile",
     "",
     "कृपया लक्षात ठेवा:",
-    "• नेमून दिलेल्या बैच वेळेनुसार वेळेवर या",
+    "• नेमून दिलेल्या बॅच वेळेनुसार वेळेवर या",
     "• वही, पेन आणि शालेय पुस्तके सोबत आणा",
-    "• पोर्टल लॉगिन: प्रवेश अर्जातील ईमेल · पासवर्ड: १० अंकी मोबाईल (+91 वगळून)",
+    "• पोर्टल लॉगिन: मोबाइल नंबर · पासवर्ड: तोच १० अंकी मोबाइल",
     "",
     "For questions, WhatsApp us: +91 70585 05983",
     "",
     "कोणत्याही प्रश्नासाठी WhatsApp: +91 70585 05983",
     "",
-    "We look forward to seeing you on 10th July!",
+    "We look forward to seeing you in class!",
     "",
-    "१० जुलै रोजी भेटू अशी आशा!"
+    "वर्गात भेटू अशी आशा!"
   ].join("\n")
 };
 
