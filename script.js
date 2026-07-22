@@ -4,7 +4,7 @@
   /* ---------------- Translations ---------------- */
   var I18N = {
     en: {
-      "meta.title": "Bhasme Sir Coaching Center | Maths Classes for 8th, 9th & 10th",
+      "meta.title": "Bhasme Sir Coaching Center | Maths Classes for 7th, 8th, 9th & 10th",
       "brand.name": "Bhasme Sir",
       "brand.full": "Bhasme Sir Coaching Center",
       "brand.sub": "Coaching Center",
@@ -24,13 +24,13 @@
 
       "hero.eyebrow": "Maharashtra State Board (SSC) • Maths Coaching • Admissions Open",
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
-      "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>10 July 2026</strong>.',
+      "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 7th, 8th, 9th &amp; 10th (SSC)</strong>. New batches start <strong>10 July 2026</strong>.',
       "hero.demo": "Book a Free Demo Class",
       "hero.applyOnline": "Apply Online",
       "hero.viewCourses": "View Courses",
       "hero.stat1num": "35",
       "hero.stat1": "Years Experience",
-      "hero.stat2num": "8–10",
+      "hero.stat2num": "7–10",
       "hero.stat2": "Std Maths Batches",
       "hero.stat3num": "SSC",
       "hero.stat3": "Exam Focused",
@@ -54,9 +54,15 @@
       "courses.sub": "Choose your class. Each batch covers the full syllabus with tests and revision built in.",
       "courses.board": "All courses follow the Maharashtra State Board (SSC) syllabus.",
       "courses.enquire": "Enquire Now",
+      "courses.icon7": "7th",
       "courses.icon8": "8th",
       "courses.icon9": "9th",
       "courses.icon10": "10th",
+      "c7.title": "Class 7th Maths",
+      "c7.desc": "Early foundation in maths with clear basics, regular practice, and confidence for higher classes.",
+      "c7.li1": "Core arithmetic & algebra basics",
+      "c7.li2": "Weekly practice tests",
+      "c7.li3": "Strong start before 8th",
       "c8.title": "Class 8th Maths",
       "c8.desc": "Strong foundation in the core concepts that everything ahead is built on, taught the simple, easy way.",
       "c8.li1": "Fundamental concept clarity",
@@ -117,6 +123,7 @@
       "form.purposeDemo": "Free Demo Class",
       "form.purposeAdmission": "Admission",
       "form.interested": "Interested In",
+      "form.opt7": "Class 7th Maths",
       "form.opt8": "Class 8th Maths",
       "form.opt9": "Class 9th Maths",
       "form.opt10": "Class 10th Maths (SSC)",
@@ -131,13 +138,13 @@
       "ci.start": "New Batches Start",
       "ci.startVal": "10 July 2026 — Admissions Open",
       "ci.batches": "Batches",
-      "ci.batchesVal": "Class 8th, 9th & 10th Maths (SSC)",
+      "ci.batchesVal": "Class 7th, 8th, 9th & 10th Maths (SSC)",
       "ci.qr": "Scan to open &amp; share our website",
       "footer.copy": "Bhasme Sir Coaching Center. All rights reserved."
     },
 
     mr: {
-      "meta.title": "भस्मे सर कोचिंग सेंटर | इयत्ता ८वी, ९वी व १०वी गणित वर्ग",
+      "meta.title": "भस्मे सर कोचिंग सेंटर | इयत्ता ७वी, ८वी, ९वी व १०वी गणित वर्ग",
       "brand.name": "भस्मे सर",
       "brand.full": "भस्मे सर कोचिंग सेंटर",
       "brand.sub": "कोचिंग सेंटर",
@@ -157,13 +164,13 @@
 
       "hero.eyebrow": "महाराष्ट्र राज्य मंडळ (एस.एस.सी.) • गणित कोचिंग • प्रवेश सुरू",
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
-      "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१० जुलै २०२६</strong> पासून सुरू.',
+      "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ७वी, ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. नवीन बॅच <strong>१० जुलै २०२६</strong> पासून सुरू.',
       "hero.demo": "मोफत डेमो वर्ग बुक करा",
       "hero.applyOnline": "ऑनलाइन प्रवेश अर्ज",
       "hero.viewCourses": "अभ्यासक्रम पाहा",
       "hero.stat1num": "३५",
       "hero.stat1": "वर्षांचा अनुभव",
-      "hero.stat2num": "८–१०",
+      "hero.stat2num": "७–१०",
       "hero.stat2": "वी गणित बॅच",
       "hero.stat3num": "SSC",
       "hero.stat3": "परीक्षा केंद्रित",
@@ -187,9 +194,15 @@
       "courses.sub": "तुमची इयत्ता निवडा. प्रत्येक बॅचमध्ये संपूर्ण अभ्यासक्रम, चाचण्या व उजळणी समाविष्ट आहे.",
       "courses.board": "सर्व अभ्यासक्रम महाराष्ट्र राज्य मंडळ (एस.एस.सी.) अभ्यासक्रमानुसार आहेत.",
       "courses.enquire": "चौकशी करा",
+      "courses.icon7": "७वी",
       "courses.icon8": "८वी",
       "courses.icon9": "९वी",
       "courses.icon10": "१०वी",
+      "c7.title": "इयत्ता ७वी गणित",
+      "c7.desc": "स्पष्ट मूलभूत संकल्पना, नियमित सराव आणि पुढील इयत्तांसाठी आत्मविश्वास.",
+      "c7.li1": "मूलभूत अंकगणित व बीजगणित",
+      "c7.li2": "साप्ताहिक सराव चाचण्या",
+      "c7.li3": "८वीसाठी भक्कम सुरुवात",
       "c8.title": "इयत्ता ८वी गणित",
       "c8.desc": "पुढील सर्व गोष्टींचा पाया असलेल्या मूलभूत संकल्पनांचा भक्कम पाया, सोप्या व सहज पद्धतीने.",
       "c8.li1": "मूलभूत संकल्पना स्पष्टता",
@@ -250,6 +263,7 @@
       "form.purposeDemo": "मोफत डेमो वर्ग",
       "form.purposeAdmission": "प्रवेश",
       "form.interested": "कशामध्ये स्वारस्य आहे",
+      "form.opt7": "इयत्ता ७वी गणित",
       "form.opt8": "इयत्ता ८वी गणित",
       "form.opt9": "इयत्ता ९वी गणित",
       "form.opt10": "इयत्ता १०वी गणित (SSC)",
@@ -264,7 +278,7 @@
       "ci.start": "नवीन बॅच सुरू",
       "ci.startVal": "१० जुलै २०२६ — प्रवेश सुरू",
       "ci.batches": "बॅच",
-      "ci.batchesVal": "इयत्ता ८वी, ९वी व १०वी गणित (SSC)",
+      "ci.batchesVal": "इयत्ता ७वी, ८वी, ९वी व १०वी गणित (SSC)",
       "ci.qr": "वेबसाइट उघडण्यासाठी व शेअर करण्यासाठी स्कॅन करा",
       "footer.copy": "भस्मे सर कोचिंग सेंटर. सर्व हक्क राखीव."
     }
@@ -385,7 +399,7 @@
   })();
 
   /* Canonical English course labels (keep the owner's sheet consistent regardless of site language) */
-  var COURSE_EN = ["Class 8th Maths", "Class 9th Maths", "Class 10th Maths (SSC)"];
+  var COURSE_EN = ["Class 7th Maths", "Class 8th Maths", "Class 9th Maths", "Class 10th Maths (SSC)"];
 
   if (form) {
     form.addEventListener("submit", function (e) {

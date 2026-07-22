@@ -36,6 +36,13 @@ var ADMIN_EMAILS = ['bhasmesircoachingcenter@gmail.com'];
 // ---------- Admission Google Form ----------
 var ADMISSION_SHEET_NAME = 'Admissions';
 var ADMISSION_FORM_TITLE = 'Bhasme Sir Coaching Center — Admission Form';
+var ADMISSION_CLASS_CHOICES = [
+  'Class 7th Maths',
+  'Class 8th Maths',
+  'Class 9th Maths',
+  'Class 10th Maths (SSC)'
+];
+var ADMISSION_FORM_DESCRIPTION = 'Maharashtra State Board (SSC) Maths coaching · Class 7th, 8th, 9th & 10th · Admissions 2026–27';
 var ATTENDANCE_SHEET_NAME = 'Attendance';
 var ATTENDANCE_HEADERS = ['Date', 'Name', 'Email', 'Batch', 'Status', 'Note', 'Updated'];
 var ATTENDANCE_HEADER_LABELS = [
@@ -1777,6 +1784,20 @@ function setFormQuestionRequired_(form, title, required) {
   return false;
 }
 
+/** Update multiple-choice options matched by exact title. */
+function setFormQuestionChoices_(form, title, choices) {
+  var items = form.getItems();
+  var i, item;
+  for (i = 0; i < items.length; i++) {
+    item = items[i];
+    if (item.getTitle() !== title) continue;
+    if (item.getType() !== FormApp.ItemType.MULTIPLE_CHOICE) return false;
+    item.asMultipleChoiceItem().setChoiceValues(choices);
+    return true;
+  }
+  return false;
+}
+
 /**
  * FormApp has no native 2-column layout for arbitrary questions (no grid API).
  * Section headers group related fields on one scrollable page.
@@ -1796,7 +1817,7 @@ function addAdmissionFormQuestions_(form) {
   form.addParagraphTextItem().setTitle(ADMISSION_Q.SCHOOL).setRequired(true);
   form.addMultipleChoiceItem()
     .setTitle(ADMISSION_Q.CLASS)
-    .setChoiceValues(['Class 8th Maths', 'Class 9th Maths', 'Class 10th Maths (SSC)'])
+    .setChoiceValues(ADMISSION_CLASS_CHOICES)
     .setRequired(true);
   form.addTextItem().setTitle(ADMISSION_Q.MARKS).setRequired(false);
   form.addMultipleChoiceItem()
@@ -1856,10 +1877,15 @@ function updateAdmissionFormFieldSettings() {
     if (!setFormQuestionRequired_(form, title, true)) missing.push(title + ' (required)');
   });
 
+  if (!setFormQuestionChoices_(form, ADMISSION_Q.CLASS, ADMISSION_CLASS_CHOICES)) {
+    missing.push(ADMISSION_Q.CLASS + ' (choices)');
+  }
+  form.setDescription(ADMISSION_FORM_DESCRIPTION);
+
   if (missing.length) {
     Logger.log('Some questions were not found (check titles match ADMISSION_Q): ' + missing.join(', '));
   }
-  Logger.log('Updated field settings on: ' + form.getPublishedUrl());
+  Logger.log('Updated class choices to include 7th. Form: ' + form.getPublishedUrl());
   Logger.log('2-column layout: open the form in EDIT mode (not preview) → paint icon Customize → Layout → Two columns.');
   Logger.log('If Layout is missing, your Google account may not support it yet — the form stays single column.');
   return true;
@@ -1880,9 +1906,7 @@ function createAdmissionGoogleForm() {
 
   Logger.log('Step 1/5: Creating Google Form…');
   var form = FormApp.create(ADMISSION_FORM_TITLE);
-  form.setDescription(
-    'Maharashtra State Board (SSC) Maths coaching · Class 8th, 9th & 10th · Admissions 2026–27'
-  );
+  form.setDescription(ADMISSION_FORM_DESCRIPTION);
   form.setCollectEmail(false);
   form.setAllowResponseEdits(false);
   form.setLimitOneResponsePerUser(false);

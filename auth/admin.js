@@ -2344,7 +2344,7 @@ function feesClassFilterKeyForStudent(student) {
   return info.record.classKey || detectClassKey(batch) || batch || "";
 }
 
-var FEES_CLASS_ORDER = ["8th", "9th", "10th"];
+var FEES_CLASS_ORDER = ["7th", "8th", "9th", "10th"];
 
 function sortFeesClassOptions(list) {
   return list.sort(function (a, b) {
@@ -3091,7 +3091,7 @@ function buildStudentFeesEditor(student, record, hasSaved, onSaved) {
   }
 
   var classSel = document.createElement("select");
-  ["8th", "9th", "10th"].forEach(function (k) {
+  ["7th", "8th", "9th", "10th"].forEach(function (k) {
     var opt = document.createElement("option");
     opt.value = k;
     opt.textContent = k;

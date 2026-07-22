@@ -9,6 +9,7 @@ export var PAYMENT_PLANS = [
 ];
 
 var CLASS_RATES = {
+  "7th": { onetime: 2500, installment: 3000 },
   "8th": { onetime: 3000, installment: 3500 },
   "9th": { onetime: 3500, installment: 4000 },
   "10th": { onetime: 4000, installment: 4500 }
@@ -20,12 +21,13 @@ export function formatRupee(amount) {
   return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
-/** Map admission class/batch text → 8th | 9th | 10th */
+/** Map admission class/batch text → 7th | 8th | 9th | 10th */
 export function detectClassKey(batchOrClass) {
   var s = String(batchOrClass || "").toLowerCase();
   if (/\b10|ssc|दहावी|१०/.test(s)) return "10th";
   if (/\b9|नववी|९/.test(s)) return "9th";
   if (/\b8|आठवी|८/.test(s)) return "8th";
+  if (/\b7|सातवी|७/.test(s)) return "7th";
   return "";
 }
 
@@ -39,6 +41,7 @@ export function suggestCourseFee(classKey, paymentPlan) {
 export function defaultRatesReferenceHtml(lang) {
   var mr = lang === "mr";
   var rows = [
+    ["7th", 2500, 3000],
     ["8th", 3000, 3500],
     ["9th", 3500, 4000],
     ["10th", 4000, 4500]
