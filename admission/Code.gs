@@ -1784,18 +1784,80 @@ function setFormQuestionRequired_(form, title, required) {
   return false;
 }
 
-/** Update multiple-choice options matched by exact title. */
-function setFormQuestionChoices_(form, title, choices) {
+/** Update multiple-choice or dropdown options matched by exact or fuzzy title. */
+function findFormItemByTitle_(form, exactTitle, fuzzyNeedles) {
   var items = form.getItems();
-  var i, item;
+  var i, item, title, j;
   for (i = 0; i < items.length; i++) {
-    item = items[i];
-    if (item.getTitle() !== title) continue;
-    if (item.getType() !== FormApp.ItemType.MULTIPLE_CHOICE) return false;
+    if (items[i].getTitle() === exactTitle) return items[i];
+  }
+  fuzzyNeedles = fuzzyNeedles || [];
+  for (i = 0; i < items.length; i++) {
+    title = String(items[i].getTitle() || '').toLowerCase();
+    for (j = 0; j < fuzzyNeedles.length; j++) {
+      if (title.indexOf(String(fuzzyNeedles[j]).toLowerCase()) >= 0) return items[i];
+    }
+  }
+  return null;
+}
+
+function setFormItemChoices_(item, choices) {
+  if (!item) return false;
+  var type = item.getType();
+  if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
     item.asMultipleChoiceItem().setChoiceValues(choices);
     return true;
   }
+  if (type === FormApp.ItemType.LIST) {
+    item.asListItem().setChoiceValues(choices);
+    return true;
+  }
   return false;
+}
+
+function setFormQuestionChoices_(form, title, choices, fuzzyNeedles) {
+  var item = findFormItemByTitle_(form, title, fuzzyNeedles || ['class applying', 'class']);
+  return setFormItemChoices_(item, choices);
+}
+
+/** Add Class 7th (and refresh all class options) on the linked Google Form. */
+function updateAdmissionClassChoicesOnForm_(form) {
+  if (!form) return false;
+  var ok = setFormQuestionChoices_(form, ADMISSION_Q.CLASS, ADMISSION_CLASS_CHOICES, ['class applying', 'class']);
+  if (ok) form.setDescription(ADMISSION_FORM_DESCRIPTION);
+  return ok;
+}
+
+/** Run from Apps Script editor or spreadsheet menu after pasting latest Code.gs. */
+function updateAdmissionClassChoices() {
+  var form = openAdmissionForm_();
+  if (!form) {
+    Logger.log('Could not open admission form. Run syncAdmissionFormUrlFromSpreadsheet, or resetAdmissionFormUrl + createAdmissionGoogleForm.');
+    return false;
+  }
+  if (!updateAdmissionClassChoicesOnForm_(form)) {
+    Logger.log('Could not find the Class question. Expected: "' + ADMISSION_Q.CLASS + '"');
+    return false;
+  }
+  Logger.log('Class choices updated: ' + ADMISSION_CLASS_CHOICES.join(' | '));
+  Logger.log('Form: ' + form.getPublishedUrl());
+  return true;
+}
+
+function updateAdmissionClassChoicesMenu() {
+  if (!updateAdmissionClassChoices()) {
+    SpreadsheetApp.getUi().alert(
+      'Could not update form',
+      'Open Extensions → Apps Script, paste the latest Code.gs, Save, then run updateAdmissionClassChoices.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return;
+  }
+  SpreadsheetApp.getUi().alert(
+    'Admission form updated',
+    'Class list now includes 7th, 8th, 9th and 10th. Open the form to verify.',
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
 }
 
 /**
@@ -1877,10 +1939,9 @@ function updateAdmissionFormFieldSettings() {
     if (!setFormQuestionRequired_(form, title, true)) missing.push(title + ' (required)');
   });
 
-  if (!setFormQuestionChoices_(form, ADMISSION_Q.CLASS, ADMISSION_CLASS_CHOICES)) {
+  if (!updateAdmissionClassChoicesOnForm_(form)) {
     missing.push(ADMISSION_Q.CLASS + ' (choices)');
   }
-  form.setDescription(ADMISSION_FORM_DESCRIPTION);
 
   if (missing.length) {
     Logger.log('Some questions were not found (check titles match ADMISSION_Q): ' + missing.join(', '));
