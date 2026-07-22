@@ -16,16 +16,16 @@
       "nav.admissions": "Admissions",
       "nav.contact": "Contact",
       "nav.login": "Login",
-      "nav.demo": "Book Free Demo",
+      "nav.enquire": "Enquire Now",
 
-      "promo.headline": '1 Week <span class="promo-free">FREE</span> Demo Classes — Book Now!',
-      "promo.sub": "Experience Bhasme Sir's teaching before you enroll. Reserve your free seat today!",
-      "promo.cta": "Book Free Demo",
+      "promo.headline": "Admissions open — Classes 7th to 10th Maths",
+      "promo.sub": "Limited seats in small batches. Contact us today.",
+      "promo.cta": "Enquire Now",
 
       "hero.eyebrow": "Maharashtra State Board (SSC) • Maths Coaching • Admissions Open",
       "hero.h1": 'Build Your Foundation with <span class="accent">Bhasme Sir</span>',
       "hero.lead": 'Build strong concepts, solve faster, and score higher. Personalised, small-batch maths coaching for <strong>Classes 7th, 8th, 9th &amp; 10th (SSC)</strong>. <strong>Batches are running</strong> — admissions open.',
-      "hero.demo": "Book a Free Demo Class",
+      "hero.enquire": "Apply for Admission",
       "hero.applyOnline": "Apply Online",
       "hero.viewCourses": "View Courses",
       "hero.stat1num": "35",
@@ -112,17 +112,15 @@
       "pr3.t": "Regular Practice", "pr3.d": "Weekly tests and consistent practice to prepare thoroughly for school & SSC exams.",
 
       "contact.eyebrow": "Admissions & Contact",
-      "contact.h2": "Book your free demo class",
+      "contact.h2": "Admission enquiry",
       "contact.sub": "Fill the form or reach out directly. We'll get back to you within a day.",
       "contact.applyOnline": "Full admission form (online)",
       "contact.applyOnlineHint": "All details are saved to our student records — same as the paper form at the center.",
       "form.name": "Student / Parent Name",
       "form.phone": "Phone Number",
       "form.email": "Email (optional)",
-      "form.purposeLabel": "I'm interested in",
-      "form.purposeDemo": "Free Demo Class",
-      "form.purposeAdmission": "Admission",
       "form.interested": "Interested In",
+      "form.purposeAdmission": "Admission",
       "form.opt7": "Class 7th Maths",
       "form.opt8": "Class 8th Maths",
       "form.opt9": "Class 9th Maths",
@@ -156,16 +154,16 @@
       "nav.admissions": "प्रवेश",
       "nav.contact": "संपर्क",
       "nav.login": "लॉगिन",
-      "nav.demo": "मोफत डेमो बुक करा",
+      "nav.enquire": "चौकशी करा",
 
-      "promo.headline": '१ आठवडा <span class="promo-free">मोफत</span> डेमो वर्ग — आता बुक करा!',
-      "promo.sub": "प्रवेश घेण्यापूर्वी भस्मे सरांचे शिकवणे अनुभवा. आजच तुमची मोफत जागा राखून ठेवा!",
-      "promo.cta": "मोफत डेमो बुक करा",
+      "promo.headline": "प्रवेश सुरू — इयत्ता ७वी ते १०वी गणित",
+      "promo.sub": "मर्यादित जागा, छोटे बॅच. आजच संपर्क करा.",
+      "promo.cta": "चौकशी करा",
 
       "hero.eyebrow": "महाराष्ट्र राज्य मंडळ (एस.एस.सी.) • गणित कोचिंग • प्रवेश सुरू",
       "hero.h1": '<span class="accent">भस्मे सर</span> यांच्यासोबत गणिताचा पाया भक्कम करा',
       "hero.lead": 'भक्कम संकल्पना, अधिक वेगाने सोडवण्याची क्षमता आणि उत्तम गुण. <strong>इयत्ता ७वी, ८वी, ९वी व १०वी (SSC)</strong> साठी वैयक्तिक लक्ष देणारे छोटे बॅच. <strong>बॅच सुरू आहेत</strong> — प्रवेश खुले.',
-      "hero.demo": "मोफत डेमो वर्ग बुक करा",
+      "hero.enquire": "प्रवेशासाठी अर्ज करा",
       "hero.applyOnline": "ऑनलाइन प्रवेश अर्ज",
       "hero.viewCourses": "अभ्यासक्रम पाहा",
       "hero.stat1num": "३५",
@@ -252,17 +250,15 @@
       "pr3.t": "नियमित सराव", "pr3.d": "शालेय व SSC परीक्षांसाठी साप्ताहिक चाचण्या व सातत्यपूर्ण सराव.",
 
       "contact.eyebrow": "प्रवेश व संपर्क",
-      "contact.h2": "तुमचा मोफत डेमो वर्ग बुक करा",
+      "contact.h2": "प्रवेश चौकशी",
       "contact.sub": "फॉर्म भरा किंवा थेट संपर्क साधा. आम्ही एका दिवसात तुमच्याशी संपर्क करू.",
       "contact.applyOnline": "पूर्ण प्रवेश अर्ज (ऑनलाइन)",
       "contact.applyOnlineHint": "सर्व माहिती आमच्या विद्यार्थी नोंदींमध्ये जतन होते — केंद्रावरील कागदी अर्जासारखीच.",
       "form.name": "विद्यार्थी / पालक यांचे नाव",
       "form.phone": "फोन नंबर",
       "form.email": "ईमेल (ऐच्छिक)",
-      "form.purposeLabel": "मला यामध्ये रस आहे",
-      "form.purposeDemo": "मोफत डेमो वर्ग",
-      "form.purposeAdmission": "प्रवेश",
       "form.interested": "कशामध्ये स्वारस्य आहे",
+      "form.purposeAdmission": "प्रवेश",
       "form.opt7": "इयत्ता ७वी गणित",
       "form.opt8": "इयत्ता ८वी गणित",
       "form.opt9": "इयत्ता ९वी गणित",
@@ -426,8 +422,7 @@
         course = (courseSel.options[courseSel.selectedIndex].text || "").trim();
       }
 
-      var purposeVal = (form.elements.purpose && form.elements.purpose.value) || "demo";
-      var purposeEn = purposeVal === "admission" ? "Admission" : "Free Demo Class";
+      var purposeEn = "Admission";
       var courseEn = (courseSel && courseSel.selectedIndex >= 0 && COURSE_EN[courseSel.selectedIndex]) || course;
 
       var message = (form.elements.message && form.elements.message.value || "").trim();
