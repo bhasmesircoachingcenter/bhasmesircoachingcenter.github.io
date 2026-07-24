@@ -62,8 +62,8 @@
       <section class="admin-panel active" id="panel-accounts">
         <div class="admin-card">
           <h2 data-i18n="admin.accountsTitle">Portal Accounts</h2>
-          <p class="admin-hint" data-i18n="admin.accountsHint">Create login accounts from the Admissions sheet. Students sign in with their 10-digit mobile number (username and password). Email is optional.</p>
-          <p class="accounts-login-banner" data-i18n="admin.accountsLoginHint">Tell students: Login = 10-digit mobile · Password = same mobile (no +91)</p>
+          <p class="admin-hint" data-i18n="admin.accountsHint">Create login accounts from the Admissions sheet. Username = first initial + surname (e.g. Jayant Sahare → jsahare). Password = 10-digit mobile.</p>
+          <p class="accounts-login-banner" data-i18n="admin.accountsLoginHint">Tell students: Username = first initial + surname (lowercase) · Password = 10-digit mobile (no +91)</p>
           <p class="admin-note" id="accountsNote" role="status" aria-live="polite"></p>
         </div>
         <div class="admin-card">
@@ -361,6 +361,7 @@
             <div class="att-control-group fees-report-group">
               <span class="att-control-label" aria-hidden="true">&nbsp;</span>
               <button type="button" class="btn btn-primary btn-sm" id="feesEmailReportBtn" data-i18n="admin.feesEmailReport">Email fee report</button>
+              <button type="button" class="btn btn-whatsapp btn-sm" id="feesWhatsAppReportBtn" data-i18n="admin.feesWhatsAppReport">WhatsApp fee report</button>
             </div>
           </div>
           <p class="admin-note fees-filter-meta" id="feesFilterMeta" role="status" aria-live="polite"></p>
@@ -374,6 +375,6 @@
     </main>
   </div>
 
-  <script type="module" src="auth/admin.js?v=65"></script>
+  <script type="module" src="auth/admin.js?v=73"></script>
 </body>
 </html>

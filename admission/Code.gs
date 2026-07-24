@@ -135,6 +135,7 @@ function doPost(e) {
   if (action === 'broadcast') return handleBroadcast(p);
   if (action === 'feereceipt') return handleFeeReceipt(p);
   if (action === 'feereport') return handleFeeReport(p);
+  if (action === 'feereportfile') return handleFeeReportFile(p);
   if (action === 'enquiries') return handleEnquiriesRequest(p);
   if (action === 'admissions') return handleAdmissionsRequest(p);
   if (action === 'attendance') return handleAttendanceRequest(p);
@@ -582,6 +583,61 @@ function handleFeeReport(p) {
     return json({ result: 'error', message: 'mail-failed' });
   }
   return json({ result: 'success' });
+}
+
+/** Admin — build fee report Excel/CSV and return as base64 (for WhatsApp / download). */
+function handleFeeReportFile(p) {
+  var user = verifyFirebaseToken(p.idToken);
+  if (!isAdminUser(user)) {
+    return json({ result: 'error', message: 'unauthorized' });
+  }
+
+  var rowsJson = String(p.rowsJson || '[]');
+  var rows;
+
+  try {
+    rows = JSON.parse(rowsJson);
+  } catch (err) {
+    return json({ result: 'error', message: 'invalid rows' });
+  }
+
+  rows = normalizeFeeReportRows_(rows);
+  if (!rows.length || !rows[0].length) {
+    return json({ result: 'error', message: 'no rows' });
+  }
+
+  var attachment;
+  try {
+    attachment = buildFeesExcelBlob_(rows);
+  } catch (err) {
+    try {
+      attachment = buildFeesCsvBlob_(rows);
+    } catch (err2) {
+      return json({ result: 'error', message: 'excel-failed' });
+    }
+  }
+
+  var published = publishFeesReportLink_(attachment);
+  return json({
+    result: 'success',
+    fileName: published.fileName,
+    fileUrl: published.fileUrl,
+    downloadUrl: published.downloadUrl
+  });
+}
+
+/** Upload fee report to Drive; return view + direct download links for WhatsApp. */
+function publishFeesReportLink_(attachment) {
+  var file = DriveApp.createFile(attachment);
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (err) {}
+  var id = file.getId();
+  return {
+    fileName: file.getName(),
+    fileUrl: file.getUrl(),
+    downloadUrl: 'https://drive.google.com/uc?export=download&id=' + id
+  };
 }
 
 /** Pad ragged rows and coerce null/undefined cells for setValues. */
@@ -1200,6 +1256,32 @@ function portalAuthEmail_(phone) {
   return phone + PORTAL_AUTH_EMAIL_SUFFIX;
 }
 
+/** e.g. Jayant Roashanji Sahare → jsahare · Dhiraj Bhasme → dbhasme */
+function portalUsernameFromName_(fullName) {
+  var parts = String(fullName || '').trim().split(/\s+/).filter(function (p) { return p; });
+  if (!parts.length) return null;
+  var first = parts[0].replace(/[^a-zA-Z]/g, '');
+  if (!first) return null;
+  if (parts.length === 1) {
+    return (first.charAt(0) + first.slice(1)).toLowerCase();
+  }
+  var surname = parts[parts.length - 1].replace(/[^a-zA-Z]/g, '');
+  if (!surname) return null;
+  var user = first.charAt(0).toLowerCase() + surname.toLowerCase();
+  return user.length >= 2 ? user : null;
+}
+
+function normalizePortalUsername_(raw) {
+  var s = String(raw || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return s.length >= 2 ? s : null;
+}
+
+function portalAuthEmailFromUsername_(username) {
+  username = normalizePortalUsername_(username);
+  if (!username) return null;
+  return username + PORTAL_AUTH_EMAIL_SUFFIX;
+}
+
 function optionalContactEmail_(email) {
   email = String(email || '').trim().toLowerCase();
   if (!email || email.indexOf('@') <= 0) return '';
@@ -1252,10 +1334,14 @@ function handlePortalAccountsRequest(p) {
     var contactEmail = optionalContactEmail_(p.email);
     var phone = normalizePhone_(p.phone);
     var batch = String(p.batch || '').trim();
-    var authEmail = portalAuthEmail_(phone);
+    var username = normalizePortalUsername_(p.username) || portalUsernameFromName_(name);
+    var authEmail = portalAuthEmailFromUsername_(username);
 
-    if (!phone || !authEmail) {
+    if (!phone) {
       return respondAdmin({ result: 'error', error: 'invalid-phone' }, p);
+    }
+    if (!username || !authEmail) {
+      return respondAdmin({ result: 'error', error: 'invalid-username' }, p);
     }
     if (String(p.email || '').trim() && !contactEmail) {
       return respondAdmin({ result: 'error', error: 'invalid-email' }, p);
@@ -1281,13 +1367,14 @@ function handlePortalAccountsRequest(p) {
           returnSecureToken: true
         });
         if (recover.code === 200 && recover.data.localId) {
-          var recoveredMail = sendPortalWelcomeEmail_(name, contactEmail, phone, batch);
+          var recoveredMail = sendPortalWelcomeEmail_(name, contactEmail, phone, batch, username);
           return respondAdmin({
             result: 'success',
             uid: recover.data.localId,
             email: contactEmail,
             name: name,
             phone: phone,
+            username: username,
             batch: batch,
             recovered: true,
             emailSent: recoveredMail.ok
@@ -1299,13 +1386,14 @@ function handlePortalAccountsRequest(p) {
     }
 
     var localId = signUp.data.localId;
-    var welcomeMail = sendPortalWelcomeEmail_(name, contactEmail, phone, batch);
+    var welcomeMail = sendPortalWelcomeEmail_(name, contactEmail, phone, batch, username);
     return respondAdmin({
       result: 'success',
       uid: localId,
       email: contactEmail,
       name: name,
       phone: phone,
+      username: username,
       batch: batch,
       emailSent: welcomeMail.ok
     }, p);
@@ -1314,24 +1402,27 @@ function handlePortalAccountsRequest(p) {
   if (sub === 'delete') {
     var delContactEmail = optionalContactEmail_(p.email);
     var delPhone = normalizePhone_(p.phone);
-    var delAuthEmail = portalAuthEmail_(delPhone);
+    var delUsername = normalizePortalUsername_(p.username);
+    var loginEmails = [];
+    var delUserEmail = portalAuthEmailFromUsername_(delUsername);
+    if (delUserEmail) loginEmails.push(delUserEmail);
+    var delLegacyPhoneEmail = portalAuthEmail_(delPhone);
+    if (delLegacyPhoneEmail && loginEmails.indexOf(delLegacyPhoneEmail) < 0) loginEmails.push(delLegacyPhoneEmail);
+    if (delContactEmail && loginEmails.indexOf(delContactEmail) < 0) loginEmails.push(delContactEmail);
 
-    if (!delPhone || !delAuthEmail) {
+    if (!delPhone) {
       return respondAdmin({ result: 'error', error: 'invalid-phone' }, p);
     }
 
-    var signIn = firebaseAuthRequest_('accounts:signInWithPassword', {
-      email: delAuthEmail,
-      password: delPhone,
-      returnSecureToken: true
-    });
-
-    if (signIn.code !== 200 && delContactEmail && delContactEmail !== delAuthEmail) {
+    var signIn = { code: 0, data: {} };
+    var i;
+    for (i = 0; i < loginEmails.length; i++) {
       signIn = firebaseAuthRequest_('accounts:signInWithPassword', {
-        email: delContactEmail,
+        email: loginEmails[i],
         password: delPhone,
         returnSecureToken: true
       });
+      if (signIn.code === 200) break;
     }
 
     if (signIn.code !== 200) {
@@ -1353,17 +1444,21 @@ function handlePortalAccountsRequest(p) {
 }
 
 /** Send portal welcome email — shared by portalwelcome action and portalaccounts create. */
-function sendPortalWelcomeEmail_(name, email, phone, batch) {
+function sendPortalWelcomeEmail_(name, email, phone, batch, username) {
   name = String(name || '').trim() || 'Student';
   email = optionalContactEmail_(email);
   phone = normalizePhone_(phone);
   batch = String(batch || '').trim();
+  username = normalizePortalUsername_(username) || portalUsernameFromName_(name) || '';
 
   if (!email) {
     return { ok: false, error: 'no-recipient', skipped: true };
   }
   if (!phone) {
     return { ok: false, error: 'invalid-phone' };
+  }
+  if (!username) {
+    return { ok: false, error: 'invalid-username' };
   }
 
   var batchLine = batch ? ('Class / Batch: ' + batch + '\n') : '';
@@ -1374,8 +1469,8 @@ function sendPortalWelcomeEmail_(name, email, phone, batch) {
     'Welcome to ' + CENTER_NAME + '!\n\n' +
     'Your student portal account is ready. You can sign in to view your batch, attendance, test results, and announcements.\n\n' +
     'Login page: ' + PORTAL_LOGIN_URL + '\n' +
-    'Mobile (username): ' + phone + '\n' +
-    'Password: ' + phone + ' (same 10-digit mobile number)\n' +
+    'Username: ' + username + '\n' +
+    'Password: ' + phone + ' (10-digit mobile number)\n' +
     batchLine +
     '\nYou can log in right away. If you need help, contact us at ' + CENTER_PHONE + '.\n\n' +
     '------------------------------\n' +
@@ -1383,8 +1478,8 @@ function sendPortalWelcomeEmail_(name, email, phone, batch) {
     CENTER_NAME + ' मध्ये आपले स्वागत आहे!\n\n' +
     'तुमचे विद्यार्थी पोर्टल खाते तयार झाले आहे. बॅच, हजेरी, चाचणी निकाल आणि घोषणा पाहण्यासाठी लॉगिन करा.\n\n' +
     'लॉगिन पृष्ठ: ' + PORTAL_LOGIN_URL + '\n' +
-    'मोबाइल (user id): ' + phone + '\n' +
-    'पासवर्ड: ' + phone + ' (तोच १० अंकी मोबाइल)\n' +
+    'Username: ' + username + '\n' +
+    'पासवर्ड: ' + phone + ' (१० अंकी मोबाइल)\n' +
     batchLineMr +
     '\nतुम्ही लगेच लॉगिन करू शकता. मदत हवी असल्यास ' + CENTER_PHONE + ' वर संपर्क करा.\n\n' +
     'Regards,\n' + CENTER_NAME + '\n' + CENTER_PHONE;
@@ -1410,7 +1505,7 @@ function handlePortalWelcome(p) {
     return respondAdmin({ result: 'error', error: 'unauthorized' }, p);
   }
 
-  var mailResult = sendPortalWelcomeEmail_(p.name, p.email, p.phone, p.batch);
+  var mailResult = sendPortalWelcomeEmail_(p.name, p.email, p.phone, p.batch, p.username);
   if (!mailResult.ok) {
     if (mailResult.skipped) {
       return respondAdmin({ result: 'success', skipped: true }, p);

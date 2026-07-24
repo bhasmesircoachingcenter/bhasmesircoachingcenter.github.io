@@ -32,12 +32,12 @@
       <section id="loginView">
         <h1 data-i18n="auth.loginTitle">Student Login</h1>
         <p class="auth-intro" data-i18n="auth.loginIntro">Sign in to view your batch, attendance, test results and announcements.</p>
-        <p class="auth-login-hint" data-i18n="auth.loginHint">Students: login with 10-digit mobile number · password = same mobile (no +91).</p>
+        <p class="auth-login-hint" data-i18n="auth.loginHint">Students: username = first initial + surname (e.g. jsahare) · password = 10-digit mobile (no +91).</p>
         <p class="auth-admin-hint" data-i18n="auth.adminHint">Admins: use <strong>Continue with Google</strong> or your full email password (not limited to 10 digits).</p>
 
         <form id="loginForm" novalidate>
           <div class="field">
-            <label for="loginMobile" data-i18n="auth.loginId">Mobile number or email</label>
+            <label for="loginMobile" data-i18n="auth.loginId">Username, mobile, or email</label>
             <input type="text" id="loginMobile" name="mobile" inputmode="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="120" required aria-required="true" />
           </div>
           <div class="field">
@@ -97,10 +97,10 @@
         </p>
       </section>
 
-      <!-- Login help — students use mobile as username + password -->
+      <!-- Login help — username + mobile password -->
       <section id="forgotView" class="hidden">
         <h1 data-i18n="auth.forgotTitle">Login help</h1>
-        <p class="auth-intro" data-i18n="auth.forgotIntro">Student login uses your 10-digit mobile number as username and password. If you still cannot sign in, contact the coaching center admin.</p>
+        <p class="auth-intro" data-i18n="auth.forgotIntro">Student login: username = first initial + surname, password = 10-digit mobile. Contact admin if you cannot sign in.</p>
         <p class="auth-login-hint" data-i18n="auth.forgotContact">Call or WhatsApp: +91 70585 05983</p>
         <p class="auth-switch">
           <button type="button" class="link-btn" id="backToLogin" data-i18n="auth.backToLogin">Back to login</button>
@@ -109,6 +109,6 @@
     </div>
   </main>
 
-  <script type="module" src="auth/auth.js?v=7"></script>
+  <script type="module" src="auth/auth.js?v=8"></script>
 </body>
 </html>

@@ -1,6 +1,12 @@
 # Portal accounts (admin-created student logins)
 
-Students log in with **10-digit mobile number** as both **username and password**. Email is **optional** (contact only — welcome/receipt emails sent only when an email is on file).
+Students log in with a **username** (first initial of first name + surname, lowercase) and **password = 10-digit mobile number**. Email is **optional** (contact only — welcome/receipt emails sent only when an email is on file).
+
+Examples: `Jayant Roashanji Sahare` → `jsahare` · `Dhiraj Bhasme` → `dbhasme`
+
+Firebase Auth uses a synthetic email: `{username}@portal.bhasmesircoaching.in`
+
+**Legacy:** older accounts using `{mobile}@portal.bhasmesircoaching.in` can still log in with the 10-digit mobile as username until recreated.
 
 ## Default path (free — no Blaze plan)
 
@@ -17,18 +23,18 @@ If **Portal Accounts** shows an Apps Script error, redeploy with a new version (
 ### Admin usage
 
 1. Open **Admin → Portal Accounts**
-2. Students from the **Admissions** sheet without an account show **Create account** (mobile required; email optional)
+2. Students from the **Admissions** sheet without an account show **Create account** (mobile required for password; username derived from name)
 3. Registered students show **Remove account**
 
-**Create:** Admin browser creates the Firebase Auth user (synthetic `{mobile}@portal.bhasmesircoaching.in`) and Firestore profile. Optional welcome email sent only if a contact email exists.
+**Create:** Admin browser creates the Firebase Auth user (synthetic `{username}@portal.bhasmesircoaching.in`) and Firestore profile with `username` field. Optional welcome email sent only if a contact email exists.
 
-**Remove:** Admin browser deletes the Auth user; Firestore profile + attendance/results subcollections are removed.
+**Remove:** Admin browser deletes the Auth user (tries username email, then legacy mobile email); Firestore profile + attendance/results subcollections are removed.
 
 ## Student login
 
-- **Username:** 10-digit mobile (no +91), e.g. `7058505983`
-- **Password:** same 10-digit mobile
-- **Legacy:** older accounts created with real email can still log in with that email + mobile password
+- **Username:** first initial + surname (e.g. `jsahare`), or legacy 10-digit mobile (e.g. `7058505983`)
+- **Password:** 10-digit mobile (no +91)
+- **Admins:** Google sign-in or full email + password
 
 Self-registration on the login page is disabled; accounts are created by admin only.
 
@@ -36,10 +42,11 @@ Self-registration on the login page is disabled; accounts are created by admin o
 
 - Apps Script outdated / `unknown subaction` — paste latest `Code.gs`, deploy **New version**
 - `unauthorized` — sign in as `bhasmesircoachingcenter@gmail.com` in the admin panel
-- `already-exists` — student already has a portal account for that mobile
+- `already-exists` — student already has a portal account for that username
 - `invalid-phone` — mobile must be a valid 10-digit Indian number
+- `invalid-username` — full name on Admissions sheet could not produce a username
 - Welcome email skipped — normal when no optional email on file; use WhatsApp to share login details
-- Existing old accounts — remove and recreate, or student can try legacy email login
+- Existing old accounts — remove and recreate for username login, or student can try legacy mobile login
 
 ---
 
@@ -76,3 +83,4 @@ To use Cloud Functions instead of Apps Script, you would need to revert `admin.j
 
 - `functions/not-found` — run `firebase deploy --only functions`
 - `permission-denied` — ensure `admins/{your-uid}` exists in Firestore
+- `invalid-username` — check full name on Admissions sheet

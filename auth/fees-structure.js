@@ -9,10 +9,10 @@ export var PAYMENT_PLANS = [
 ];
 
 var CLASS_RATES = {
-  "7th": { onetime: 2500, installment: 3000 },
-  "8th": { onetime: 3000, installment: 3500 },
-  "9th": { onetime: 3500, installment: 4000 },
-  "10th": { onetime: 4000, installment: 4500 }
+  "7th": { onetime: 2500, installment: 2500 },
+  "8th": { onetime: 3000, installment: 3000 },
+  "9th": { onetime: 3500, installment: 3500 },
+  "10th": { onetime: 4000, installment: 4000 }
 };
 
 export function formatRupee(amount) {
@@ -41,14 +41,14 @@ export function suggestCourseFee(classKey, paymentPlan) {
 export function defaultRatesReferenceHtml(lang) {
   var mr = lang === "mr";
   var rows = [
-    ["7th", 2500, 3000],
-    ["8th", 3000, 3500],
-    ["9th", 3500, 4000],
-    ["10th", 4000, 4500]
+    ["7th", 2500, 2500],
+    ["8th", 3000, 3000],
+    ["9th", 3500, 3500],
+    ["10th", 4000, 4000]
   ];
   var head = mr
-    ? "<p><strong>संदर्भ (८ महिने):</strong> नोंदणी ₹५०० अंतिम शुल्कात समायोजित.</p>"
-    : "<p><strong>Reference (8 months):</strong> Registration ₹500 adjusted in final fee.</p>";
+    ? "<p><strong>संदर्भ (८ महिने — पहिला बैच):</strong> एकवेळ किंवा हप्त्यात — <strong>समान एकूण फी</strong>. नोंदणी ₹५०० अंतिम शुल्कात समायोजित.</p>"
+    : "<p><strong>Reference (8 months — first batch):</strong> Same total fee for one-time or installments. Registration ₹500 adjusted in final fee.</p>";
   var tbl =
     "<table class='data-table fees-ref-table'><thead><tr>" +
     "<th>" + (mr ? "इयत्ता" : "Class") + "</th>" +

@@ -4,7 +4,7 @@ rules_version = '2';
 // Firestore Security Rules — Bhasme Sir Coaching Center student portal
 //
 // DATA MODEL (see auth/DATA_MODEL.md for full detail + example docs):
-//   students/{uid}                         -> profile: name, email, phone, batch, schedule, createdAt
+//   students/{uid}                         -> profile: name, email, phone, username, batch, schedule, createdAt
 //   students/{uid}/attendance/{autoId}     -> date, status ("present"|"absent"), note
 //   students/{uid}/results/{autoId}        -> testName, subject, marks, outOf, date
 //   announcements/{autoId}                 -> title, body, date, audience ("all" | a batch name)

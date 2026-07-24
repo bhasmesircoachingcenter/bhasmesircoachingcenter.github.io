@@ -223,6 +223,19 @@
     margin-bottom: 6px;
     line-height: 1.3;
   }
+  .fee-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+    margin-bottom: 8px;
+  }
+  .fee-table th, .fee-table td {
+    border: 1px solid var(--black);
+    padding: 4px 6px;
+    text-align: center;
+  }
+  .fee-table th { font-weight: 800; background: #f5f5f5; }
+  .fee-table td:first-child { text-align: left; font-weight: 600; }
   .fee-plans { margin-bottom: 6px; }
   .pay-modes .chk { font-size: 8pt; }
 
@@ -362,9 +375,24 @@
 
   <section class="section">
     <h3>4. Fee Payment Preference <span>/ शुल्क भरणा पद्धत</span></h3>
-    <p class="fee-note">Course duration: <strong>8 months</strong>. Please select your preferred fee payment plan (final plan subject to confirmation at the center).
-      <span class="mr" style="font-family:Mukta,sans-serif;display:block;margin-top:2px;">अभ्यासक्रम कालावधी: <strong>८ महिने</strong>. कृपया शुल्क भरण्याची पसंती निवडा (अंतिम निर्णय केंद्रावर निश्चित होईल).</span>
+    <p class="fee-note">Course duration: <strong>8 months</strong>. <strong>First batch:</strong> same total fee for one-time or installments. Registration ₹500 adjusted in final fee.
+      <span class="mr" style="font-family:Mukta,sans-serif;display:block;margin-top:2px;">अभ्यासक्रम कालावधी: <strong>८ महिने</strong>. <strong>पहिला बैच:</strong> एकवेळ किंवा हप्त्यात — समान एकूण फी. नोंदणी ₹५०० अंतिम फीत समाविष्ट.</span>
     </p>
+    <table class="fee-table">
+      <thead>
+        <tr>
+          <th>Class / इयत्ता</th>
+          <th>One-time / एकवेळ</th>
+          <th>Installments / हप्त्यात</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>7th / ७वी</td><td>₹2,500</td><td>₹2,500</td></tr>
+        <tr><td>8th / ८वी</td><td>₹3,000</td><td>₹3,000</td></tr>
+        <tr><td>9th / ९वी</td><td>₹3,500</td><td>₹3,500</td></tr>
+        <tr><td>10th / १०वी</td><td>₹4,000</td><td>₹4,000</td></tr>
+      </tbody>
+    </table>
     <div class="checks fee-plans">
       <span class="chk"><span class="box"></span> Monthly / मासिक</span>
       <span class="chk"><span class="box"></span> Two installments / दोन हप्त्यात</span>

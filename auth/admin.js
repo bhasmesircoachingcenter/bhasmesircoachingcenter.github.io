@@ -14,6 +14,11 @@ import { auth, db, provisionAuth } from "./firebase-config.js";
 import {
   normalizePhone,
   portalAuthEmail,
+  portalAuthEmailFromUsername,
+  portalUsernameFromName,
+  normalizePortalUsername,
+  ensureUniquePortalUsername,
+  collectTakenPortalUsernames,
   optionalContactEmail
 } from "./portal-auth.js";
 import {
@@ -113,8 +118,13 @@ var I18N = {
     "admin.feesReportSent": "Fee report emailed with Excel attachment.",
     "admin.feesReportErr": "Could not send fee report. Try again.",
     "admin.feesReportMailErr": "Fee report file was built but email failed (quota or Gmail limit). Try again later.",
-    "admin.feesNeedDeploy": "Deploy latest Apps Script (Code.gs) — feereport/feereceipt — then try again.",
+    "admin.feesNeedDeploy": "Deploy latest Apps Script (Code.gs) — feereport / feereportfile — then try again.",
     "admin.feesReportEmpty": "No students to include in the report.",
+    "admin.feesWhatsAppReport": "WhatsApp fee report",
+    "admin.feesReportWaConfirm": "Open WhatsApp with fee report Excel link ({total} students)?",
+    "admin.feesReportWaBuilding": "Building Excel link for WhatsApp…",
+    "admin.feesReportWaOpened": "WhatsApp opened with report link — tap Send.",
+    "admin.feesReportWaErr": "Could not build fee report link. Try again.",
     "admin.feesDiscount": "Discounted price (edit course fee)",
     "admin.feesDiscountShort": "Discount",
     "admin.feesDelete": "Delete",
@@ -159,17 +169,21 @@ var I18N = {
     "admin.loadingStudents": "Loading students…",
     "admin.noStudents": "No students registered yet.",
     "admin.accountsTitle": "Portal Accounts",
-    "admin.accountsHint": "Create login accounts from the Admissions sheet. Students sign in with their 10-digit mobile number (username and password). Email is optional.",
-    "admin.accountsLoginHint": "Tell students: Login = 10-digit mobile · Password = same mobile (no +91). Welcome email is sent only if an optional email is on file.",
+    "admin.accountsHint": "Create login accounts from the Admissions sheet. Username = first initial + surname (e.g. Jayant Sahare → jsahare). Password = 10-digit mobile.",
+    "admin.accountsLoginHint": "Tell students: Username = first initial + surname (lowercase) · Password = 10-digit mobile (no +91).",
+    "admin.accountsColUsername": "Username",
     "admin.accountsLoading": "Loading admissions and portal accounts…",
-    "admin.accountsPendingTitle": "From Admissions (no account yet)",
+    "admin.accountsPendingTitle": "From Admissions sheet",
+    "admin.accountsSharedMobilePending": "Shares mobile with {names} — one login for all",
+    "admin.accountsSharedMobileActive": "Login exists for this mobile (OK for siblings)",
     "admin.accountsActiveTitle": "Active portal accounts",
     "admin.accountsColStatus": "Status",
     "admin.accountsStatusPending": "No account",
     "admin.accountsStatusActive": "Active",
     "admin.accountsCreate": "Create account",
     "admin.accountsRemove": "Remove account",
-    "admin.accountsCreated": "Account created. Login: mobile number · password: same mobile.",
+    "admin.accountsCreated": "Account created. Username: {user} · Password: mobile number.",
+    "admin.accountsCreatedUserPass": "Username: {user} · Password: {phone}",
     "admin.accountsCreatedWelcome": "Account created and welcome email sent to optional contact email.",
     "admin.accountsCreatedWelcomeAndWhatsApp": "Account created. Welcome email sent. Tap Open WhatsApp below to notify the student.",
     "admin.accountsCreatedWhatsAppOnly": "Account created. Tap Open WhatsApp below to send the welcome message.",
@@ -180,15 +194,16 @@ var I18N = {
     "admin.accountsRemoved": "Portal account removed.",
     "admin.accountsInvalidEmail": "Optional email in Admissions is invalid — fix the sheet or leave blank.",
     "admin.accountsNoPhone": "Valid 10-digit mobile required for password.",
+    "admin.accountsNoUsername": "Could not derive username from name — check full name on Admissions sheet.",
     "admin.accountsNoPending": "All admission students already have portal accounts.",
     "admin.accountsNoActive": "No portal accounts yet.",
-    "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nLogin (mobile): {phone}\nPassword: {phone} (same 10-digit mobile)",
+    "admin.accountsConfirmCreate": "Create portal account for {name}?\n\nUsername: {user}\nPassword: {phone} (10-digit mobile)",
     "admin.accountsConfirmRemove": "Remove portal account for {name}? This deletes their login and profile.",
     "admin.accountsErrCreate": "Could not create account.",
     "admin.accountsErrWeakPassword": "Firebase rejected this password — use a different mobile number or contact support.",
     "admin.accountsErrFirestore": "Login was created but student profile could not be saved. Try Create account again.",
     "admin.accountsErrRemove": "Could not remove account.",
-    "admin.accountsErrExists": "This mobile number already has a portal account.",
+    "admin.accountsErrExists": "This username already has a portal account.",
     "admin.accountsErrFunctions": "Apps Script is outdated — paste latest admission/Code.gs, then Deploy → Manage deployments → New version.",
     "admin.edit": "Edit",
     "admin.save": "Save",
@@ -433,8 +448,13 @@ var I18N = {
     "admin.feesReportSent": "Excel जोडलेला फी अहवाल ईमेल झाला.",
     "admin.feesReportErr": "फी अहवाल पाठवता आला नाही. पुन्हा प्रयत्न करा.",
     "admin.feesReportMailErr": "फी अहवाल तयार झाला पण ईमेल अयशस्वी (मर्यादा). थोड्या वेळाने पुन्हा प्रयत्न करा.",
-    "admin.feesNeedDeploy": "नवीनतम Apps Script (Code.gs) deploy करा — feereport/feereceipt — मग पुन्हा प्रयत्न करा.",
+    "admin.feesNeedDeploy": "नवीनतम Apps Script (Code.gs) deploy करा — feereport / feereportfile — मग पुन्हा प्रयत्न करा.",
     "admin.feesReportEmpty": "अहवालासाठी विद्यार्थी नाहीत.",
+    "admin.feesWhatsAppReport": "WhatsApp फी अहवाल",
+    "admin.feesReportWaConfirm": "WhatsApp वर फी अहवाल Excel लिंक ({total} विद्यार्थी) उघडायचा?",
+    "admin.feesReportWaBuilding": "WhatsApp साठी Excel लिंक तयार होत आहे…",
+    "admin.feesReportWaOpened": "WhatsApp लिंकसह उघडले — Send दाबा.",
+    "admin.feesReportWaErr": "WhatsApp साठी फी अहवाल लिंक तयार करता आला नाही. पुन्हा प्रयत्न करा.",
     "admin.feesDiscount": "सवलतीची फी (अभ्यासक्रम शुल्क बदला)",
     "admin.feesDiscountShort": "सवलत",
     "admin.feesDelete": "हटवा",
@@ -479,17 +499,21 @@ var I18N = {
     "admin.loadingStudents": "विद्यार्थी लोड होत आहेत…",
     "admin.noStudents": "अद्याप कोणी विद्यार्थी नोंदणीकृत नाही.",
     "admin.accountsTitle": "पोर्टल खाती",
-    "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. विद्यार्थी १० अंकी मोबाइलने लॉगिन करतात (user id व पासवर्ड). ईमेल ऐच्छिक.",
-    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: लॉगिन = १० अंकी मोबाइल · पासवर्ड = तोच मोबाइल (+91 नको). स्वागत ईमेल फक्त ऐच्छिक ईमेल असल्यास.",
+    "admin.accountsHint": "Admissions sheet वरून लॉगिन खाती तयार करा. Username = पहिल्या नावाचा पहिला अक्षर + आडनाव (उदा. Jayant Sahare → jsahare). पासवर्ड = १० अंकी मोबाइल. ईमेल ऐच्छिक.",
+    "admin.accountsLoginHint": "विद्यार्थ्यांना सांगा: Username = पहिल्या नावाचा पहिला अक्षर + आडनाव (लोअरकेस) · पासवर्ड = १० अंकी मोबाइल (+91 नको).",
+    "admin.accountsColUsername": "Username",
     "admin.accountsLoading": "प्रवेश व पोर्टल खाती लोड होत आहेत…",
-    "admin.accountsPendingTitle": "Admissions मधून (अद्याप खाते नाही)",
+    "admin.accountsPendingTitle": "Admissions sheet मधून",
+    "admin.accountsSharedMobilePending": "{names} सोबत मोबाइल शेअर — एक लॉगिन सर्वांसाठी",
+    "admin.accountsSharedMobileActive": "या मोबाइलसाठी लॉगिन आहे (भावंडांसाठी ठीक)",
     "admin.accountsActiveTitle": "सक्रिय पोर्टल खाती",
     "admin.accountsColStatus": "स्थिती",
     "admin.accountsStatusPending": "खाते नाही",
     "admin.accountsStatusActive": "सक्रिय",
     "admin.accountsCreate": "खाते तयार करा",
     "admin.accountsRemove": "खाते काढा",
-    "admin.accountsCreated": "खाते तयार झाले. लॉगिन: मोबाइल · पासवर्ड: तोच मोबाइल.",
+    "admin.accountsCreated": "खाते तयार झाले. Username: {user} · पासवर्ड: {phone}.",
+    "admin.accountsCreatedUserPass": "Username: {user} · पासवर्ड: {phone}",
     "admin.accountsCreatedWelcome": "खाते तयार झाले आणि ऐच्छिक ईमेलवर स्वागत ईमेल पाठवला.",
     "admin.accountsCreatedWelcomeAndWhatsApp": "खाते तयार झाले. स्वागत ईमेल पाठवला. विद्यार्थ्याला कळवण्यासाठी खाली Open WhatsApp दाबा.",
     "admin.accountsCreatedWhatsAppOnly": "खाते तयार झाले. स्वागत संदेश पाठवण्यासाठी खाली Open WhatsApp दाबा.",
@@ -500,15 +524,16 @@ var I18N = {
     "admin.accountsRemoved": "पोर्टल खाते काढले.",
     "admin.accountsInvalidEmail": "Admissions मध्ये ऐच्हिक ईमेल चुकीचा — दुरुस्त करा किंवा रिकामा ठेवा.",
     "admin.accountsNoPhone": "पासवर्डसाठी वैध १० अंकी मोबाइल हवा.",
+    "admin.accountsNoUsername": "नावातून username तयार होत नाही — Admissions sheet वर पूर्ण नाव तपासा.",
     "admin.accountsNoPending": "सर्व प्रवेश विद्यार्थ्यांची पोर्टल खाती आहेत.",
     "admin.accountsNoActive": "अद्याप पोर्टल खाती नाहीत.",
-    "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nलॉगिन (मोबाइल): {phone}\nपासवर्ड: {phone} (तोच १० अंकी मोबाइल)",
+    "admin.accountsConfirmCreate": "{name} साठी पोर्टल खाते तयार करायचे?\n\nUsername: {user}\nपासवर्ड: {phone} (१० अंकी मोबाइल)",
     "admin.accountsConfirmRemove": "{name} चे पोर्टल खाते काढायचे? लॉगिन व प्रोफाइल हटवले जाईल.",
     "admin.accountsErrCreate": "खाते तयार करता आले नाही.",
     "admin.accountsErrWeakPassword": "Firebase ने हा पासवर्ड नाकारला — वेगळा मोबाइल वापरा.",
     "admin.accountsErrFirestore": "लॉगिन तयार झाले पण प्रोफाइल जतन झाली नाही. पुन्हा Create account दाबा.",
     "admin.accountsErrRemove": "खाते काढता आले नाही.",
-    "admin.accountsErrExists": "या मोबाइल क्रमांकावर आधीच पोर्टल खाते आहे.",
+    "admin.accountsErrExists": "या username वर आधीच पोर्टल खाते आहे.",
     "admin.accountsErrFunctions": "Apps Script जुना आहे — admission/Code.gs paste करा, नंतर Deploy → Manage deployments → New version.",
     "admin.edit": "संपादित करा",
     "admin.save": "जतन करा",
@@ -811,7 +836,16 @@ function loadStudents() {
   return getDocs(collection(db, "students")).then(function (qs) {
     state.students = qs.docs.map(function (d) {
       var data = d.data() || {};
-      return { id: d.id, name: data.name || "", email: data.email || "", phone: data.phone || "", batch: data.batch || "", schedule: data.schedule || "", createdAt: data.createdAt || null };
+      return {
+        id: d.id,
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        username: data.username || "",
+        batch: data.batch || "",
+        schedule: data.schedule || "",
+        createdAt: data.createdAt || null
+      };
     });
     state.students.sort(function (a, b) { return a.name.localeCompare(b.name); });
     state.studentsLoaded = true;
@@ -820,6 +854,8 @@ function loadStudents() {
 
 function portalStudentMetaLine(s) {
   var parts = [];
+  var username = normalizePortalUsername(s.username) || portalUsernameFromName(s.name);
+  if (username) parts.push(username);
   if (s.phone) parts.push(s.phone);
   if (s.email) parts.push(s.email);
   if (s.batch) parts.push(s.batch);
@@ -928,11 +964,42 @@ function appendPortalStudentRow(s, wrap) {
 
 /* ---------------- Portal accounts (admin-provisioned login) ---------------- */
 
+function studentByUsername(username) {
+  username = normalizePortalUsername(username);
+  if (!username) return null;
+  for (var i = 0; i < state.students.length; i++) {
+    if (normalizePortalUsername(state.students[i].username) === username) return state.students[i];
+  }
+  return null;
+}
+
 function studentByPhone(phone) {
   phone = normalizePhone(phone);
   if (!phone) return null;
   for (var i = 0; i < state.students.length; i++) {
     if (normalizePhone(state.students[i].phone) === phone) return state.students[i];
+  }
+  return null;
+}
+
+function computeAdmissionUsername(row, takenMap) {
+  return ensureUniquePortalUsername(row && row.name, takenMap, row && row.phone);
+}
+
+function studentForAdmissionRow(row, takenMap) {
+  row = row || {};
+  var username = computeAdmissionUsername(row, takenMap);
+  var byUser = studentByUsername(username);
+  if (byUser) return byUser;
+  var phone = normalizePhone(row.phone);
+  var rowName = String(row.name || "").trim().toLowerCase();
+  if (!phone || !rowName) return null;
+  for (var i = 0; i < state.students.length; i++) {
+    var s = state.students[i];
+    if (normalizePhone(s.phone) === phone &&
+        String(s.name || "").trim().toLowerCase() === rowName) {
+      return s;
+    }
   }
   return null;
 }
@@ -947,25 +1014,62 @@ function admissionAccountRow(r) {
   };
 }
 
-function accountPendingStatus(phone) {
-  if (!normalizePhone(phone)) return t("admin.accountsNoPhone");
+function accountPendingStatusForRow(row, takenMap) {
+  if (studentForAdmissionRow(row, takenMap)) return t("admin.accountsStatusActive");
+  if (!normalizePhone(row.phone)) return t("admin.accountsNoPhone");
+  if (!portalUsernameFromName(row.name)) return t("admin.accountsNoUsername");
   return t("admin.accountsStatusPending");
 }
 
 function buildAdmissionAccountList(rows) {
-  var seen = {};
   var list = [];
   (rows || []).forEach(function (r) {
     var row = admissionAccountRow(r);
     if (!row.name) return;
-    var phoneKey = normalizePhone(row.phone);
-    var emailKey = row.email ? row.email.trim().toLowerCase() : "";
-    var key = phoneKey || emailKey || ("n:" + row.name.toLowerCase());
-    if (seen[key]) return;
-    seen[key] = true;
     list.push(row);
   });
   return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
+}
+
+/** Every Admissions row — same as Student Details (no phone/name dedupe). */
+function portalAccountCandidates() {
+  return buildAdmissionAccountList(state.admissions || []);
+}
+
+function admissionAccountForPhone(phone, name) {
+  phone = normalizePhone(phone);
+  name = String(name || "").trim().toLowerCase();
+  var list = portalAccountCandidates();
+  var i, rowPhone, rowName;
+  if (phone && name) {
+    for (i = 0; i < list.length; i++) {
+      rowPhone = normalizePhone(list[i].phone);
+      rowName = String(list[i].name || "").trim().toLowerCase();
+      if (rowPhone === phone && rowName === name) return list[i];
+    }
+  }
+  if (phone) {
+    for (i = 0; i < list.length; i++) {
+      if (normalizePhone(list[i].phone) === phone) return list[i];
+    }
+  }
+  return null;
+}
+
+function enrichPortalStudentFromAdmissions(student) {
+  student = student || {};
+  var adm = admissionAccountForPhone(student.phone, student.name);
+  if (!adm) return student;
+  return {
+    id: student.id,
+    name: adm.name || student.name,
+    email: optionalContactEmail(adm.email) || student.email,
+    phone: normalizePhone(adm.phone) || student.phone,
+    username: student.username || computeAdmissionUsername(adm, collectTakenPortalUsernames(state.students)) || "",
+    batch: adm.batch || student.batch,
+    schedule: student.schedule,
+    createdAt: student.createdAt
+  };
 }
 
 function portalAccountsErrorKey(err) {
@@ -982,9 +1086,10 @@ function portalAccountsErrorKey(err) {
   return null;
 }
 
-function provisionCreateAuthUser(contactEmail, phone, name) {
-  var authEmail = portalAuthEmail(phone);
-  if (!authEmail) return Promise.reject({ code: "invalid-phone" });
+function provisionCreateAuthUser(contactEmail, phone, name, username) {
+  username = normalizePortalUsername(username);
+  var authEmail = portalAuthEmailFromUsername(username);
+  if (!authEmail || !phone) return Promise.reject({ code: "invalid-phone" });
   return createUserWithEmailAndPassword(provisionAuth, authEmail, phone).then(function (cred) {
     var user = cred.user;
     var uid = user.uid;
@@ -1003,20 +1108,36 @@ function provisionCreateAuthUser(contactEmail, phone, name) {
   });
 }
 
-function provisionDeleteAuthUser(contactEmail, phone) {
-  var authEmail = portalAuthEmail(phone);
-  function tryDelete(loginEmail) {
-    return signInWithEmailAndPassword(provisionAuth, loginEmail, phone).then(function (cred) {
+function provisionDeleteAuthUser(contactEmail, phone, username) {
+  phone = normalizePhone(phone);
+  if (!phone) return Promise.reject({ code: "invalid-phone" });
+  var loginEmails = [];
+  username = normalizePortalUsername(username);
+  if (username) {
+    var userEmail = portalAuthEmailFromUsername(username);
+    if (userEmail) loginEmails.push(userEmail);
+  }
+  var legacyPhoneEmail = portalAuthEmail(phone);
+  if (legacyPhoneEmail && loginEmails.indexOf(legacyPhoneEmail) < 0) loginEmails.push(legacyPhoneEmail);
+  var legacyContact = optionalContactEmail(contactEmail);
+  if (legacyContact && loginEmails.indexOf(legacyContact) < 0) loginEmails.push(legacyContact);
+
+  function tryDeleteAt(index) {
+    if (index >= loginEmails.length) return Promise.reject({ code: "auth/user-not-found" });
+    return signInWithEmailAndPassword(provisionAuth, loginEmails[index], phone).then(function (cred) {
       return deleteUser(cred.user).then(function () {
         return signOut(provisionAuth);
       });
+    }).catch(function (err) {
+      var code = err && err.code;
+      if (code === "auth/user-not-found" || code === "auth/wrong-password" ||
+          code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
+        return tryDeleteAt(index + 1);
+      }
+      throw err;
     });
   }
-  return tryDelete(authEmail).catch(function (err) {
-    var legacy = optionalContactEmail(contactEmail);
-    if (legacy && legacy !== authEmail) return tryDelete(legacy);
-    throw err;
-  });
+  return tryDeleteAt(0);
 }
 
 function deleteSubcollectionDocs(uid, subName) {
@@ -1096,33 +1217,46 @@ function renderPortalAccounts() {
   var activeWrap = el("accountsActiveWrap");
   if (!pendingWrap || !activeWrap) return;
 
-  var admissions = buildAdmissionAccountList(state.admissions || []);
-  var pending = admissions.filter(function (a) { return !studentByPhone(a.phone); });
-  var active = state.students.slice().sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); });
+  var admissions = portalAccountCandidates();
+  var takenUsernames = collectTakenPortalUsernames(state.students);
+  var active = state.students.slice().sort(function (a, b) {
+    return (a.name || "").localeCompare(b.name || "");
+  }).map(enrichPortalStudentFromAdmissions);
 
   pendingWrap.textContent = "";
   activeWrap.textContent = "";
 
-  var pendingHeaders = [t("dcol.name"), t("admin.phone"), t("dcol.email"), t("admin.attFilterClass"), t("admin.accountsColStatus")];
-  if (!pending.length) {
+  var pendingHeaders = [
+    t("dcol.name"),
+    t("admin.accountsColUsername"),
+    t("admin.phone"),
+    t("dcol.email"),
+    t("admin.attFilterClass"),
+    t("admin.accountsColStatus")
+  ];
+  if (!admissions.length) {
     var pEmpty = document.createElement("p");
     pEmpty.className = "empty-state";
-    pEmpty.textContent = admissions.length ? t("admin.accountsNoPending") : t("admin.attNoAdmissions");
+    pEmpty.textContent = t("admin.attNoAdmissions");
     pendingWrap.appendChild(pEmpty);
   } else {
-    var pendingRows = pending.map(function (a) {
+    var pendingRows = admissions.map(function (a) {
       var email = optionalContactEmail(a.email);
       var phone = normalizePhone(a.phone);
-      var canCreate = !!phone;
+      var username = computeAdmissionUsername(a, takenUsernames);
+      var hasLogin = !!studentForAdmissionRow(a, takenUsernames);
+      var canCreate = !!phone && !!username && !hasLogin;
       return {
         data: a,
+        username: username,
         nameCell: true,
         cells: [
           a.name || t("dash"),
+          username || t("dash"),
           phone || (a.phone || t("dash")),
           email || t("dash"),
           a.batch || t("dash"),
-          accountPendingStatus(a.phone)
+          accountPendingStatusForRow(a, takenUsernames)
         ],
         canCreate: canCreate
       };
@@ -1155,6 +1289,7 @@ function createPortalAccount(admissionRow, btn) {
   var note = el("accountsNote");
   var contactEmail = optionalContactEmail(admissionRow.email);
   var phone = normalizePhone(admissionRow.phone);
+  var username = computeAdmissionUsername(admissionRow, collectTakenPortalUsernames(state.students));
   if (String(admissionRow.email || "").trim() && !contactEmail) {
     if (note) setNote(note, t("admin.accountsInvalidEmail"), "err");
     return;
@@ -1163,8 +1298,13 @@ function createPortalAccount(admissionRow, btn) {
     if (note) setNote(note, t("admin.accountsNoPhone"), "err");
     return;
   }
+  if (!username) {
+    if (note) setNote(note, t("admin.accountsNoUsername"), "err");
+    return;
+  }
   var msg = t("admin.accountsConfirmCreate")
     .replace("{name}", admissionRow.name || "")
+    .replace("{user}", username)
     .replace("{phone}", phone);
   if (!window.confirm(msg)) return;
 
@@ -1172,12 +1312,13 @@ function createPortalAccount(admissionRow, btn) {
   clearWhatsAppOpenLink(note);
   if (note) setNote(note, "", "");
 
-  provisionCreateAuthUser(contactEmail, phone, admissionRow.name).then(function (uid) {
+  provisionCreateAuthUser(contactEmail, phone, admissionRow.name, username).then(function (uid) {
     if (!uid) throw new Error("bad-response");
     return setDoc(doc(db, "students", uid), {
       name: admissionRow.name,
       email: contactEmail,
       phone: phone,
+      username: username,
       batch: admissionRow.batch || "",
       schedule: "",
       provisionedByAdmin: true,
@@ -1192,12 +1333,14 @@ function createPortalAccount(admissionRow, btn) {
         name: admissionRow.name || "",
         email: contactEmail,
         phone: phone,
+        username: username,
         batch: admissionRow.batch || ""
       }).then(function () { return { ok: true, skipped: false }; }).catch(function (err) { return { ok: false, err: err }; });
     });
   }).then(function (emailResult) {
     var waUrl = placePortalWelcomeWhatsAppLink({
       name: admissionRow.name,
+      username: username,
       phone: phone,
       batch: admissionRow.batch || ""
     }, note);
@@ -1218,7 +1361,7 @@ function createPortalAccount(admissionRow, btn) {
       } else if (emailFailed) {
         setNote(note, sheetAdminErrorMessage(emailResult.err, "admin.accountsCreatedNoEmail"), "ok");
       } else {
-        setNote(note, t("admin.accountsCreated"), "ok");
+        setNote(note, t("admin.accountsCreated").replace("{user}", username), "ok");
       }
     }
     return loadStudents().then(function () {
@@ -1251,7 +1394,7 @@ function removePortalAccount(student, btn) {
     return;
   }
 
-  provisionDeleteAuthUser(student.email, phone).then(function () {
+  provisionDeleteAuthUser(student.email, phone, student.username).then(function () {
     return deleteStudentFirestoreData(student.id);
   }).catch(function (err) {
     if (err && err.code === "auth/user-not-found") {
@@ -2258,7 +2401,7 @@ function initTabs() {
       if (name === "accounts" && !state.accountsInit) {
         initAccountsTab();
       } else if (name === "accounts") {
-        renderPortalAccounts();
+        loadPortalAccounts();
       }
       if (name === "announcements") {
         updateWaPhonesPanel();
@@ -2522,6 +2665,85 @@ function buildFeesReportEmailBody(filteredRoster, fullRoster) {
   return lines.join("\n");
 }
 
+var COACHING_WHATSAPP_PHONE = "7058505983";
+
+function buildFeesReportWhatsAppText(fullRoster, reportUrl) {
+  var recorded = 0;
+  var totalPaid = 0;
+  var totalBalance = 0;
+  fullRoster.forEach(function (student) {
+    var info = studentFeesRecordFor(student);
+    if (!info.hasSaved) return;
+    recorded++;
+    totalPaid += info.record.amountPaid;
+    totalBalance += info.record.balance;
+  });
+  var stamp = new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  return [
+    "*Bhasme Sir Coaching Center*",
+    "Student Fees Report",
+    "Generated: " + stamp,
+    "Students: " + fullRoster.length + " (fees recorded: " + recorded + ")",
+    "Total paid: " + formatRupee(totalPaid),
+    "Balance due: " + formatRupee(totalBalance),
+    "",
+    "Download Excel:",
+    reportUrl || ""
+  ].join("\n");
+}
+
+function sendFeesReportWhatsApp() {
+  var note = el("studentFeesNote");
+  var btn = el("feesWhatsAppReportBtn");
+
+  ensureAttendanceRoster(true).then(function (fullRoster) {
+    var filtered = getFilteredFeesRoster(fullRoster);
+    if (!fullRoster.length) {
+      if (note) setNote(note, t("admin.feesReportEmpty"), "err");
+      return;
+    }
+    if (!filtered.length) {
+      if (note) setNote(note, t("admin.feesFilterNone"), "err");
+      return;
+    }
+
+    var confirmMsg = t("admin.feesReportWaConfirm").replace("{total}", fullRoster.length);
+    if (!window.confirm(confirmMsg)) return;
+
+    if (btn) btn.disabled = true;
+    if (note) setNote(note, t("admin.feesReportWaBuilding"), "");
+
+    var excelRows = buildFeesReportExcelRows(fullRoster);
+    var user = auth.currentUser;
+
+    return Promise.resolve(user ? user.getIdToken() : Promise.reject(new Error("no-user")))
+      .then(function (idToken) {
+        return sheetAdminPost(idToken, "feereportfile", {
+          rowsJson: JSON.stringify(excelRows),
+          lang: lang
+        });
+      })
+      .then(function (payload) {
+        var reportUrl = payload.downloadUrl || payload.fileUrl || "";
+        if (!reportUrl) throw new Error("no-link");
+        var waText = buildFeesReportWhatsAppText(fullRoster, reportUrl);
+        var waUrl = whatsAppDirectUrl(COACHING_WHATSAPP_PHONE, waText);
+        if (!waUrl) throw new Error("no-wa");
+        window.open(waUrl, "_blank", "noopener,noreferrer");
+        if (note) setNote(note, t("admin.feesReportWaOpened"), "ok");
+      })
+      .catch(function (err) {
+        if (note) setNote(note, sheetAdminErrorMessage(err, "admin.feesReportWaErr"), "err");
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }).catch(function () {
+    if (note) setNote(note, t("admin.feesReportWaErr"), "err");
+    if (btn) btn.disabled = false;
+  });
+}
+
 function sendFeesReportEmail() {
   var note = el("studentFeesNote");
   var btn = el("feesEmailReportBtn");
@@ -2580,6 +2802,7 @@ function bindStudentFeesFilters() {
   var classFilter = el("feesClassFilter");
   var statusFilter = el("feesStatusFilter");
   var reportBtn = el("feesEmailReportBtn");
+  var waReportBtn = el("feesWhatsAppReportBtn");
 
   function onFilterChange() {
     if (state.studentFeesEditing) state.studentFeesEditing = null;
@@ -2593,6 +2816,7 @@ function bindStudentFeesFilters() {
   if (classFilter) classFilter.addEventListener("change", onFilterChange);
   if (statusFilter) statusFilter.addEventListener("change", onFilterChange);
   if (reportBtn) reportBtn.addEventListener("click", sendFeesReportEmail);
+  if (waReportBtn) waReportBtn.addEventListener("click", sendFeesReportWhatsApp);
 }
 
 function receiptTokensFromRecord(record) {
@@ -2818,8 +3042,9 @@ function copyFeeReceiptLink(student, record, noteEl, payment) {
   });
 }
 
-function buildPortalWelcomeWhatsAppText(name, phone, batch) {
+function buildPortalWelcomeWhatsAppText(name, username, phone, batch) {
   name = String(name || "").trim() || "Student";
+  username = normalizePortalUsername(username) || portalUsernameFromName(name) || "";
   phone = normalizePhone(phone);
   batch = String(batch || "").trim();
   var lines = [
@@ -2833,8 +3058,8 @@ function buildPortalWelcomeWhatsAppText(name, phone, batch) {
     "",
     "Login page:",
     PORTAL_LOGIN_URL,
-    "*Mobile (username): " + phone + "*",
-    "*Password: " + phone + "* (same 10-digit mobile number)"
+    "*Username: " + username + "*",
+    "*Password: " + phone + "* (10-digit mobile number)"
   ];
   if (batch) lines.push("Class / Batch: " + batch);
   lines.push(
@@ -2851,8 +3076,8 @@ function buildPortalWelcomeWhatsAppText(name, phone, batch) {
     "",
     "लॉगिन पृष्ठ:",
     PORTAL_LOGIN_URL,
-    "*मोबाइल (user id): " + phone + "*",
-    "*पासवर्ड: " + phone + "* (तोच १० अंकी मोबाइल)"
+    "*Username: " + username + "*",
+    "*पासवर्ड: " + phone + "* (१० अंकी मोबाइल)"
   );
   if (batch) lines.push("इयत्ता / बॅच: " + batch);
   lines.push(
@@ -2866,7 +3091,7 @@ function portalWelcomeWhatsAppUrl(data) {
   data = data || {};
   var phone = normalizePhone(data.phone);
   if (!phone) return "";
-  var text = buildPortalWelcomeWhatsAppText(data.name, phone, data.batch);
+  var text = buildPortalWelcomeWhatsAppText(data.name, data.username, phone, data.batch);
   return whatsAppDirectUrl(phone, text);
 }
 

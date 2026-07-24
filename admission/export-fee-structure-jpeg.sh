@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Convert admission-form.pdf → JPEG at 700 DPI (print / WhatsApp quality).
+# Build fee-structure-700dpi.jpg from fee-structure.pdf (WhatsApp / print).
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
-PDF="$DIR/admission-form.pdf"
-OUT="$DIR/admission-form-700dpi.jpg"
+PDF="$DIR/fee-structure.pdf"
+OUT="$DIR/fee-structure-700dpi.jpg"
 DPI=700
+
+if [[ ! -f "$PDF" ]]; then
+  echo "Missing $PDF — run ./export-fee-structure-pdf.sh first." >&2
+  exit 1
+fi
 
 python3 - <<PY
 import fitz
