@@ -1476,23 +1476,35 @@ function admissionRowField(r, exactKey, keyPattern) {
   return "";
 }
 
+function normalizeStudentName(name) {
+  return String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function rosterDedupeKey(name, email, mobile) {
+  var normName = normalizeStudentName(name);
+  var normMobile = normalizePhone(mobile) || "";
+  if (normName) return "n:" + normName + "|" + normMobile;
+  email = String(email || "").trim().toLowerCase();
+  if (email && email.indexOf("@") > 0) return "e:" + email;
+  return "";
+}
+
 function buildAttendanceRoster(admissionRows) {
-  var seen = {};
-  var list = [];
+  var map = {};
+  var keys = [];
   (admissionRows || []).forEach(function (r) {
     var name = admissionRowField(r, "Name", /name/i);
     if (!name) return;
     var email = admissionRowField(r, "Email", /email/i);
     var mobile = admissionRowField(r, "Mobile", /mobile|whatsapp|phone/i);
     var batch = admissionRowField(r, "Class", /class/i) || admissionRowField(r, "Batch", /batch|timing/i);
-    var key = email && email.indexOf("@") > 0
-      ? email.toLowerCase()
-      : ("name:" + name.toLowerCase() + "|" + mobile);
-    if (seen[key]) return;
-    seen[key] = true;
-    list.push({ name: name, email: email, mobile: mobile, batch: batch });
+    var key = rosterDedupeKey(name, email, mobile);
+    if (!key) return;
+    if (!map.hasOwnProperty(key)) keys.push(key);
+    map[key] = { name: name, email: email, mobile: mobile, batch: batch };
   });
-  return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  return keys.map(function (key) { return map[key]; })
+    .sort(function (a, b) { return a.name.localeCompare(b.name); });
 }
 
 function rosterAttKey(s) {
@@ -2599,6 +2611,8 @@ function buildFeesReportExcelRows(roster) {
     "Note"
   ];
   var rows = [headers];
+  var map = {};
+  var keys = [];
 
   roster.forEach(function (student) {
     var info = studentFeesRecordFor(student);
@@ -2606,8 +2620,7 @@ function buildFeesReportExcelRows(roster) {
     var classLabel = r.classKey || detectClassKey(student.batch) || "";
     var batch = normalizeAttClass(student.batch) || "";
     var status = info.hasSaved ? t("admin.feesStatusSet") : t("admin.feesStatusPending");
-
-    rows.push([
+    var row = [
       feeReportCell(student.name),
       feeReportCell(classLabel),
       feeReportCell(batch),
@@ -2623,9 +2636,17 @@ function buildFeesReportExcelRows(roster) {
       feeReportCell(student.email),
       feeReportCell(student.mobile),
       info.hasSaved ? feeReportCell(r.note) : ""
-    ]);
+    ];
+    var key = rosterDedupeKey(student.name, student.email, student.mobile);
+    if (!key) return;
+    if (!map.hasOwnProperty(key)) keys.push(key);
+    map[key] = row;
   });
 
+  keys.sort(function (a, b) {
+    return String((map[a][0] || "")).localeCompare(String((map[b][0] || "")));
+  });
+  keys.forEach(function (key) { rows.push(map[key]); });
   return rows;
 }
 

@@ -555,6 +555,7 @@ function handleFeeReport(p) {
   }
 
   rows = normalizeFeeReportRows_(rows);
+  rows = dedupeFeeReportRows_(rows);
   if (!rows.length || !rows[0].length) {
     return respondAdmin({ result: 'error', error: 'no rows' }, p);
   }
@@ -602,6 +603,7 @@ function handleFeeReportFile(p) {
   }
 
   rows = normalizeFeeReportRows_(rows);
+  rows = dedupeFeeReportRows_(rows);
   if (!rows.length || !rows[0].length) {
     return respondAdmin({ result: 'error', error: 'no rows' }, p);
   }
@@ -670,6 +672,45 @@ function normalizeFeeReportRows_(rows) {
     }
     return out;
   });
+}
+
+/** Normalize student name for dedupe keys. */
+function normalizeStudentName_(name) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Dedupe key for fee report rows — columns: 0=name, 12=email, 13=mobile.
+ * Uses name+mobile so the same student is not listed twice when one row has email and another does not.
+ */
+function feeReportRowDedupeKey_(row) {
+  if (!row || !row.length) return '';
+  var name = normalizeStudentName_(row[0]);
+  var email = String(row[12] || '').trim().toLowerCase();
+  var mobile = normalizePhone_(String(row[13] || '')) || '';
+  if (name) return 'n:' + name + '|' + mobile;
+  if (email && email.indexOf('@') > 0) return 'e:' + email;
+  return '';
+}
+
+/** Keep one row per student in fee reports; last row wins (latest admission). Header row preserved. */
+function dedupeFeeReportRows_(rows) {
+  if (!rows || rows.length <= 1) return rows || [];
+  var header = rows[0];
+  var map = {};
+  var keys = [];
+  var i;
+  for (i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var key = feeReportRowDedupeKey_(row);
+    if (!key) continue;
+    if (!map.hasOwnProperty(key)) keys.push(key);
+    map[key] = row;
+  }
+  keys.sort(function (a, b) {
+    return String(map[a][0] || '').localeCompare(String(map[b][0] || ''));
+  });
+  return [header].concat(keys.map(function (k) { return map[k]; }));
 }
 
 /** Build a temporary spreadsheet and return .xlsx blob (temp file is trashed). */
@@ -1566,10 +1607,11 @@ function getAttendanceRosterRows() {
     email = String(email || '').trim();
     mobile = String(mobile || '').trim();
     batch = String(batch || '').trim();
-    var key = email && email.indexOf('@') > 0
-      ? email.toLowerCase()
-      : ('n:' + name.toLowerCase() + '|' + mobile);
-    if (seen[key]) return;
+    var normName = normalizeStudentName_(name);
+    var normMobile = normalizePhone_(mobile) || '';
+    var key = normName ? ('n:' + normName + '|' + normMobile) :
+      (email && email.indexOf('@') > 0 ? email.toLowerCase() : '');
+    if (!key || seen[key]) return;
     seen[key] = true;
     list.push({ name: name, email: email, mobile: mobile, batch: batch });
   }
