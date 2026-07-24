@@ -126,6 +126,7 @@ var I18N = {
     "admin.feesReportWaConfirm": "Open WhatsApp with fee report Excel link ({total} students)?",
     "admin.feesReportWaBuilding": "Building Excel link for WhatsApp…",
     "admin.feesReportWaOpened": "WhatsApp opened with report link — tap Send.",
+    "admin.feesReportWaDownloaded": "Excel downloaded — WhatsApp opened. Attach the file from Downloads if needed.",
     "admin.feesReportWaErr": "Could not build fee report link. Try again.",
     "admin.feesDiscount": "Discounted price (edit course fee)",
     "admin.feesDiscountShort": "Discount",
@@ -458,6 +459,7 @@ var I18N = {
     "admin.feesReportWaConfirm": "WhatsApp वर फी अहवाल Excel लिंक ({total} विद्यार्थी) उघडायचा?",
     "admin.feesReportWaBuilding": "WhatsApp साठी Excel लिंक तयार होत आहे…",
     "admin.feesReportWaOpened": "WhatsApp लिंकसह उघडले — Send दाबा.",
+    "admin.feesReportWaDownloaded": "Excel डाउनलोड झाला — WhatsApp उघडले. गरज असल्यास Downloads मधून फाइल जोडा.",
     "admin.feesReportWaErr": "WhatsApp साठी फी अहवाल लिंक तयार करता आला नाही. पुन्हा प्रयत्न करा.",
     "admin.feesDiscount": "सवलतीची फी (अभ्यासक्रम शुल्क बदला)",
     "admin.feesDiscountShort": "सवलत",
@@ -1622,10 +1624,12 @@ function sheetApiRequest(idToken, action, fields) {
 }
 
 function sheetAdminPost(idToken, action, fields) {
-  var JSONP_FALLBACK_ACTIONS = { portalwelcome: true, feereceipt: true };
+  var JSONP_FALLBACK_ACTIONS = { portalwelcome: true, feereceipt: true, feereport: true, feereportfile: true };
+  var cbName = "__bccPost_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
   var params = new URLSearchParams();
   params.append("action", action);
   params.append("idToken", idToken);
+  params.append("callback", cbName);
   Object.keys(fields || {}).forEach(function (k) {
     params.append(k, fields[k] == null ? "" : String(fields[k]));
   });
@@ -1654,7 +1658,7 @@ function sheetAdminErrorMessage(err, fallbackKey) {
   }
   if (/unauthorized/i.test(msg)) return t("admin.detailsUnauthorized");
   if (/no rows|invalid rows/i.test(msg)) return t("admin.feesReportEmpty");
-  if (/mail-failed|excel-failed/i.test(msg)) return t("admin.feesReportMailErr");
+  if (/mail-failed|excel-failed|drive-failed/i.test(msg)) return t("admin.feesReportMailErr");
   if (/invalid-phone/i.test(msg)) return t("admin.accountsNoPhone");
   if (/no.recipient|no-recipient/i.test(msg)) return t("admin.accountsCreatedNoEmail");
   if (/bad-response|empty-response|network|timeout/i.test(msg)) {
@@ -2671,6 +2675,40 @@ function buildFeesReportEmailBody(filteredRoster, fullRoster) {
 
 var COACHING_WHATSAPP_PHONE = "7058505983";
 
+function base64ToBlob(base64, mimeType) {
+  var binary = atob(String(base64 || ""));
+  var len = binary.length;
+  var bytes = new Uint8Array(len);
+  for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType || "application/octet-stream" });
+}
+
+function downloadBlobFile(blob, fileName) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = fileName || "student-fees-report.xlsx";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+}
+
+function openFeesReportWhatsApp(fullRoster, reportUrl, noteEl, downloadedFile) {
+  var waText = buildFeesReportWhatsAppText(fullRoster, reportUrl);
+  var waUrl = whatsAppBroadcastUrl(waText);
+  if (!waUrl) {
+    if (noteEl) setNote(noteEl, t("admin.feesReportWaErr"), "err");
+    return;
+  }
+  window.open(waUrl, "_blank", "noopener,noreferrer");
+  appendWhatsAppOpenLink(noteEl, waUrl, "admin.accountsOpenWhatsApp");
+  if (noteEl) {
+    setNote(noteEl, downloadedFile ? t("admin.feesReportWaDownloaded") : t("admin.feesReportWaOpened"), "ok");
+  }
+}
+
 function buildFeesReportWhatsAppText(fullRoster, reportUrl) {
   var recorded = 0;
   var totalPaid = 0;
@@ -2728,13 +2766,18 @@ function sendFeesReportWhatsApp() {
         });
       })
       .then(function (payload) {
-        var reportUrl = payload.downloadUrl || payload.fileUrl || "";
-        if (!reportUrl) throw new Error("no-link");
-        var waText = buildFeesReportWhatsAppText(fullRoster, reportUrl);
-        var waUrl = whatsAppDirectUrl(COACHING_WHATSAPP_PHONE, waText);
-        if (!waUrl) throw new Error("no-wa");
-        window.open(waUrl, "_blank", "noopener,noreferrer");
-        if (note) setNote(note, t("admin.feesReportWaOpened"), "ok");
+        var reportUrl = payload.fileUrl || payload.downloadUrl || "";
+        var downloadedFile = false;
+        if (!reportUrl && payload.fileBase64) {
+          downloadBlobFile(
+            base64ToBlob(payload.fileBase64, payload.mimeType),
+            payload.fileName || "student-fees-report.xlsx"
+          );
+          downloadedFile = true;
+          reportUrl = "(Excel saved to your Downloads folder)";
+        }
+        if (!reportUrl && !downloadedFile) throw new Error("no-link");
+        openFeesReportWhatsApp(fullRoster, reportUrl, note, downloadedFile);
       })
       .catch(function (err) {
         if (note) setNote(note, sheetAdminErrorMessage(err, "admin.feesReportWaErr"), "err");

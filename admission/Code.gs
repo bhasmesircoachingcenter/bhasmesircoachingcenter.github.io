@@ -540,7 +540,7 @@ function buildFeeReceiptPdf_(data) {
 function handleFeeReport(p) {
   var user = verifyFirebaseToken(p.idToken);
   if (!isAdminUser(user)) {
-    return json({ result: 'error', message: 'unauthorized' });
+    return respondAdmin({ result: 'error', error: 'unauthorized' }, p);
   }
 
   var subject = String(p.subject || '').trim() || ('Student Fees Report – ' + CENTER_NAME);
@@ -551,12 +551,12 @@ function handleFeeReport(p) {
   try {
     rows = JSON.parse(rowsJson);
   } catch (err) {
-    return json({ result: 'error', message: 'invalid rows' });
+    return respondAdmin({ result: 'error', error: 'invalid rows' }, p);
   }
 
   rows = normalizeFeeReportRows_(rows);
   if (!rows.length || !rows[0].length) {
-    return json({ result: 'error', message: 'no rows' });
+    return respondAdmin({ result: 'error', error: 'no rows' }, p);
   }
 
   var attachment;
@@ -566,7 +566,7 @@ function handleFeeReport(p) {
     try {
       attachment = buildFeesCsvBlob_(rows);
     } catch (err2) {
-      return json({ result: 'error', message: 'excel-failed' });
+      return respondAdmin({ result: 'error', error: 'excel-failed' }, p);
     }
   }
 
@@ -580,16 +580,16 @@ function handleFeeReport(p) {
       attachments: [attachment]
     });
   } catch (err) {
-    return json({ result: 'error', message: 'mail-failed' });
+    return respondAdmin({ result: 'error', error: 'mail-failed' }, p);
   }
-  return json({ result: 'success' });
+  return respondAdmin({ result: 'success' }, p);
 }
 
-/** Admin — build fee report Excel/CSV and return as base64 (for WhatsApp / download). */
+/** Admin — build fee report Excel/CSV; upload to Drive or return base64 fallback. */
 function handleFeeReportFile(p) {
   var user = verifyFirebaseToken(p.idToken);
   if (!isAdminUser(user)) {
-    return json({ result: 'error', message: 'unauthorized' });
+    return respondAdmin({ result: 'error', error: 'unauthorized' }, p);
   }
 
   var rowsJson = String(p.rowsJson || '[]');
@@ -598,12 +598,12 @@ function handleFeeReportFile(p) {
   try {
     rows = JSON.parse(rowsJson);
   } catch (err) {
-    return json({ result: 'error', message: 'invalid rows' });
+    return respondAdmin({ result: 'error', error: 'invalid rows' }, p);
   }
 
   rows = normalizeFeeReportRows_(rows);
   if (!rows.length || !rows[0].length) {
-    return json({ result: 'error', message: 'no rows' });
+    return respondAdmin({ result: 'error', error: 'no rows' }, p);
   }
 
   var attachment;
@@ -613,17 +613,31 @@ function handleFeeReportFile(p) {
     try {
       attachment = buildFeesCsvBlob_(rows);
     } catch (err2) {
-      return json({ result: 'error', message: 'excel-failed' });
+      return respondAdmin({ result: 'error', error: 'excel-failed' }, p);
     }
   }
 
-  var published = publishFeesReportLink_(attachment);
-  return json({
-    result: 'success',
-    fileName: published.fileName,
-    fileUrl: published.fileUrl,
-    downloadUrl: published.downloadUrl
-  });
+  try {
+    var published = publishFeesReportLink_(attachment);
+    return respondAdmin({
+      result: 'success',
+      fileName: published.fileName,
+      fileUrl: published.fileUrl,
+      downloadUrl: published.downloadUrl
+    }, p);
+  } catch (driveErr) {
+    try {
+      return respondAdmin({
+        result: 'success',
+        fileName: attachment.getName(),
+        fileBase64: Utilities.base64Encode(attachment.getBytes()),
+        mimeType: attachment.getContentType() || 'application/octet-stream',
+        driveFallback: true
+      }, p);
+    } catch (encodeErr) {
+      return respondAdmin({ result: 'error', error: 'drive-failed' }, p);
+    }
+  }
 }
 
 /** Upload fee report to Drive; return view + direct download links for WhatsApp. */
@@ -635,7 +649,7 @@ function publishFeesReportLink_(attachment) {
   var id = file.getId();
   return {
     fileName: file.getName(),
-    fileUrl: file.getUrl(),
+    fileUrl: 'https://drive.google.com/file/d/' + id + '/view',
     downloadUrl: 'https://drive.google.com/uc?export=download&id=' + id
   };
 }
