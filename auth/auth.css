@@ -706,6 +706,18 @@ body.lang-mr h1, body.lang-mr h2, body.lang-mr h3 {
 
 .student-fees-table .att-name { font-weight: 600; }
 .student-fees-table td { vertical-align: middle; }
+.student-fees-table tfoot .fees-totals-row td {
+  border-top: 2px solid rgba(26, 54, 93, .2);
+  background: linear-gradient(180deg, #f7f9fc 0%, #fff 100%);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.student-fees-table .fees-totals-meta {
+  font-weight: 400;
+  font-size: .85rem;
+  color: var(--muted, #5a6578);
+}
 .fees-status {
   display: inline-block;
   font-size: .78rem;

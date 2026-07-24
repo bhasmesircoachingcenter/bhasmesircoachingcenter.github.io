@@ -111,6 +111,8 @@ var I18N = {
     "admin.feesFilterBalance": "Has balance",
     "admin.feesFilterMeta": "Showing {n} of {total} students",
     "admin.feesFilterNone": "No students match your filters.",
+    "admin.feesRowTotal": "Total",
+    "admin.feesTotalsRecorded": "({n} with fees recorded)",
     "admin.feesEmailReport": "Email fee report",
     "admin.feesReportSubject": "Student fees report ({n} students)",
     "admin.feesReportConfirm": "Email fee report with Excel file ({total} students) to bhasmesircoachingcenter@gmail.com?",
@@ -441,6 +443,8 @@ var I18N = {
     "admin.feesFilterBalance": "बाकी आहे",
     "admin.feesFilterMeta": "{total} पैकी {n} विद्यार्थी",
     "admin.feesFilterNone": "फिल्टरशी जुळणारे विद्यार्थी नाहीत.",
+    "admin.feesRowTotal": "एकूण",
+    "admin.feesTotalsRecorded": "({n} नोंदवलेले शुल्क)",
     "admin.feesEmailReport": "फी अहवाल ईमेल करा",
     "admin.feesReportSubject": "विद्यार्थी फी अहवाल ({n} विद्यार्थी)",
     "admin.feesReportConfirm": "Excel सहित फी अहवाल ({total} विद्यार्थी) bhasmesircoachingcenter@gmail.com वर पाठवायचा?",
@@ -3700,12 +3704,22 @@ function renderStudentFeesTable() {
     table.appendChild(thead);
 
     var tbody = document.createElement("tbody");
+    var totalCourse = 0;
+    var totalPaid = 0;
+    var totalBalance = 0;
+    var recordedCount = 0;
     filtered.forEach(function (student) {
       var key = rosterAttKey(student);
       var docId = studentFeesDocId(key);
       var saved = state.studentFeesMap[docId];
       var record = saved || normalizeStudentFeesRecord({}, student);
       var hasSaved = !!saved;
+      if (hasSaved) {
+        recordedCount++;
+        totalCourse += Number(record.courseFee) || 0;
+        totalPaid += Number(record.amountPaid) || 0;
+        totalBalance += Number(record.balance) || 0;
+      }
 
       var tr = document.createElement("tr");
       tr.innerHTML =
@@ -3806,6 +3820,23 @@ function renderStudentFeesTable() {
     });
 
     table.appendChild(tbody);
+
+    if (recordedCount > 0) {
+      var tfoot = document.createElement("tfoot");
+      var totalsMeta = recordedCount < filtered.length
+        ? " <span class=\"fees-totals-meta\">" + t("admin.feesTotalsRecorded").replace("{n}", String(recordedCount)) + "</span>"
+        : "";
+      tfoot.innerHTML =
+        "<tr class=\"fees-totals-row\">" +
+        "<td colspan=\"3\"><strong>" + t("admin.feesRowTotal") + "</strong>" + totalsMeta + "</td>" +
+        "<td><strong>" + formatRupee(totalCourse) + "</strong></td>" +
+        "<td><strong>" + formatRupee(totalPaid) + "</strong></td>" +
+        "<td><strong>" + formatRupee(totalBalance) + "</strong></td>" +
+        "<td colspan=\"2\"></td>" +
+        "</tr>";
+      table.appendChild(tfoot);
+    }
+
     wrap.innerHTML = "";
     wrap.appendChild(table);
   }).catch(function () {
